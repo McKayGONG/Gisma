@@ -17,13 +17,4 @@ Source code and datasets for the paper "Gisma: Giant-Step-Small-Step Indexing fo
 
 Shared datasets are in `Gisma/datasets/`: AIDS (42K), PubChem (22K), Chemical1M (1M), SYN (1M).
 
-## Quick Start
-
-```bash
-cd Gisma
-cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j8
-./build/GismaProject --help
-```
-
 See each subdirectory's README for detailed usage.
