@@ -6,7 +6,7 @@ Source code and datasets for the paper "Gisma: Giant-Step-Small-Step Indexing fo
 
 | Directory | Description |
 |-----------|-------------|
-| `Gisma/` | Gisma indexing framework |
+| `Gisma/` | Gisma, App-BMao, AStar-BMao |
 | `Nass/` | Nass baseline |
 | `LAN/` | LAN baseline |
 | `GHash/` | GHashing baseline |
