@@ -6,12 +6,12 @@ Source code and datasets for the paper "Gisma: Giant-Step-Small-Step Indexing fo
 
 | Directory | Description |
 |-----------|-------------|
-| `Gisma/` | Gisma indexing framework (C++) |
-| `Nass/` | Nass baseline (C++) |
-| `LAN/` | LAN baseline (Python) |
-| `GHash/` | GHash baseline (Python + C++) |
-| `GEDHOT/` | GED-via-Optimal-Transport baseline (Python) |
-| `GREED/` | GREED graph embedding model (Python) |
+| `Gisma/` | Gisma indexing framework |
+| `Nass/` | Nass baseline |
+| `LAN/` | LAN baseline |
+| `GHash/` | GHashing baseline |
+| `GEDHOT/` | GED-via-Optimal-Transport baseline |
+| `GREED/` | GREED graph embedding model |
 
 ## Datasets
 
