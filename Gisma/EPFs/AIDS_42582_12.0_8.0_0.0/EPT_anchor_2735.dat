@@ -1,0 +1,5504 @@
+BEGIN_EPT
+AnchorID: 2735  # ID of the anchor node
+RootIndex: 0  # Index of the root node in tree_nodes
+NodeCount: 64  # Total number of nodes in the EPT
+NodeStart
+EPTNodeID: 0
+AnchorID: 2735
+TreeNodeGraphID: 0
+Level: 0
+SimplifiedLevel: 0
+EditOperation: -1 0 -1 0 0
+AccumulatedOpsCount: 0
+ChildrenCount: 6
+ChildIndices: 1 35 54 55 56 63
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 0
+NumNodes: 28
+NumEdges: 60
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 4 4 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 4 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+23 27 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+26 22 0
+27 23 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 1
+AnchorID: 2735
+TreeNodeGraphID: 1
+Level: 1
+SimplifiedLevel: 0
+EditOperation: 4 23 27 0 0
+AccumulatedOpsCount: 1
+AccumulatedOp: 4 23 27 0 0
+ChildrenCount: 8
+ChildIndices: 2 22 23 24 29 32 33 34
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 1
+NumNodes: 28
+NumEdges: 58
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 4 4 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 4 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+26 22 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 2
+AnchorID: 2735
+TreeNodeGraphID: 2
+Level: 2
+SimplifiedLevel: 0
+EditOperation: 4 22 26 0 0
+AccumulatedOpsCount: 1
+AccumulatedOp: 4 22 26 0 0
+ChildrenCount: 4
+ChildIndices: 3 19 20 21
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 2
+NumNodes: 28
+NumEdges: 56
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 4 4 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 4 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 3
+AnchorID: 2735
+TreeNodeGraphID: 3
+Level: 3
+SimplifiedLevel: 0
+EditOperation: 4 8 13 0 0
+AccumulatedOpsCount: 1
+AccumulatedOp: 4 8 13 0 0
+ChildrenCount: 4
+ChildIndices: 4 16 17 18
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 3
+NumNodes: 28
+NumEdges: 54
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 4 4 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 4 0
+8 9 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 4
+AnchorID: 2735
+TreeNodeGraphID: 4
+Level: 4
+SimplifiedLevel: 0
+EditOperation: 1 27 0 4 0
+AccumulatedOpsCount: 1
+AccumulatedOp: 1 27 0 4 0
+ChildrenCount: 3
+ChildIndices: 5 14 15
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 4
+NumNodes: 27
+NumEdges: 54
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 4 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 4 0
+8 9 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 5
+AnchorID: 2735
+TreeNodeGraphID: 5
+Level: 5
+SimplifiedLevel: 0
+EditOperation: 4 15 16 0 0
+AccumulatedOpsCount: 1
+AccumulatedOp: 4 15 16 0 0
+ChildrenCount: 3
+ChildIndices: 6 12 13
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 5
+NumNodes: 27
+NumEdges: 52
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 4 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 4 0
+8 9 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 6
+AnchorID: 2735
+TreeNodeGraphID: 6
+Level: 6
+SimplifiedLevel: 0
+EditOperation: 1 26 0 4 0
+AccumulatedOpsCount: 1
+AccumulatedOp: 1 26 0 4 0
+ChildrenCount: 2
+ChildIndices: 7 11
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 6
+NumNodes: 26
+NumEdges: 52
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 4 0
+8 9 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 7
+AnchorID: 2735
+TreeNodeGraphID: 9
+Level: 9
+SimplifiedLevel: 0
+EditOperation: 5 11 16 0 0
+AccumulatedOpsCount: 3
+AccumulatedOp: 5 9 13 0 0
+AccumulatedOp: 4 9 11 0 0
+AccumulatedOp: 5 11 16 0 0
+ChildrenCount: 2
+ChildIndices: 8 10
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 9
+NumNodes: 26
+NumEdges: 54
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 4 0
+8 9 0
+9 8 0
+9 10 0
+9 13 0
+10 9 0
+11 12 0
+11 15 0
+11 16 0
+12 11 0
+12 13 0
+12 17 0
+13 12 0
+13 14 0
+13 9 0
+14 13 0
+15 11 0
+16 11 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 8
+AnchorID: 2735
+TreeNodeGraphID: 10
+Level: 10
+SimplifiedLevel: 0
+EditOperation: 5 16 19 0 0
+AccumulatedOpsCount: 1
+AccumulatedOp: 5 16 19 0 0
+ChildrenCount: 1
+ChildIndices: 9
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 24787
+GraphStart
+GraphDataStart
+ID: 10
+NumNodes: 26
+NumEdges: 56
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 4 0
+8 9 0
+9 8 0
+9 10 0
+9 13 0
+10 9 0
+11 12 0
+11 15 0
+11 16 0
+12 11 0
+12 13 0
+12 17 0
+13 12 0
+13 14 0
+13 9 0
+14 13 0
+15 11 0
+16 11 0
+16 19 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+19 16 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 9
+AnchorID: 2735
+TreeNodeGraphID: 12
+Level: 12
+SimplifiedLevel: 0
+EditOperation: 0 7 0 4 2
+AccumulatedOpsCount: 2
+AccumulatedOp: 0 0 0 4 2
+AccumulatedOp: 0 7 0 4 2
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 20848
+GraphStart
+GraphDataStart
+ID: 12
+NumNodes: 26
+NumEdges: 56
+NodeLabels
+2 2 2 2 2 2 2 2 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 4 0
+8 9 0
+9 8 0
+9 10 0
+9 13 0
+10 9 0
+11 12 0
+11 15 0
+11 16 0
+12 11 0
+12 13 0
+12 17 0
+13 12 0
+13 14 0
+13 9 0
+14 13 0
+15 11 0
+16 11 0
+16 19 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+19 16 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 10
+AnchorID: 2735
+TreeNodeGraphID: 15
+Level: 12
+SimplifiedLevel: 0
+EditOperation: 5 15 19 0 0
+AccumulatedOpsCount: 3
+AccumulatedOp: 4 6 7 0 0
+AccumulatedOp: 1 7 0 4 0
+AccumulatedOp: 5 15 19 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 22759
+GraphStart
+GraphDataStart
+ID: 15
+NumNodes: 25
+NumEdges: 54
+NodeLabels
+4 2 2 2 2 2 2 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 7 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+7 4 0
+7 8 0
+8 7 0
+8 9 0
+8 12 0
+9 8 0
+10 11 0
+10 14 0
+10 15 0
+11 10 0
+11 12 0
+11 16 0
+12 11 0
+12 13 0
+12 8 0
+13 12 0
+14 10 0
+14 18 0
+15 10 0
+16 11 0
+16 17 0
+16 18 0
+17 16 0
+18 16 0
+18 19 0
+18 14 0
+19 18 0
+19 20 0
+19 24 0
+20 19 0
+20 21 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+24 19 0
+24 23 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 11
+AnchorID: 2735
+TreeNodeGraphID: 23
+Level: 14
+SimplifiedLevel: 0
+EditOperation: 5 0 3 0 0
+AccumulatedOpsCount: 8
+AccumulatedOp: 5 16 19 0 0
+AccumulatedOp: 0 0 0 4 2
+AccumulatedOp: 0 7 0 4 2
+AccumulatedOp: 5 13 16 0 0
+AccumulatedOp: 0 14 0 0 3
+AccumulatedOp: 0 15 0 3 0
+AccumulatedOp: 4 0 1 0 0
+AccumulatedOp: 5 0 3 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 24066
+GraphStart
+GraphDataStart
+ID: 23
+NumNodes: 26
+NumEdges: 56
+NodeLabels
+2 2 2 2 2 2 2 2 3 2 0 2 2 2 3 0 3 2 0 3 2 2 2 2 2 2 
+Edges
+0 3 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+3 0 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 4 0
+8 9 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 12 0
+13 14 0
+13 16 0
+14 13 0
+15 11 0
+16 19 0
+16 13 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+19 16 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 12
+AnchorID: 2735
+TreeNodeGraphID: 32
+Level: 14
+SimplifiedLevel: 0
+EditOperation: 5 0 9 0 0
+AccumulatedOpsCount: 9
+AccumulatedOp: 4 9 11 0 0
+AccumulatedOp: 0 0 0 4 2
+AccumulatedOp: 5 15 19 0 0
+AccumulatedOp: 0 26 0 4 2
+AccumulatedOp: 4 0 1 0 0
+AccumulatedOp: 5 11 16 0 0
+AccumulatedOp: 5 13 26 0 0
+AccumulatedOp: 5 0 26 0 0
+AccumulatedOp: 5 0 9 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 25999
+GraphStart
+GraphDataStart
+ID: 32
+NumNodes: 27
+NumEdges: 58
+NodeLabels
+2 2 2 2 2 2 2 4 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 2 
+Edges
+0 26 0
+0 9 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 4 0
+8 9 0
+9 8 0
+9 10 0
+9 0 0
+10 9 0
+11 12 0
+11 15 0
+11 16 0
+12 11 0
+12 13 0
+12 17 0
+13 12 0
+13 14 0
+13 26 0
+14 13 0
+15 11 0
+15 19 0
+16 11 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+19 15 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+26 13 0
+26 0 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 13
+AnchorID: 2735
+TreeNodeGraphID: 42
+Level: 15
+SimplifiedLevel: 0
+EditOperation: 5 7 26 0 0
+AccumulatedOpsCount: 10
+AccumulatedOp: 4 6 7 0 0
+AccumulatedOp: 5 18 25 0 0
+AccumulatedOp: 0 7 0 4 0
+AccumulatedOp: 0 18 0 0 1
+AccumulatedOp: 0 15 0 3 0
+AccumulatedOp: 0 26 0 4 2
+AccumulatedOp: 5 8 26 0 0
+AccumulatedOp: 1 16 0 3 0
+AccumulatedOp: 5 13 26 0 0
+AccumulatedOp: 5 7 26 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 33033
+GraphStart
+GraphDataStart
+ID: 42
+NumNodes: 26
+NumEdges: 58
+NodeLabels
+4 2 2 2 2 2 2 0 3 2 0 2 2 2 0 0 2 1 3 2 2 2 2 2 2 2 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+7 25 0
+8 4 0
+8 9 0
+8 25 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 16 0
+13 12 0
+13 14 0
+13 25 0
+14 13 0
+15 11 0
+16 12 0
+16 17 0
+16 18 0
+17 16 0
+17 24 0
+18 16 0
+18 19 0
+19 18 0
+19 20 0
+19 24 0
+20 19 0
+20 21 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+24 19 0
+24 23 0
+24 17 0
+25 8 0
+25 13 0
+25 7 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 14
+AnchorID: 2735
+TreeNodeGraphID: 52
+Level: 14
+SimplifiedLevel: 0
+EditOperation: 5 5 7 0 0
+AccumulatedOpsCount: 10
+AccumulatedOp: 1 26 0 4 0
+AccumulatedOp: 0 12 0 2 0
+AccumulatedOp: 0 18 0 0 1
+AccumulatedOp: 5 13 21 0 0
+AccumulatedOp: 4 12 13 0 0
+AccumulatedOp: 4 6 7 0 0
+AccumulatedOp: 4 12 17 0 0
+AccumulatedOp: 5 13 16 0 0
+AccumulatedOp: 5 16 17 0 0
+AccumulatedOp: 5 5 7 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 2592
+GraphStart
+GraphDataStart
+ID: 52
+NumNodes: 26
+NumEdges: 56
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 0 2 0 3 3 2 1 3 2 2 2 2 2 2 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+5 7 0
+6 1 0
+6 5 0
+7 5 0
+8 4 0
+8 9 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+13 14 0
+13 21 0
+13 16 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+16 13 0
+16 17 0
+17 18 0
+17 19 0
+17 16 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+21 13 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 15
+AnchorID: 2735
+TreeNodeGraphID: 60
+Level: 12
+SimplifiedLevel: 0
+EditOperation: 5 8 15 0 0
+AccumulatedOpsCount: 8
+AccumulatedOp: 4 9 11 0 0
+AccumulatedOp: 0 15 0 3 2
+AccumulatedOp: 0 26 0 4 0
+AccumulatedOp: 5 18 25 0 0
+AccumulatedOp: 0 16 0 3 0
+AccumulatedOp: 5 9 13 0 0
+AccumulatedOp: 5 11 26 0 0
+AccumulatedOp: 5 8 15 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 30901
+GraphStart
+GraphDataStart
+ID: 60
+NumNodes: 27
+NumEdges: 60
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 2 0 2 0 3 2 2 2 2 2 2 0 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 4 0
+8 9 0
+8 15 0
+9 8 0
+9 10 0
+9 13 0
+10 9 0
+11 12 0
+11 15 0
+11 26 0
+12 11 0
+12 13 0
+12 17 0
+13 12 0
+13 14 0
+13 9 0
+14 13 0
+15 11 0
+15 16 0
+15 8 0
+16 15 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+18 25 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+25 18 0
+26 11 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 16
+AnchorID: 2735
+TreeNodeGraphID: 71
+Level: 14
+SimplifiedLevel: 0
+EditOperation: 5 16 19 0 0
+AccumulatedOpsCount: 11
+AccumulatedOp: 4 15 16 0 0
+AccumulatedOp: 0 0 0 4 2
+AccumulatedOp: 0 15 0 3 0
+AccumulatedOp: 0 14 0 0 2
+AccumulatedOp: 1 26 0 4 0
+AccumulatedOp: 0 27 0 4 2
+AccumulatedOp: 5 13 16 0 0
+AccumulatedOp: 5 3 27 0 0
+AccumulatedOp: 4 6 7 0 0
+AccumulatedOp: 1 7 0 4 0
+AccumulatedOp: 5 16 19 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 14473
+GraphStart
+GraphDataStart
+ID: 71
+NumNodes: 26
+NumEdges: 56
+NodeLabels
+2 2 2 2 2 2 2 3 2 0 2 2 2 2 0 3 2 0 3 2 2 2 2 2 2 2 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+3 25 0
+4 3 0
+4 5 0
+4 7 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+7 4 0
+7 8 0
+8 7 0
+8 9 0
+8 10 0
+9 8 0
+10 8 0
+10 11 0
+10 14 0
+11 10 0
+11 12 0
+11 16 0
+12 11 0
+12 13 0
+12 15 0
+13 12 0
+14 10 0
+15 12 0
+15 18 0
+16 11 0
+16 17 0
+16 18 0
+17 16 0
+18 16 0
+18 19 0
+18 15 0
+19 18 0
+19 20 0
+19 24 0
+20 19 0
+20 21 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+24 19 0
+24 23 0
+25 3 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 17
+AnchorID: 2735
+TreeNodeGraphID: 79
+Level: 11
+SimplifiedLevel: 0
+EditOperation: 5 26 27 0 0
+AccumulatedOpsCount: 8
+AccumulatedOp: 4 6 7 0 0
+AccumulatedOp: 0 26 0 4 2
+AccumulatedOp: 5 13 26 0 0
+AccumulatedOp: 0 27 0 4 0
+AccumulatedOp: 5 18 25 0 0
+AccumulatedOp: 5 5 7 0 0
+AccumulatedOp: 5 8 26 0 0
+AccumulatedOp: 5 26 27 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 5239
+GraphStart
+GraphDataStart
+ID: 79
+NumNodes: 28
+NumEdges: 62
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 2 0 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+5 7 0
+6 1 0
+6 5 0
+7 5 0
+8 4 0
+8 9 0
+8 26 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 12 0
+13 14 0
+13 26 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+18 25 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+25 18 0
+26 13 0
+26 8 0
+26 27 0
+27 26 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 18
+AnchorID: 2735
+TreeNodeGraphID: 89
+Level: 13
+SimplifiedLevel: 0
+EditOperation: 5 13 27 0 0
+AccumulatedOpsCount: 10
+AccumulatedOp: 5 18 25 0 0
+AccumulatedOp: 0 0 0 4 0
+AccumulatedOp: 0 26 0 4 2
+AccumulatedOp: 5 3 26 0 0
+AccumulatedOp: 0 7 0 4 2
+AccumulatedOp: 0 27 0 4 2
+AccumulatedOp: 4 0 1 0 0
+AccumulatedOp: 5 0 27 0 0
+AccumulatedOp: 5 8 27 0 0
+AccumulatedOp: 5 13 27 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 22909
+GraphStart
+GraphDataStart
+ID: 89
+NumNodes: 28
+NumEdges: 62
+NodeLabels
+0 2 2 2 2 2 2 2 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 2 2 
+Edges
+0 27 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+3 26 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 4 0
+8 9 0
+8 27 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 12 0
+13 14 0
+13 27 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+18 25 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+25 18 0
+26 3 0
+27 0 0
+27 8 0
+27 13 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 19
+AnchorID: 2735
+TreeNodeGraphID: 103
+Level: 16
+SimplifiedLevel: 0
+EditOperation: 5 0 15 0 0
+AccumulatedOpsCount: 14
+AccumulatedOp: 1 27 0 4 0
+AccumulatedOp: 0 0 0 4 3
+AccumulatedOp: 1 26 0 4 0
+AccumulatedOp: 0 7 0 4 2
+AccumulatedOp: 4 6 7 0 0
+AccumulatedOp: 0 10 0 0 2
+AccumulatedOp: 5 7 11 0 0
+AccumulatedOp: 0 14 0 0 2
+AccumulatedOp: 4 11 12 0 0
+AccumulatedOp: 0 15 0 3 2
+AccumulatedOp: 5 7 12 0 0
+AccumulatedOp: 0 16 0 3 0
+AccumulatedOp: 4 4 8 0 0
+AccumulatedOp: 5 0 15 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 29432
+GraphStart
+GraphDataStart
+ID: 103
+NumNodes: 26
+NumEdges: 56
+NodeLabels
+3 2 2 2 2 2 2 2 3 2 2 2 2 2 2 2 0 2 0 3 2 2 2 2 2 2 
+Edges
+0 1 0
+0 15 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+7 11 0
+7 12 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 15 0
+11 7 0
+12 13 0
+12 17 0
+12 7 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+15 16 0
+15 0 0
+16 15 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 20
+AnchorID: 2735
+TreeNodeGraphID: 116
+Level: 15
+SimplifiedLevel: 0
+EditOperation: 5 4 27 0 0
+AccumulatedOpsCount: 13
+AccumulatedOp: 4 9 11 0 0
+AccumulatedOp: 0 0 0 4 0
+AccumulatedOp: 0 14 0 0 2
+AccumulatedOp: 0 26 0 4 2
+AccumulatedOp: 0 7 0 4 5
+AccumulatedOp: 5 8 26 0 0
+AccumulatedOp: 0 27 0 4 5
+AccumulatedOp: 4 4 8 0 0
+AccumulatedOp: 4 8 9 0 0
+AccumulatedOp: 5 2 9 0 0
+AccumulatedOp: 5 8 19 0 0
+AccumulatedOp: 5 9 16 0 0
+AccumulatedOp: 5 4 27 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 12275
+GraphStart
+GraphDataStart
+ID: 116
+NumNodes: 28
+NumEdges: 60
+NodeLabels
+0 2 2 2 2 2 2 5 3 2 0 2 2 2 2 3 3 2 0 3 2 2 2 2 2 2 2 5 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+2 9 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 27 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 13 0
+8 26 0
+8 19 0
+9 10 0
+9 2 0
+9 16 0
+10 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+16 9 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+19 8 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+26 8 0
+27 4 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 21
+AnchorID: 2735
+TreeNodeGraphID: 128
+Level: 14
+SimplifiedLevel: 0
+EditOperation: 5 3 26 0 0
+AccumulatedOpsCount: 12
+AccumulatedOp: 0 26 0 4 2
+AccumulatedOp: 0 0 0 4 2
+AccumulatedOp: 0 7 0 4 2
+AccumulatedOp: 5 0 27 0 0
+AccumulatedOp: 0 18 0 0 1
+AccumulatedOp: 5 18 21 0 0
+AccumulatedOp: 0 27 0 4 0
+AccumulatedOp: 4 0 1 0 0
+AccumulatedOp: 4 12 13 0 0
+AccumulatedOp: 5 0 13 0 0
+AccumulatedOp: 5 0 12 0 0
+AccumulatedOp: 5 3 26 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 41589
+GraphStart
+GraphDataStart
+ID: 128
+NumNodes: 28
+NumEdges: 62
+NodeLabels
+2 2 2 2 2 2 2 2 3 2 0 2 2 2 0 3 3 2 1 3 2 2 2 2 2 2 2 0 
+Edges
+0 27 0
+0 13 0
+0 12 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+3 26 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 4 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 17 0
+12 0 0
+13 8 0
+13 14 0
+13 0 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+18 21 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+21 18 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+26 3 0
+27 0 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 22
+AnchorID: 2735
+TreeNodeGraphID: 142
+Level: 15
+SimplifiedLevel: 0
+EditOperation: 5 0 7 0 0
+AccumulatedOpsCount: 14
+AccumulatedOp: 4 8 13 0 0
+AccumulatedOp: 0 0 0 4 0
+AccumulatedOp: 0 26 0 4 2
+AccumulatedOp: 4 12 17 0 0
+AccumulatedOp: 0 7 0 4 2
+AccumulatedOp: 5 16 25 0 0
+AccumulatedOp: 5 16 17 0 0
+AccumulatedOp: 0 15 0 3 2
+AccumulatedOp: 1 27 0 4 0
+AccumulatedOp: 0 18 0 0 1
+AccumulatedOp: 4 6 7 0 0
+AccumulatedOp: 4 13 14 0 0
+AccumulatedOp: 5 12 14 0 0
+AccumulatedOp: 5 0 7 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 31378
+GraphStart
+GraphDataStart
+ID: 142
+NumNodes: 27
+NumEdges: 58
+NodeLabels
+0 2 2 2 2 2 2 2 3 2 0 2 2 2 0 2 3 2 1 3 2 2 2 2 2 2 2 
+Edges
+0 1 0
+0 7 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+7 0 0
+8 4 0
+8 9 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 14 0
+13 12 0
+14 12 0
+15 11 0
+15 16 0
+16 15 0
+16 25 0
+16 17 0
+17 18 0
+17 19 0
+17 16 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+25 16 0
+26 22 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 23
+AnchorID: 2735
+TreeNodeGraphID: 151
+Level: 10
+SimplifiedLevel: 0
+EditOperation: 5 16 19 0 0
+AccumulatedOpsCount: 9
+AccumulatedOp: 1 27 0 4 0
+AccumulatedOp: 5 15 21 0 0
+AccumulatedOp: 0 15 0 3 2
+AccumulatedOp: 4 11 12 0 0
+AccumulatedOp: 4 19 20 0 0
+AccumulatedOp: 4 6 7 0 0
+AccumulatedOp: 1 7 0 4 0
+AccumulatedOp: 4 11 15 0 0
+AccumulatedOp: 5 16 19 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 37053
+GraphStart
+GraphDataStart
+ID: 151
+NumNodes: 26
+NumEdges: 54
+NodeLabels
+4 2 2 2 2 2 2 3 2 0 2 2 2 0 2 3 2 0 3 2 2 2 2 2 2 4 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 7 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+7 4 0
+7 8 0
+7 12 0
+8 7 0
+8 9 0
+8 10 0
+9 8 0
+10 8 0
+11 12 0
+11 16 0
+12 7 0
+12 11 0
+12 13 0
+13 12 0
+14 15 0
+14 20 0
+15 14 0
+15 18 0
+16 11 0
+16 17 0
+16 18 0
+17 16 0
+18 16 0
+18 15 0
+19 20 0
+19 24 0
+20 19 0
+20 21 0
+20 14 0
+21 20 0
+21 22 0
+21 25 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+24 19 0
+24 23 0
+25 21 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 24
+AnchorID: 2735
+TreeNodeGraphID: 152
+Level: 2
+SimplifiedLevel: 0
+EditOperation: 4 6 7 0 0
+AccumulatedOpsCount: 1
+AccumulatedOp: 4 6 7 0 0
+ChildrenCount: 2
+ChildIndices: 25 28
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 152
+NumNodes: 28
+NumEdges: 56
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 4 4 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+8 4 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+26 22 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 25
+AnchorID: 2735
+TreeNodeGraphID: 153
+Level: 3
+SimplifiedLevel: 0
+EditOperation: 0 15 0 3 2
+AccumulatedOpsCount: 1
+AccumulatedOp: 0 15 0 3 2
+ChildrenCount: 2
+ChildIndices: 26 27
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 153
+NumNodes: 28
+NumEdges: 56
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 2 3 2 0 3 2 2 2 2 2 2 4 4 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+8 4 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+26 22 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 26
+AnchorID: 2735
+TreeNodeGraphID: 164
+Level: 14
+SimplifiedLevel: 0
+EditOperation: 5 27 28 0 0
+AccumulatedOpsCount: 11
+AccumulatedOp: 5 15 17 0 0
+AccumulatedOp: 5 16 25 0 0
+AccumulatedOp: 0 0 0 4 5
+AccumulatedOp: 5 7 12 0 0
+AccumulatedOp: 0 7 0 4 0
+AccumulatedOp: 0 27 0 4 0
+AccumulatedOp: 2 28 0 0 2
+AccumulatedOp: 4 12 17 0 0
+AccumulatedOp: 4 8 9 0 0
+AccumulatedOp: 5 9 27 0 0
+AccumulatedOp: 5 27 28 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 32687
+GraphStart
+GraphDataStart
+ID: 164
+NumNodes: 29
+NumEdges: 62
+NodeLabels
+5 2 2 2 2 2 2 0 3 2 0 2 2 2 0 2 3 2 0 3 2 2 2 2 2 2 4 0 2 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+7 12 0
+8 4 0
+8 13 0
+9 10 0
+9 11 0
+9 27 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 7 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+15 16 0
+15 17 0
+16 15 0
+16 25 0
+17 18 0
+17 19 0
+17 15 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+25 16 0
+26 22 0
+27 9 0
+27 28 0
+28 27 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 27
+AnchorID: 2735
+TreeNodeGraphID: 173
+Level: 12
+SimplifiedLevel: 0
+EditOperation: 5 15 27 0 0
+AccumulatedOpsCount: 9
+AccumulatedOp: 5 9 23 0 0
+AccumulatedOp: 4 11 12 0 0
+AccumulatedOp: 0 0 0 4 2
+AccumulatedOp: 4 19 20 0 0
+AccumulatedOp: 1 7 0 4 0
+AccumulatedOp: 0 27 0 4 2
+AccumulatedOp: 5 16 19 0 0
+AccumulatedOp: 4 9 11 0 0
+AccumulatedOp: 5 15 27 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 9107
+GraphStart
+GraphDataStart
+ID: 173
+NumNodes: 27
+NumEdges: 56
+NodeLabels
+2 2 2 2 2 2 2 3 2 0 2 2 2 0 2 3 2 0 3 2 2 2 2 2 2 4 2 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 7 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+7 4 0
+7 8 0
+7 12 0
+8 7 0
+8 9 0
+8 22 0
+9 8 0
+10 14 0
+11 12 0
+11 16 0
+12 7 0
+12 11 0
+12 13 0
+13 12 0
+14 10 0
+14 15 0
+14 26 0
+15 14 0
+15 18 0
+16 11 0
+16 17 0
+16 18 0
+17 16 0
+18 16 0
+18 15 0
+19 20 0
+19 24 0
+20 19 0
+20 21 0
+21 20 0
+21 22 0
+21 25 0
+22 21 0
+22 23 0
+22 8 0
+23 22 0
+23 24 0
+24 19 0
+24 23 0
+25 21 0
+26 14 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 28
+AnchorID: 2735
+TreeNodeGraphID: 187
+Level: 16
+SimplifiedLevel: 0
+EditOperation: 5 15 25 0 0
+AccumulatedOpsCount: 14
+AccumulatedOp: 1 7 0 4 0
+AccumulatedOp: 0 0 0 4 1
+AccumulatedOp: 0 27 0 4 2
+AccumulatedOp: 0 16 0 3 2
+AccumulatedOp: 0 26 0 4 2
+AccumulatedOp: 4 8 9 0 0
+AccumulatedOp: 5 0 16 0 0
+AccumulatedOp: 4 0 1 0 0
+AccumulatedOp: 5 16 19 0 0
+AccumulatedOp: 4 17 19 0 0
+AccumulatedOp: 4 9 11 0 0
+AccumulatedOp: 5 5 10 0 0
+AccumulatedOp: 5 17 27 0 0
+AccumulatedOp: 5 15 25 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 41776
+GraphStart
+GraphDataStart
+ID: 187
+NumNodes: 27
+NumEdges: 58
+NodeLabels
+1 2 2 2 2 2 2 3 2 0 2 2 2 0 3 2 2 0 3 2 2 2 2 2 2 2 2 
+Edges
+0 15 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 7 0
+5 4 0
+5 6 0
+5 9 0
+6 1 0
+6 5 0
+7 4 0
+7 12 0
+8 9 0
+9 8 0
+9 5 0
+10 11 0
+10 14 0
+11 10 0
+11 12 0
+11 16 0
+12 7 0
+12 11 0
+12 13 0
+13 12 0
+14 10 0
+14 15 0
+14 24 0
+15 14 0
+15 0 0
+15 18 0
+16 11 0
+16 17 0
+16 26 0
+17 16 0
+18 19 0
+18 15 0
+19 18 0
+19 20 0
+19 24 0
+20 19 0
+20 21 0
+21 20 0
+21 22 0
+21 25 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+24 19 0
+24 23 0
+24 14 0
+25 21 0
+26 16 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 29
+AnchorID: 2735
+TreeNodeGraphID: 194
+Level: 8
+SimplifiedLevel: 0
+EditOperation: 4 17 19 0 0
+AccumulatedOpsCount: 7
+AccumulatedOp: 0 26 0 4 2
+AccumulatedOp: 0 7 0 4 3
+AccumulatedOp: 0 19 0 3 2
+AccumulatedOp: 5 8 21 0 0
+AccumulatedOp: 0 27 0 4 2
+AccumulatedOp: 4 4 8 0 0
+AccumulatedOp: 4 17 19 0 0
+ChildrenCount: 2
+ChildIndices: 30 31
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 194
+NumNodes: 28
+NumEdges: 56
+NodeLabels
+4 2 2 2 2 2 2 3 3 2 0 2 2 2 0 3 3 2 0 2 2 2 2 2 2 2 2 2 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 9 0
+8 13 0
+8 21 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+17 12 0
+17 18 0
+18 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+21 8 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+26 22 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 30
+AnchorID: 2735
+TreeNodeGraphID: 197
+Level: 11
+SimplifiedLevel: 0
+EditOperation: 0 0 0 4 2
+AccumulatedOpsCount: 3
+AccumulatedOp: 5 5 27 0 0
+AccumulatedOp: 5 7 17 0 0
+AccumulatedOp: 0 0 0 4 2
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 9836
+GraphStart
+GraphDataStart
+ID: 197
+NumNodes: 28
+NumEdges: 60
+NodeLabels
+2 2 2 2 2 2 2 3 3 2 0 2 2 2 0 3 3 2 0 2 2 2 2 2 2 2 2 2 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+5 4 0
+5 6 0
+5 27 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+7 17 0
+8 9 0
+8 13 0
+8 21 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+17 12 0
+17 18 0
+17 7 0
+18 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+21 8 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+26 22 0
+27 5 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 31
+AnchorID: 2735
+TreeNodeGraphID: 203
+Level: 14
+SimplifiedLevel: 0
+EditOperation: 5 12 27 0 0
+AccumulatedOpsCount: 6
+AccumulatedOp: 0 0 0 4 1
+AccumulatedOp: 4 12 13 0 0
+AccumulatedOp: 5 7 27 0 0
+AccumulatedOp: 5 13 17 0 0
+AccumulatedOp: 5 0 27 0 0
+AccumulatedOp: 5 12 27 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 38685
+GraphStart
+GraphDataStart
+ID: 203
+NumNodes: 28
+NumEdges: 62
+NodeLabels
+1 2 2 2 2 2 2 3 3 2 0 2 2 2 0 3 3 2 0 2 2 2 2 2 2 2 2 2 
+Edges
+0 1 0
+0 27 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+7 27 0
+8 9 0
+8 13 0
+8 21 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 17 0
+12 27 0
+13 8 0
+13 14 0
+13 17 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+17 12 0
+17 18 0
+17 13 0
+18 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+21 8 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+26 22 0
+27 7 0
+27 0 0
+27 12 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 32
+AnchorID: 2735
+TreeNodeGraphID: 216
+Level: 14
+SimplifiedLevel: 0
+EditOperation: 5 2 27 0 0
+AccumulatedOpsCount: 13
+AccumulatedOp: 4 9 11 0 0
+AccumulatedOp: 0 0 0 4 2
+AccumulatedOp: 0 16 0 3 2
+AccumulatedOp: 0 17 0 2 12
+AccumulatedOp: 4 17 19 0 0
+AccumulatedOp: 0 19 0 3 4
+AccumulatedOp: 5 16 21 0 0
+AccumulatedOp: 4 4 8 0 0
+AccumulatedOp: 4 17 18 0 0
+AccumulatedOp: 1 18 0 0 0
+AccumulatedOp: 5 0 8 0 0
+AccumulatedOp: 5 9 15 0 0
+AccumulatedOp: 5 2 27 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 29497
+GraphStart
+GraphDataStart
+ID: 216
+NumNodes: 27
+NumEdges: 58
+NodeLabels
+2 2 2 2 2 2 2 4 3 2 0 2 2 2 0 3 2 12 4 2 2 2 2 2 2 4 4 
+Edges
+0 1 0
+0 8 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+2 26 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 9 0
+8 13 0
+8 0 0
+9 8 0
+9 10 0
+9 15 0
+10 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+15 16 0
+15 9 0
+16 15 0
+16 20 0
+17 12 0
+18 19 0
+19 18 0
+19 20 0
+19 24 0
+20 19 0
+20 21 0
+20 16 0
+21 20 0
+21 22 0
+21 25 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+24 19 0
+24 23 0
+25 21 0
+26 2 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 33
+AnchorID: 2735
+TreeNodeGraphID: 229
+Level: 14
+SimplifiedLevel: 0
+EditOperation: 5 0 9 0 0
+AccumulatedOpsCount: 13
+AccumulatedOp: 0 0 0 4 2
+AccumulatedOp: 0 15 0 3 2
+AccumulatedOp: 2 28 0 0 0
+AccumulatedOp: 0 26 0 4 0
+AccumulatedOp: 0 27 0 4 2
+AccumulatedOp: 5 12 28 0 0
+AccumulatedOp: 4 0 1 0 0
+AccumulatedOp: 4 12 13 0 0
+AccumulatedOp: 4 8 9 0 0
+AccumulatedOp: 5 3 16 0 0
+AccumulatedOp: 5 13 15 0 0
+AccumulatedOp: 5 26 27 0 0
+AccumulatedOp: 5 0 9 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 15551
+GraphStart
+GraphDataStart
+ID: 229
+NumNodes: 29
+NumEdges: 62
+NodeLabels
+2 2 2 2 2 2 2 4 3 2 0 2 2 2 0 2 3 2 0 3 2 2 2 2 2 2 0 2 0 
+Edges
+0 9 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+3 16 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 4 0
+8 13 0
+9 10 0
+9 11 0
+9 0 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 17 0
+12 28 0
+13 8 0
+13 14 0
+13 15 0
+14 13 0
+15 11 0
+15 16 0
+15 13 0
+16 15 0
+16 3 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+26 22 0
+26 27 0
+27 26 0
+28 12 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 34
+AnchorID: 2735
+TreeNodeGraphID: 242
+Level: 14
+SimplifiedLevel: 0
+EditOperation: 5 19 28 0 0
+AccumulatedOpsCount: 13
+AccumulatedOp: 4 0 1 0 0
+AccumulatedOp: 0 0 0 4 3
+AccumulatedOp: 5 0 3 0 0
+AccumulatedOp: 5 24 27 0 0
+AccumulatedOp: 0 18 0 0 1
+AccumulatedOp: 2 28 0 0 3
+AccumulatedOp: 5 9 25 0 0
+AccumulatedOp: 4 8 9 0 0
+AccumulatedOp: 5 0 12 0 0
+AccumulatedOp: 4 12 17 0 0
+AccumulatedOp: 4 19 20 0 0
+AccumulatedOp: 5 16 17 0 0
+AccumulatedOp: 5 19 28 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 29533
+GraphStart
+GraphDataStart
+ID: 242
+NumNodes: 29
+NumEdges: 62
+NodeLabels
+3 2 2 2 2 2 2 4 3 2 0 2 2 2 0 3 3 2 1 3 2 2 2 2 2 2 4 4 3 
+Edges
+0 3 0
+0 12 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+3 0 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 4 0
+8 13 0
+9 10 0
+9 11 0
+9 25 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 0 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+16 17 0
+17 18 0
+17 19 0
+17 16 0
+18 17 0
+19 17 0
+19 28 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+24 23 0
+24 25 0
+24 27 0
+25 20 0
+25 24 0
+25 9 0
+26 22 0
+27 24 0
+28 19 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 35
+AnchorID: 2735
+TreeNodeGraphID: 243
+Level: 1
+SimplifiedLevel: 0
+EditOperation: 4 6 7 0 0
+AccumulatedOpsCount: 1
+AccumulatedOp: 4 6 7 0 0
+ChildrenCount: 3
+ChildIndices: 36 46 53
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 243
+NumNodes: 28
+NumEdges: 58
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 4 4 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+8 4 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+23 27 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+26 22 0
+27 23 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 36
+AnchorID: 2735
+TreeNodeGraphID: 244
+Level: 2
+SimplifiedLevel: 0
+EditOperation: 4 15 16 0 0
+AccumulatedOpsCount: 1
+AccumulatedOp: 4 15 16 0 0
+ChildrenCount: 2
+ChildIndices: 37 45
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 244
+NumNodes: 28
+NumEdges: 56
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 4 4 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+8 4 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+23 27 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+26 22 0
+27 23 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 37
+AnchorID: 2735
+TreeNodeGraphID: 245
+Level: 3
+SimplifiedLevel: 0
+EditOperation: 0 15 0 3 0
+AccumulatedOpsCount: 1
+AccumulatedOp: 0 15 0 3 0
+ChildrenCount: 2
+ChildIndices: 38 44
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 245
+NumNodes: 28
+NumEdges: 56
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 0 3 2 0 3 2 2 2 2 2 2 4 4 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+8 4 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+23 27 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+26 22 0
+27 23 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 38
+AnchorID: 2735
+TreeNodeGraphID: 246
+Level: 4
+SimplifiedLevel: 0
+EditOperation: 1 16 0 3 0
+AccumulatedOpsCount: 1
+AccumulatedOp: 1 16 0 3 0
+ChildrenCount: 2
+ChildIndices: 39 43
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 246
+NumNodes: 27
+NumEdges: 56
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 0 2 0 3 2 2 2 2 2 2 4 4 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+8 4 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 16 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+16 12 0
+16 17 0
+16 18 0
+17 16 0
+18 16 0
+18 19 0
+19 18 0
+19 20 0
+19 24 0
+20 19 0
+20 21 0
+21 20 0
+21 22 0
+21 25 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+24 19 0
+24 23 0
+25 21 0
+26 22 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 39
+AnchorID: 2735
+TreeNodeGraphID: 247
+Level: 5
+SimplifiedLevel: 0
+EditOperation: 4 22 26 0 0
+AccumulatedOpsCount: 1
+AccumulatedOp: 4 22 26 0 0
+ChildrenCount: 2
+ChildIndices: 40 42
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 247
+NumNodes: 27
+NumEdges: 54
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 0 2 0 3 2 2 2 2 2 2 4 4 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+8 4 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 16 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+16 12 0
+16 17 0
+16 18 0
+17 16 0
+18 16 0
+18 19 0
+19 18 0
+19 20 0
+19 24 0
+20 19 0
+20 21 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+24 19 0
+24 23 0
+26 22 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 40
+AnchorID: 2735
+TreeNodeGraphID: 249
+Level: 7
+SimplifiedLevel: 0
+EditOperation: 1 26 0 4 0
+AccumulatedOpsCount: 2
+AccumulatedOp: 1 7 0 4 0
+AccumulatedOp: 1 26 0 4 0
+ChildrenCount: 1
+ChildIndices: 41
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 3216
+GraphStart
+GraphDataStart
+ID: 249
+NumNodes: 25
+NumEdges: 54
+NodeLabels
+4 2 2 2 2 2 2 3 2 0 2 2 2 0 0 2 0 3 2 2 2 2 2 2 4 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 7 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+7 4 0
+7 8 0
+7 12 0
+8 7 0
+8 9 0
+8 10 0
+9 8 0
+10 8 0
+10 11 0
+10 14 0
+11 10 0
+11 12 0
+11 15 0
+12 7 0
+12 11 0
+12 13 0
+13 12 0
+14 10 0
+15 11 0
+15 16 0
+15 17 0
+16 15 0
+17 15 0
+17 18 0
+18 17 0
+18 19 0
+18 23 0
+19 18 0
+19 20 0
+20 19 0
+20 21 0
+21 20 0
+21 22 0
+21 24 0
+22 21 0
+22 23 0
+23 18 0
+23 22 0
+24 21 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 41
+AnchorID: 2735
+TreeNodeGraphID: 251
+Level: 9
+SimplifiedLevel: 0
+EditOperation: 0 27 0 4 2
+AccumulatedOpsCount: 2
+AccumulatedOp: 0 0 0 4 2
+AccumulatedOp: 0 27 0 4 2
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 33655
+GraphStart
+GraphDataStart
+ID: 251
+NumNodes: 25
+NumEdges: 54
+NodeLabels
+2 2 2 2 2 2 2 3 2 0 2 2 2 0 0 2 0 3 2 2 2 2 2 2 2 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 7 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+7 4 0
+7 8 0
+7 12 0
+8 7 0
+8 9 0
+8 10 0
+9 8 0
+10 8 0
+10 11 0
+10 14 0
+11 10 0
+11 12 0
+11 15 0
+12 7 0
+12 11 0
+12 13 0
+13 12 0
+14 10 0
+15 11 0
+15 16 0
+15 17 0
+16 15 0
+17 15 0
+17 18 0
+18 17 0
+18 19 0
+18 23 0
+19 18 0
+19 20 0
+20 19 0
+20 21 0
+21 20 0
+21 22 0
+21 24 0
+22 21 0
+22 23 0
+23 18 0
+23 22 0
+24 21 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 42
+AnchorID: 2735
+TreeNodeGraphID: 253
+Level: 7
+SimplifiedLevel: 0
+EditOperation: 5 21 26 0 0
+AccumulatedOpsCount: 2
+AccumulatedOp: 5 5 7 0 0
+AccumulatedOp: 5 21 26 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 16523
+GraphStart
+GraphDataStart
+ID: 253
+NumNodes: 27
+NumEdges: 58
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 0 2 0 3 2 2 2 2 2 2 4 4 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+5 7 0
+6 1 0
+6 5 0
+7 5 0
+8 4 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 16 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+16 12 0
+16 17 0
+16 18 0
+17 16 0
+18 16 0
+18 19 0
+19 18 0
+19 20 0
+19 24 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+24 19 0
+24 23 0
+25 20 0
+26 22 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 43
+AnchorID: 2735
+TreeNodeGraphID: 264
+Level: 15
+SimplifiedLevel: 0
+EditOperation: 5 7 24 0 0
+AccumulatedOpsCount: 11
+AccumulatedOp: 4 19 20 0 0
+AccumulatedOp: 0 7 0 4 2
+AccumulatedOp: 0 18 0 0 3
+AccumulatedOp: 0 26 0 4 2
+AccumulatedOp: 0 27 0 4 3
+AccumulatedOp: 5 8 18 0 0
+AccumulatedOp: 5 9 27 0 0
+AccumulatedOp: 4 8 9 0 0
+AccumulatedOp: 4 0 1 0 0
+AccumulatedOp: 1 0 0 4 0
+AccumulatedOp: 5 7 24 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 13050
+GraphStart
+GraphDataStart
+ID: 264
+NumNodes: 26
+NumEdges: 56
+NodeLabels
+2 2 2 2 2 2 2 3 2 0 2 2 2 0 0 2 3 3 2 2 2 2 2 2 2 3 
+Edges
+0 1 0
+0 5 0
+1 0 0
+1 2 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+3 7 0
+4 3 0
+4 5 0
+5 0 0
+5 4 0
+6 22 0
+7 3 0
+7 12 0
+7 16 0
+8 9 0
+8 10 0
+8 25 0
+9 8 0
+10 8 0
+10 11 0
+10 14 0
+11 10 0
+11 12 0
+11 15 0
+12 7 0
+12 11 0
+12 13 0
+13 12 0
+14 10 0
+15 11 0
+15 16 0
+15 17 0
+16 15 0
+16 7 0
+17 15 0
+18 19 0
+18 23 0
+19 18 0
+19 20 0
+20 19 0
+20 21 0
+20 24 0
+21 20 0
+21 22 0
+21 25 0
+22 21 0
+22 23 0
+22 6 0
+23 18 0
+23 22 0
+24 20 0
+25 21 0
+25 8 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 44
+AnchorID: 2735
+TreeNodeGraphID: 270
+Level: 9
+SimplifiedLevel: 0
+EditOperation: 5 5 7 0 0
+AccumulatedOpsCount: 6
+AccumulatedOp: 4 22 26 0 0
+AccumulatedOp: 5 16 25 0 0
+AccumulatedOp: 0 7 0 4 2
+AccumulatedOp: 0 16 0 3 2
+AccumulatedOp: 1 26 0 4 0
+AccumulatedOp: 5 5 7 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 34747
+GraphStart
+GraphDataStart
+ID: 270
+NumNodes: 27
+NumEdges: 58
+NodeLabels
+4 2 2 2 2 2 2 2 3 2 0 2 2 2 0 0 2 2 0 3 2 2 2 2 2 2 4 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+5 7 0
+6 1 0
+6 5 0
+7 5 0
+8 4 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+16 25 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+23 26 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+25 16 0
+26 23 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 45
+AnchorID: 2735
+TreeNodeGraphID: 283
+Level: 15
+SimplifiedLevel: 0
+EditOperation: 5 13 15 0 0
+AccumulatedOpsCount: 13
+AccumulatedOp: 1 16 0 3 0
+AccumulatedOp: 0 0 0 4 2
+AccumulatedOp: 1 7 0 4 0
+AccumulatedOp: 5 2 11 0 0
+AccumulatedOp: 0 10 0 0 3
+AccumulatedOp: 0 14 0 0 1
+AccumulatedOp: 0 26 0 4 2
+AccumulatedOp: 4 11 15 0 0
+AccumulatedOp: 0 27 0 4 2
+AccumulatedOp: 4 4 8 0 0
+AccumulatedOp: 4 12 13 0 0
+AccumulatedOp: 5 12 15 0 0
+AccumulatedOp: 5 13 15 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 13217
+GraphStart
+GraphDataStart
+ID: 283
+NumNodes: 26
+NumEdges: 56
+NodeLabels
+2 2 2 2 2 2 2 3 2 3 2 2 2 1 3 2 0 3 2 2 2 2 2 2 2 2 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+2 10 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+7 8 0
+7 12 0
+8 7 0
+8 9 0
+8 10 0
+9 8 0
+10 8 0
+10 11 0
+10 2 0
+11 10 0
+11 15 0
+11 14 0
+12 7 0
+12 13 0
+12 14 0
+13 12 0
+14 11 0
+14 12 0
+15 11 0
+15 16 0
+15 17 0
+16 15 0
+17 15 0
+17 18 0
+18 17 0
+18 19 0
+18 23 0
+19 18 0
+19 20 0
+20 19 0
+20 21 0
+20 24 0
+21 20 0
+21 22 0
+21 25 0
+22 21 0
+22 23 0
+23 18 0
+23 22 0
+24 20 0
+25 21 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 46
+AnchorID: 2735
+TreeNodeGraphID: 284
+Level: 2
+SimplifiedLevel: 0
+EditOperation: 0 26 0 4 2
+AccumulatedOpsCount: 1
+AccumulatedOp: 0 26 0 4 2
+ChildrenCount: 2
+ChildIndices: 47 52
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 284
+NumNodes: 28
+NumEdges: 58
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 2 4 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+8 4 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+23 27 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+26 22 0
+27 23 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 47
+AnchorID: 2735
+TreeNodeGraphID: 285
+Level: 3
+SimplifiedLevel: 0
+EditOperation: 0 27 0 4 0
+AccumulatedOpsCount: 1
+AccumulatedOp: 0 27 0 4 0
+ChildrenCount: 2
+ChildIndices: 48 51
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 285
+NumNodes: 28
+NumEdges: 58
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 2 0 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+8 4 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+23 27 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+26 22 0
+27 23 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 48
+AnchorID: 2735
+TreeNodeGraphID: 289
+Level: 7
+SimplifiedLevel: 0
+EditOperation: 4 23 24 0 0
+AccumulatedOpsCount: 4
+AccumulatedOp: 4 8 13 0 0
+AccumulatedOp: 5 24 26 0 0
+AccumulatedOp: 4 22 23 0 0
+AccumulatedOp: 4 23 24 0 0
+ChildrenCount: 2
+ChildIndices: 49 50
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 289
+NumNodes: 28
+NumEdges: 54
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 2 0 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+8 4 0
+8 9 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 26 0
+23 27 0
+24 25 0
+24 26 0
+25 20 0
+25 24 0
+26 22 0
+26 24 0
+27 23 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 49
+AnchorID: 2735
+TreeNodeGraphID: 294
+Level: 12
+SimplifiedLevel: 0
+EditOperation: 5 8 23 0 0
+AccumulatedOpsCount: 5
+AccumulatedOp: 5 13 23 0 0
+AccumulatedOp: 1 7 0 4 0
+AccumulatedOp: 5 18 25 0 0
+AccumulatedOp: 0 18 0 0 1
+AccumulatedOp: 5 8 23 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 15065
+GraphStart
+GraphDataStart
+ID: 294
+NumNodes: 27
+NumEdges: 60
+NodeLabels
+4 2 2 2 2 2 2 3 2 0 2 2 2 0 3 3 2 1 3 2 2 2 2 2 2 2 0 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 7 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+7 4 0
+7 8 0
+7 22 0
+8 7 0
+8 9 0
+8 10 0
+9 8 0
+10 8 0
+10 11 0
+10 14 0
+11 10 0
+11 12 0
+11 16 0
+12 11 0
+12 13 0
+12 22 0
+13 12 0
+14 10 0
+14 15 0
+15 14 0
+16 11 0
+16 17 0
+16 18 0
+17 16 0
+17 24 0
+18 16 0
+18 19 0
+19 18 0
+19 20 0
+19 24 0
+20 19 0
+20 21 0
+21 20 0
+21 25 0
+22 26 0
+22 12 0
+22 7 0
+23 24 0
+23 25 0
+24 19 0
+24 23 0
+24 17 0
+25 21 0
+25 23 0
+26 22 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 50
+AnchorID: 2735
+TreeNodeGraphID: 299
+Level: 12
+SimplifiedLevel: 0
+EditOperation: 5 16 23 0 0
+AccumulatedOpsCount: 5
+AccumulatedOp: 0 0 0 4 2
+AccumulatedOp: 5 7 23 0 0
+AccumulatedOp: 0 7 0 4 3
+AccumulatedOp: 5 13 25 0 0
+AccumulatedOp: 5 16 23 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 17214
+GraphStart
+GraphDataStart
+ID: 299
+NumNodes: 28
+NumEdges: 60
+NodeLabels
+2 2 2 2 2 2 2 3 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 2 0 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+7 23 0
+8 4 0
+8 9 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 12 0
+13 14 0
+13 25 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+16 23 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 26 0
+23 27 0
+23 7 0
+23 16 0
+24 25 0
+24 26 0
+25 20 0
+25 24 0
+25 13 0
+26 22 0
+26 24 0
+27 23 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 51
+AnchorID: 2735
+TreeNodeGraphID: 304
+Level: 8
+SimplifiedLevel: 0
+EditOperation: 4 22 26 0 0
+AccumulatedOpsCount: 5
+AccumulatedOp: 0 0 0 4 0
+AccumulatedOp: 0 7 0 4 2
+AccumulatedOp: 5 26 27 0 0
+AccumulatedOp: 5 0 7 0 0
+AccumulatedOp: 4 22 26 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 9265
+GraphStart
+GraphDataStart
+ID: 304
+NumNodes: 28
+NumEdges: 60
+NodeLabels
+0 2 2 2 2 2 2 2 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 2 0 
+Edges
+0 1 0
+0 7 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+7 0 0
+8 4 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+23 27 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+26 27 0
+27 23 0
+27 26 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 52
+AnchorID: 2735
+TreeNodeGraphID: 308
+Level: 6
+SimplifiedLevel: 0
+EditOperation: 5 21 26 0 0
+AccumulatedOpsCount: 4
+AccumulatedOp: 0 7 0 4 2
+AccumulatedOp: 4 22 26 0 0
+AccumulatedOp: 5 5 7 0 0
+AccumulatedOp: 5 21 26 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 33129
+GraphStart
+GraphDataStart
+ID: 308
+NumNodes: 28
+NumEdges: 60
+NodeLabels
+4 2 2 2 2 2 2 2 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 2 4 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+5 7 0
+6 1 0
+6 5 0
+7 5 0
+8 4 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+21 26 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+23 27 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+26 21 0
+27 23 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 53
+AnchorID: 2735
+TreeNodeGraphID: 322
+Level: 15
+SimplifiedLevel: 0
+EditOperation: 5 19 28 0 0
+AccumulatedOpsCount: 14
+AccumulatedOp: 4 8 13 0 0
+AccumulatedOp: 0 0 0 4 5
+AccumulatedOp: 0 7 0 4 0
+AccumulatedOp: 0 16 0 3 0
+AccumulatedOp: 5 14 26 0 0
+AccumulatedOp: 0 14 0 0 2
+AccumulatedOp: 0 27 0 4 3
+AccumulatedOp: 2 28 0 0 2
+AccumulatedOp: 0 19 0 3 0
+AccumulatedOp: 0 26 0 4 3
+AccumulatedOp: 5 13 27 0 0
+AccumulatedOp: 4 19 20 0 0
+AccumulatedOp: 5 7 14 0 0
+AccumulatedOp: 5 19 28 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 36427
+GraphStart
+GraphDataStart
+ID: 322
+NumNodes: 29
+NumEdges: 62
+NodeLabels
+5 2 2 2 2 2 2 0 3 2 0 2 2 2 2 3 0 2 0 0 2 2 2 2 2 2 3 3 2 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+7 14 0
+8 4 0
+8 9 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 12 0
+13 14 0
+13 27 0
+14 13 0
+14 26 0
+14 7 0
+15 11 0
+15 16 0
+16 15 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 28 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+23 27 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+26 22 0
+26 14 0
+27 23 0
+27 13 0
+28 19 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 54
+AnchorID: 2735
+TreeNodeGraphID: 333
+Level: 11
+SimplifiedLevel: 0
+EditOperation: 5 7 16 0 0
+AccumulatedOpsCount: 11
+AccumulatedOp: 4 22 26 0 0
+AccumulatedOp: 0 0 0 4 3
+AccumulatedOp: 5 0 9 0 0
+AccumulatedOp: 5 3 26 0 0
+AccumulatedOp: 0 7 0 4 2
+AccumulatedOp: 0 14 0 0 2
+AccumulatedOp: 4 0 1 0 0
+AccumulatedOp: 4 4 8 0 0
+AccumulatedOp: 4 9 11 0 0
+AccumulatedOp: 5 0 11 0 0
+AccumulatedOp: 5 7 16 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 13008
+GraphStart
+GraphDataStart
+ID: 333
+NumNodes: 28
+NumEdges: 60
+NodeLabels
+3 2 2 2 2 2 2 2 3 2 0 2 2 2 2 3 3 2 0 3 2 2 2 2 2 2 4 4 
+Edges
+0 9 0
+0 11 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+3 26 0
+4 3 0
+4 5 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+7 16 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 0 0
+10 9 0
+11 12 0
+11 15 0
+11 0 0
+12 11 0
+12 13 0
+12 17 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+16 7 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+23 22 0
+23 24 0
+23 27 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+26 3 0
+27 23 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 55
+AnchorID: 2735
+TreeNodeGraphID: 338
+Level: 5
+SimplifiedLevel: 0
+EditOperation: 0 27 0 4 2
+AccumulatedOpsCount: 5
+AccumulatedOp: 0 26 0 4 2
+AccumulatedOp: 0 0 0 4 2
+AccumulatedOp: 0 7 0 4 2
+AccumulatedOp: 0 16 0 3 0
+AccumulatedOp: 0 27 0 4 2
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 10992
+GraphStart
+GraphDataStart
+ID: 338
+NumNodes: 28
+NumEdges: 60
+NodeLabels
+2 2 2 2 2 2 2 2 3 2 0 2 2 2 0 3 0 2 0 3 2 2 2 2 2 2 2 2 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 4 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+23 27 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+26 22 0
+27 23 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 56
+AnchorID: 2735
+TreeNodeGraphID: 339
+Level: 1
+SimplifiedLevel: 0
+EditOperation: 4 15 16 0 0
+AccumulatedOpsCount: 1
+AccumulatedOp: 4 15 16 0 0
+ChildrenCount: 2
+ChildIndices: 57 62
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 339
+NumNodes: 28
+NumEdges: 58
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 4 4 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 4 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+23 27 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+26 22 0
+27 23 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 57
+AnchorID: 2735
+TreeNodeGraphID: 340
+Level: 2
+SimplifiedLevel: 0
+EditOperation: 4 12 13 0 0
+AccumulatedOpsCount: 1
+AccumulatedOp: 4 12 13 0 0
+ChildrenCount: 2
+ChildIndices: 58 61
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 340
+NumNodes: 28
+NumEdges: 56
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 3 3 2 0 3 2 2 2 2 2 2 4 4 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 4 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 17 0
+13 8 0
+13 14 0
+14 13 0
+15 11 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+23 27 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+26 22 0
+27 23 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 58
+AnchorID: 2735
+TreeNodeGraphID: 346
+Level: 8
+SimplifiedLevel: 0
+EditOperation: 1 0 0 4 0
+AccumulatedOpsCount: 6
+AccumulatedOp: 4 4 8 0 0
+AccumulatedOp: 4 11 15 0 0
+AccumulatedOp: 0 10 0 0 3
+AccumulatedOp: 0 14 0 0 1
+AccumulatedOp: 4 0 1 0 0
+AccumulatedOp: 1 0 0 4 0
+ChildrenCount: 2
+ChildIndices: 59 60
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 346
+NumNodes: 27
+NumEdges: 50
+NodeLabels
+2 2 2 2 2 2 4 3 2 3 2 2 2 1 3 3 2 0 3 2 2 2 2 2 2 4 4 
+Edges
+0 1 0
+0 5 0
+1 0 0
+1 2 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+5 0 0
+5 4 0
+5 6 0
+6 5 0
+7 8 0
+7 12 0
+8 7 0
+8 9 0
+8 10 0
+9 8 0
+10 8 0
+10 11 0
+11 10 0
+11 16 0
+12 7 0
+12 13 0
+13 12 0
+16 11 0
+16 17 0
+16 18 0
+17 16 0
+18 16 0
+18 19 0
+19 18 0
+19 20 0
+19 24 0
+20 19 0
+20 21 0
+21 20 0
+21 22 0
+21 25 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+24 19 0
+24 23 0
+25 21 0
+26 22 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 59
+AnchorID: 2735
+TreeNodeGraphID: 350
+Level: 12
+SimplifiedLevel: 0
+EditOperation: 5 12 15 0 0
+AccumulatedOpsCount: 4
+AccumulatedOp: 5 13 15 0 0
+AccumulatedOp: 1 16 0 3 0
+AccumulatedOp: 5 3 11 0 0
+AccumulatedOp: 5 12 15 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 20643
+GraphStart
+GraphDataStart
+ID: 350
+NumNodes: 26
+NumEdges: 56
+NodeLabels
+2 2 2 2 2 2 4 3 2 3 2 2 2 1 3 2 0 3 2 2 2 2 2 2 4 4 
+Edges
+0 1 0
+0 5 0
+1 0 0
+1 2 0
+2 1 0
+2 3 0
+2 10 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+5 0 0
+5 4 0
+5 6 0
+6 5 0
+7 8 0
+7 12 0
+8 7 0
+8 9 0
+8 10 0
+9 8 0
+10 8 0
+10 11 0
+10 2 0
+11 10 0
+11 15 0
+11 14 0
+12 7 0
+12 13 0
+12 14 0
+13 12 0
+14 12 0
+14 11 0
+15 11 0
+15 16 0
+15 17 0
+16 15 0
+17 15 0
+17 18 0
+18 17 0
+18 19 0
+18 23 0
+19 18 0
+19 20 0
+20 19 0
+20 21 0
+20 24 0
+21 20 0
+21 22 0
+21 25 0
+22 21 0
+22 23 0
+23 18 0
+23 22 0
+24 20 0
+25 21 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 60
+AnchorID: 2735
+TreeNodeGraphID: 355
+Level: 13
+SimplifiedLevel: 0
+EditOperation: 5 1 11 0 0
+AccumulatedOpsCount: 5
+AccumulatedOp: 5 13 16 0 0
+AccumulatedOp: 1 15 0 3 0
+AccumulatedOp: 0 7 0 4 2
+AccumulatedOp: 5 12 16 0 0
+AccumulatedOp: 5 1 11 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 17453
+GraphStart
+GraphDataStart
+ID: 355
+NumNodes: 26
+NumEdges: 56
+NodeLabels
+2 2 2 2 2 2 2 3 2 3 2 2 2 1 3 2 0 3 2 2 2 2 2 2 4 4 
+Edges
+0 1 0
+0 5 0
+0 10 0
+1 0 0
+1 2 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+5 0 0
+5 4 0
+5 6 0
+6 5 0
+7 8 0
+7 12 0
+8 7 0
+8 9 0
+8 10 0
+9 8 0
+10 8 0
+10 11 0
+10 0 0
+11 10 0
+11 15 0
+11 14 0
+12 7 0
+12 13 0
+12 14 0
+13 12 0
+14 12 0
+14 11 0
+15 11 0
+15 16 0
+15 17 0
+16 15 0
+17 15 0
+17 18 0
+18 17 0
+18 19 0
+18 23 0
+19 18 0
+19 20 0
+20 19 0
+20 21 0
+20 24 0
+21 20 0
+21 22 0
+21 25 0
+22 21 0
+22 23 0
+23 18 0
+23 22 0
+24 20 0
+25 21 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 61
+AnchorID: 2735
+TreeNodeGraphID: 366
+Level: 13
+SimplifiedLevel: 0
+EditOperation: 5 13 17 0 0
+AccumulatedOpsCount: 11
+AccumulatedOp: 5 12 16 0 0
+AccumulatedOp: 0 15 0 3 0
+AccumulatedOp: 0 27 0 4 3
+AccumulatedOp: 0 16 0 3 2
+AccumulatedOp: 0 26 0 4 1
+AccumulatedOp: 5 16 27 0 0
+AccumulatedOp: 4 17 19 0 0
+AccumulatedOp: 4 19 20 0 0
+AccumulatedOp: 1 19 0 3 0
+AccumulatedOp: 5 16 26 0 0
+AccumulatedOp: 5 13 17 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 5863
+GraphStart
+GraphDataStart
+ID: 366
+NumNodes: 27
+NumEdges: 60
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 0 2 2 0 2 2 2 2 2 2 1 3 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 4 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 17 0
+12 16 0
+13 8 0
+13 14 0
+13 17 0
+14 13 0
+15 11 0
+16 12 0
+16 26 0
+16 25 0
+17 12 0
+17 18 0
+17 13 0
+18 17 0
+19 20 0
+19 24 0
+20 19 0
+20 21 0
+21 20 0
+21 22 0
+21 25 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+24 19 0
+24 23 0
+25 21 0
+25 16 0
+26 22 0
+26 16 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 62
+AnchorID: 2735
+TreeNodeGraphID: 376
+Level: 11
+SimplifiedLevel: 0
+EditOperation: 5 13 26 0 0
+AccumulatedOpsCount: 10
+AccumulatedOp: 4 19 20 0 0
+AccumulatedOp: 0 10 0 0 1
+AccumulatedOp: 4 9 11 0 0
+AccumulatedOp: 1 16 0 3 0
+AccumulatedOp: 0 19 0 3 2
+AccumulatedOp: 0 26 0 4 3
+AccumulatedOp: 0 27 0 4 2
+AccumulatedOp: 4 8 13 0 0
+AccumulatedOp: 5 9 15 0 0
+AccumulatedOp: 5 13 26 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 11074
+GraphStart
+GraphDataStart
+ID: 376
+NumNodes: 27
+NumEdges: 56
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 1 2 2 2 0 3 2 0 2 2 2 2 2 2 2 3 2 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 4 0
+8 9 0
+9 8 0
+9 10 0
+9 15 0
+10 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 16 0
+13 12 0
+13 14 0
+13 25 0
+14 13 0
+15 11 0
+15 9 0
+16 12 0
+16 17 0
+16 18 0
+17 16 0
+18 16 0
+19 20 0
+19 24 0
+20 19 0
+20 21 0
+21 20 0
+21 22 0
+21 25 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+24 19 0
+24 23 0
+25 21 0
+25 13 0
+26 22 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 63
+AnchorID: 2735
+TreeNodeGraphID: 377
+Level: 1
+SimplifiedLevel: 0
+EditOperation: 0 16 0 3 0
+AccumulatedOpsCount: 1
+AccumulatedOp: 0 16 0 3 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 24188
+GraphStart
+GraphDataStart
+ID: 377
+NumNodes: 28
+NumEdges: 60
+NodeLabels
+4 2 2 2 2 2 2 4 3 2 0 2 2 2 0 3 0 2 0 3 2 2 2 2 2 2 4 4 
+Edges
+0 1 0
+1 0 0
+1 2 0
+1 6 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 8 0
+5 4 0
+5 6 0
+6 1 0
+6 5 0
+6 7 0
+7 6 0
+8 4 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 9 0
+11 9 0
+11 12 0
+11 15 0
+12 11 0
+12 13 0
+12 17 0
+13 8 0
+13 12 0
+13 14 0
+14 13 0
+15 11 0
+15 16 0
+16 15 0
+17 12 0
+17 18 0
+17 19 0
+18 17 0
+19 17 0
+19 20 0
+20 19 0
+20 21 0
+20 25 0
+21 20 0
+21 22 0
+22 21 0
+22 23 0
+22 26 0
+23 22 0
+23 24 0
+23 27 0
+24 23 0
+24 25 0
+25 20 0
+25 24 0
+26 22 0
+27 23 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+END_EPT

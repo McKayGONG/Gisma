@@ -1,0 +1,324 @@
+BEGIN_EPT
+AnchorID: 1297  # ID of the anchor node
+RootIndex: 0  # Index of the root node in tree_nodes
+NodeCount: 4  # Total number of nodes in the EPT
+NodeStart
+EPTNodeID: 0
+AnchorID: 1297
+TreeNodeGraphID: 0
+Level: 0
+SimplifiedLevel: 0
+EditOperation: -1 0 -1 0 0
+AccumulatedOpsCount: 0
+ChildrenCount: 1
+ChildIndices: 1
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 0
+NumNodes: 24
+NumEdges: 48
+NodeLabels
+6 2 2 3 3 4 4 4 4 4 4 4 4 4 5 5 5 5 5 5 5 5 5 5 
+Edges
+0 9 0
+1 11 0
+2 12 0
+3 6 0
+3 9 0
+3 15 0
+4 12 0
+4 22 0
+4 23 0
+5 6 0
+5 7 0
+5 11 0
+6 3 0
+6 5 0
+6 10 0
+7 5 0
+7 8 0
+7 14 0
+8 7 0
+8 9 0
+8 12 0
+9 0 0
+9 3 0
+9 8 0
+10 6 0
+10 16 0
+10 17 0
+10 18 0
+11 1 0
+11 5 0
+11 13 0
+12 2 0
+12 4 0
+12 8 0
+13 11 0
+13 19 0
+13 20 0
+13 21 0
+14 7 0
+15 3 0
+16 10 0
+17 10 0
+18 10 0
+19 13 0
+20 13 0
+21 13 0
+22 4 0
+23 4 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 1
+AnchorID: 1297
+TreeNodeGraphID: 1
+Level: 1
+SimplifiedLevel: 0
+EditOperation: 0 2 0 2 4
+AccumulatedOpsCount: 1
+AccumulatedOp: 0 2 0 2 4
+ChildrenCount: 2
+ChildIndices: 2 3
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 1
+NumNodes: 24
+NumEdges: 48
+NodeLabels
+6 2 4 3 3 4 4 4 4 4 4 4 4 4 5 5 5 5 5 5 5 5 5 5 
+Edges
+0 9 0
+1 11 0
+2 12 0
+3 6 0
+3 9 0
+3 15 0
+4 12 0
+4 22 0
+4 23 0
+5 6 0
+5 7 0
+5 11 0
+6 3 0
+6 5 0
+6 10 0
+7 5 0
+7 8 0
+7 14 0
+8 7 0
+8 9 0
+8 12 0
+9 0 0
+9 3 0
+9 8 0
+10 6 0
+10 16 0
+10 17 0
+10 18 0
+11 1 0
+11 5 0
+11 13 0
+12 2 0
+12 4 0
+12 8 0
+13 11 0
+13 19 0
+13 20 0
+13 21 0
+14 7 0
+15 3 0
+16 10 0
+17 10 0
+18 10 0
+19 13 0
+20 13 0
+21 13 0
+22 4 0
+23 4 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 2
+AnchorID: 1297
+TreeNodeGraphID: 14
+Level: 14
+SimplifiedLevel: 0
+EditOperation: 5 2 24 0 0
+AccumulatedOpsCount: 13
+AccumulatedOp: 0 3 0 3 4
+AccumulatedOp: 0 0 0 6 2
+AccumulatedOp: 0 1 0 2 3
+AccumulatedOp: 0 14 0 5 3
+AccumulatedOp: 0 8 0 4 2
+AccumulatedOp: 0 12 0 4 3
+AccumulatedOp: 2 24 0 0 3
+AccumulatedOp: 0 23 0 5 3
+AccumulatedOp: 4 8 12 0 0
+AccumulatedOp: 5 23 24 0 0
+AccumulatedOp: 5 1 14 0 0
+AccumulatedOp: 5 2 14 0 0
+AccumulatedOp: 5 2 24 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 22237
+GraphStart
+GraphDataStart
+ID: 14
+NumNodes: 25
+NumEdges: 54
+NodeLabels
+2 3 4 4 3 4 4 4 2 4 4 4 3 4 3 5 5 5 5 5 5 5 5 3 3 
+Edges
+0 9 0
+1 11 0
+1 14 0
+2 12 0
+2 14 0
+2 24 0
+3 6 0
+3 9 0
+3 15 0
+4 12 0
+4 22 0
+4 23 0
+5 6 0
+5 7 0
+5 11 0
+6 3 0
+6 5 0
+6 10 0
+7 5 0
+7 8 0
+7 14 0
+8 7 0
+8 9 0
+9 0 0
+9 3 0
+9 8 0
+10 6 0
+10 16 0
+10 17 0
+10 18 0
+11 1 0
+11 5 0
+11 13 0
+12 2 0
+12 4 0
+13 11 0
+13 19 0
+13 20 0
+13 21 0
+14 7 0
+14 1 0
+14 2 0
+15 3 0
+16 10 0
+17 10 0
+18 10 0
+19 13 0
+20 13 0
+21 13 0
+22 4 0
+23 4 0
+23 24 0
+24 23 0
+24 2 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 3
+AnchorID: 1297
+TreeNodeGraphID: 29
+Level: 16
+SimplifiedLevel: 0
+EditOperation: 5 0 11 0 0
+AccumulatedOpsCount: 15
+AccumulatedOp: 4 13 21 0 0
+AccumulatedOp: 0 0 0 6 4
+AccumulatedOp: 0 20 0 5 3
+AccumulatedOp: 4 3 6 0 0
+AccumulatedOp: 4 11 13 0 0
+AccumulatedOp: 0 6 0 4 5
+AccumulatedOp: 0 23 0 5 2
+AccumulatedOp: 0 19 0 5 6
+AccumulatedOp: 5 2 3 0 0
+AccumulatedOp: 0 22 0 5 2
+AccumulatedOp: 5 2 19 0 0
+AccumulatedOp: 5 0 21 0 0
+AccumulatedOp: 4 6 10 0 0
+AccumulatedOp: 5 1 10 0 0
+AccumulatedOp: 5 0 11 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 8319
+GraphStart
+GraphDataStart
+ID: 29
+NumNodes: 24
+NumEdges: 50
+NodeLabels
+4 2 4 3 3 4 5 4 4 4 4 4 4 4 5 5 5 5 5 6 3 5 2 2 
+Edges
+0 9 0
+0 21 0
+0 11 0
+1 11 0
+1 10 0
+2 12 0
+2 3 0
+2 19 0
+3 9 0
+3 15 0
+3 2 0
+4 12 0
+4 22 0
+4 23 0
+5 6 0
+5 7 0
+5 11 0
+6 5 0
+7 5 0
+7 8 0
+7 14 0
+8 7 0
+8 9 0
+8 12 0
+9 0 0
+9 3 0
+9 8 0
+10 16 0
+10 17 0
+10 18 0
+10 1 0
+11 1 0
+11 5 0
+11 0 0
+12 2 0
+12 4 0
+12 8 0
+13 19 0
+13 20 0
+14 7 0
+15 3 0
+16 10 0
+17 10 0
+18 10 0
+19 13 0
+19 2 0
+20 13 0
+21 0 0
+22 4 0
+23 4 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+END_EPT

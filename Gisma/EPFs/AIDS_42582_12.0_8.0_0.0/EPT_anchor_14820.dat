@@ -1,0 +1,383 @@
+BEGIN_EPT
+AnchorID: 14820  # ID of the anchor node
+RootIndex: 0  # Index of the root node in tree_nodes
+NodeCount: 4  # Total number of nodes in the EPT
+NodeStart
+EPTNodeID: 0
+AnchorID: 14820
+TreeNodeGraphID: 0
+Level: 0
+SimplifiedLevel: 0
+EditOperation: -1 0 -1 0 0
+AccumulatedOpsCount: 0
+ChildrenCount: 1
+ChildIndices: 1
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 0
+NumNodes: 31
+NumEdges: 68
+NodeLabels
+2 2 2 2 2 2 2 0 2 2 3 2 12 1 12 2 2 3 2 0 2 12 12 12 12 2 2 2 2 2 2 
+Edges
+0 1 0
+0 5 0
+1 0 0
+1 2 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 6 0
+5 0 0
+5 4 0
+6 4 0
+6 7 0
+6 10 0
+7 6 0
+7 8 0
+8 7 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 6 0
+10 9 0
+11 9 0
+11 12 0
+11 23 0
+11 24 0
+12 11 0
+13 8 0
+13 15 0
+14 20 0
+15 13 0
+15 16 0
+15 19 0
+16 15 0
+16 17 0
+16 20 0
+17 16 0
+17 18 0
+18 17 0
+18 19 0
+18 25 0
+19 15 0
+19 18 0
+20 14 0
+20 16 0
+20 21 0
+20 22 0
+21 20 0
+22 20 0
+23 11 0
+24 11 0
+25 18 0
+25 26 0
+25 30 0
+26 25 0
+26 27 0
+27 26 0
+27 28 0
+28 27 0
+28 29 0
+29 28 0
+29 30 0
+30 25 0
+30 29 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 1
+AnchorID: 14820
+TreeNodeGraphID: 1
+Level: 1
+SimplifiedLevel: 0
+EditOperation: 4 7 8 0 0
+AccumulatedOpsCount: 1
+AccumulatedOp: 4 7 8 0 0
+ChildrenCount: 2
+ChildIndices: 2 3
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 1
+NumNodes: 31
+NumEdges: 66
+NodeLabels
+2 2 2 2 2 2 2 0 2 2 3 2 12 1 12 2 2 3 2 0 2 12 12 12 12 2 2 2 2 2 2 
+Edges
+0 1 0
+0 5 0
+1 0 0
+1 2 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 6 0
+5 0 0
+5 4 0
+6 4 0
+6 7 0
+6 10 0
+7 6 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+10 6 0
+10 9 0
+11 9 0
+11 12 0
+11 23 0
+11 24 0
+12 11 0
+13 8 0
+13 15 0
+14 20 0
+15 13 0
+15 16 0
+15 19 0
+16 15 0
+16 17 0
+16 20 0
+17 16 0
+17 18 0
+18 17 0
+18 19 0
+18 25 0
+19 15 0
+19 18 0
+20 14 0
+20 16 0
+20 21 0
+20 22 0
+21 20 0
+22 20 0
+23 11 0
+24 11 0
+25 18 0
+25 26 0
+25 30 0
+26 25 0
+26 27 0
+27 26 0
+27 28 0
+28 27 0
+28 29 0
+29 28 0
+29 30 0
+30 25 0
+30 29 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 2
+AnchorID: 14820
+TreeNodeGraphID: 7
+Level: 7
+SimplifiedLevel: 0
+EditOperation: 4 18 19 0 0
+AccumulatedOpsCount: 6
+AccumulatedOp: 0 13 0 1 0
+AccumulatedOp: 5 11 29 0 0
+AccumulatedOp: 5 10 16 0 0
+AccumulatedOp: 4 9 10 0 0
+AccumulatedOp: 4 9 11 0 0
+AccumulatedOp: 4 18 19 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 30461
+GraphStart
+GraphDataStart
+ID: 7
+NumNodes: 31
+NumEdges: 64
+NodeLabels
+2 2 2 2 2 2 2 0 2 2 3 2 12 0 12 2 2 3 2 0 2 12 12 12 12 2 2 2 2 2 2 
+Edges
+0 1 0
+0 5 0
+1 0 0
+1 2 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+4 6 0
+5 0 0
+5 4 0
+6 4 0
+6 7 0
+6 10 0
+7 6 0
+8 9 0
+8 13 0
+9 8 0
+10 6 0
+10 16 0
+11 12 0
+11 23 0
+11 24 0
+11 29 0
+12 11 0
+13 8 0
+13 15 0
+14 20 0
+15 13 0
+15 16 0
+15 19 0
+16 15 0
+16 17 0
+16 20 0
+16 10 0
+17 16 0
+17 18 0
+18 17 0
+18 25 0
+19 15 0
+20 14 0
+20 16 0
+20 21 0
+20 22 0
+21 20 0
+22 20 0
+23 11 0
+24 11 0
+25 18 0
+25 26 0
+25 30 0
+26 25 0
+26 27 0
+27 26 0
+27 28 0
+28 27 0
+28 29 0
+29 28 0
+29 30 0
+29 11 0
+30 25 0
+30 29 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 3
+AnchorID: 14820
+TreeNodeGraphID: 22
+Level: 16
+SimplifiedLevel: 0
+EditOperation: 5 16 32 0 0
+AccumulatedOpsCount: 15
+AccumulatedOp: 0 8 0 2 0
+AccumulatedOp: 0 13 0 1 3
+AccumulatedOp: 0 17 0 3 2
+AccumulatedOp: 2 32 0 0 2
+AccumulatedOp: 0 18 0 2 11
+AccumulatedOp: 4 4 6 0 0
+AccumulatedOp: 2 31 0 0 4
+AccumulatedOp: 5 9 20 0 0
+AccumulatedOp: 4 16 20 0 0
+AccumulatedOp: 4 15 19 0 0
+AccumulatedOp: 4 17 18 0 0
+AccumulatedOp: 5 6 18 0 0
+AccumulatedOp: 5 5 18 0 0
+AccumulatedOp: 5 15 31 0 0
+AccumulatedOp: 5 16 32 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 1027
+GraphStart
+GraphDataStart
+ID: 22
+NumNodes: 33
+NumEdges: 68
+NodeLabels
+2 2 2 2 2 2 2 0 0 2 3 2 12 3 12 2 2 2 11 0 2 12 12 12 12 2 2 2 2 2 2 4 2 
+Edges
+0 1 0
+0 5 0
+1 0 0
+1 2 0
+2 1 0
+2 3 0
+3 2 0
+3 4 0
+4 3 0
+4 5 0
+5 0 0
+5 4 0
+5 18 0
+6 7 0
+6 10 0
+6 18 0
+7 6 0
+8 9 0
+8 13 0
+9 8 0
+9 10 0
+9 11 0
+9 20 0
+10 6 0
+10 9 0
+11 9 0
+11 12 0
+11 23 0
+11 24 0
+12 11 0
+13 8 0
+13 15 0
+14 20 0
+15 13 0
+15 16 0
+15 31 0
+16 15 0
+16 17 0
+16 32 0
+17 16 0
+18 19 0
+18 25 0
+18 6 0
+18 5 0
+19 18 0
+20 14 0
+20 21 0
+20 22 0
+20 9 0
+21 20 0
+22 20 0
+23 11 0
+24 11 0
+25 18 0
+25 26 0
+25 30 0
+26 25 0
+26 27 0
+27 26 0
+27 28 0
+28 27 0
+28 29 0
+29 28 0
+29 30 0
+30 25 0
+30 29 0
+31 15 0
+32 16 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+END_EPT

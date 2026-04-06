@@ -1,0 +1,116 @@
+BEGIN_EPT
+AnchorID: 599  # ID of the anchor node
+RootIndex: 0  # Index of the root node in tree_nodes
+NodeCount: 1  # Total number of nodes in the EPT
+NodeStart
+EPTNodeID: 0
+AnchorID: 599
+TreeNodeGraphID: 0
+Level: 0
+SimplifiedLevel: 0
+EditOperation: -1 0 -1 0 0
+AccumulatedOpsCount: 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 3122
+GraphStart
+GraphDataStart
+ID: 0
+NumNodes: 43
+NumEdges: 88
+NodeLabels
+6 2 2 3 3 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 
+Edges
+0 1 0
+0 2 0
+0 3 0
+0 5 0
+1 0 0
+2 0 0
+3 0 0
+3 6 0
+3 7 0
+4 24 0
+5 0 0
+5 8 0
+5 9 0
+6 3 0
+6 10 0
+6 25 0
+6 26 0
+7 3 0
+7 17 0
+7 27 0
+7 28 0
+8 5 0
+8 12 0
+8 29 0
+9 5 0
+9 13 0
+9 30 0
+10 6 0
+10 14 0
+10 31 0
+11 12 0
+11 13 0
+11 16 0
+12 8 0
+12 11 0
+12 32 0
+13 9 0
+13 11 0
+13 33 0
+14 10 0
+14 15 0
+14 34 0
+15 14 0
+15 18 0
+15 19 0
+16 11 0
+16 35 0
+16 36 0
+16 37 0
+17 7 0
+17 23 0
+18 15 0
+18 20 0
+18 38 0
+19 15 0
+19 21 0
+19 39 0
+20 18 0
+20 22 0
+20 40 0
+21 19 0
+21 22 0
+21 41 0
+22 20 0
+22 21 0
+22 24 0
+23 17 0
+23 42 0
+24 4 0
+24 22 0
+25 6 0
+26 6 0
+27 7 0
+28 7 0
+29 8 0
+30 9 0
+31 10 0
+32 12 0
+33 13 0
+34 14 0
+35 16 0
+36 16 0
+37 16 0
+38 18 0
+39 19 0
+40 20 0
+41 21 0
+42 23 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+END_EPT

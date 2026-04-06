@@ -1,0 +1,266 @@
+BEGIN_EPT
+AnchorID: 7708  # ID of the anchor node
+RootIndex: 0  # Index of the root node in tree_nodes
+NodeCount: 2  # Total number of nodes in the EPT
+NodeStart
+EPTNodeID: 0
+AnchorID: 7708
+TreeNodeGraphID: 0
+Level: 0
+SimplifiedLevel: 0
+EditOperation: -1 0 -1 0 0
+AccumulatedOpsCount: 0
+ChildrenCount: 1
+ChildIndices: 1
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 0
+NumNodes: 48
+NumEdges: 100
+NodeLabels
+8 2 3 3 3 3 3 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 
+Edges
+0 24 0
+1 15 0
+2 3 0
+2 7 0
+2 8 0
+3 2 0
+3 10 0
+4 9 0
+4 15 0
+4 28 0
+5 6 0
+5 16 0
+5 23 0
+6 5 0
+6 25 0
+7 2 0
+7 9 0
+7 12 0
+8 2 0
+8 11 0
+8 26 0
+8 27 0
+9 4 0
+9 7 0
+9 10 0
+10 3 0
+10 9 0
+10 17 0
+11 8 0
+11 13 0
+11 18 0
+12 7 0
+12 29 0
+12 30 0
+12 31 0
+13 11 0
+13 19 0
+13 20 0
+14 15 0
+14 16 0
+14 32 0
+14 33 0
+15 1 0
+15 4 0
+15 14 0
+16 5 0
+16 14 0
+16 34 0
+16 35 0
+17 10 0
+17 36 0
+17 37 0
+17 38 0
+18 11 0
+18 21 0
+18 39 0
+19 13 0
+19 22 0
+19 40 0
+20 13 0
+20 41 0
+20 42 0
+20 43 0
+21 18 0
+21 22 0
+21 44 0
+22 19 0
+22 21 0
+22 45 0
+23 5 0
+23 24 0
+23 46 0
+24 0 0
+24 23 0
+24 25 0
+25 6 0
+25 24 0
+25 47 0
+26 8 0
+27 8 0
+28 4 0
+29 12 0
+30 12 0
+31 12 0
+32 14 0
+33 14 0
+34 16 0
+35 16 0
+36 17 0
+37 17 0
+38 17 0
+39 18 0
+40 19 0
+41 20 0
+42 20 0
+43 20 0
+44 21 0
+45 22 0
+46 23 0
+47 25 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 1
+AnchorID: 7708
+TreeNodeGraphID: 13
+Level: 13
+SimplifiedLevel: 0
+EditOperation: 5 13 48 0 0
+AccumulatedOpsCount: 13
+AccumulatedOp: 0 33 0 5 4
+AccumulatedOp: 4 13 20 0 0
+AccumulatedOp: 2 48 0 0 5
+AccumulatedOp: 4 14 16 0 0
+AccumulatedOp: 4 0 24 0 0
+AccumulatedOp: 5 24 33 0 0
+AccumulatedOp: 5 0 9 0 0
+AccumulatedOp: 5 16 20 0 0
+AccumulatedOp: 4 4 9 0 0
+AccumulatedOp: 5 33 45 0 0
+AccumulatedOp: 5 4 22 0 0
+AccumulatedOp: 4 22 45 0 0
+AccumulatedOp: 5 13 48 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 2
+CompletedDBGraphID: 13857
+CompletedDBGraphID: 1843
+GraphStart
+GraphDataStart
+ID: 13
+NumNodes: 49
+NumEdges: 102
+NodeLabels
+8 2 3 3 3 3 3 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 5 5 5 5 5 5 5 4 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 
+Edges
+0 9 0
+1 15 0
+2 3 0
+2 7 0
+2 8 0
+3 2 0
+3 10 0
+4 15 0
+4 28 0
+4 22 0
+5 6 0
+5 16 0
+5 23 0
+6 5 0
+6 25 0
+7 2 0
+7 9 0
+7 12 0
+8 2 0
+8 11 0
+8 26 0
+8 27 0
+9 7 0
+9 10 0
+9 0 0
+10 3 0
+10 9 0
+10 17 0
+11 8 0
+11 13 0
+11 18 0
+12 7 0
+12 29 0
+12 30 0
+12 31 0
+13 11 0
+13 19 0
+13 48 0
+14 15 0
+14 32 0
+14 33 0
+15 1 0
+15 4 0
+15 14 0
+16 5 0
+16 34 0
+16 35 0
+16 20 0
+17 10 0
+17 36 0
+17 37 0
+17 38 0
+18 11 0
+18 21 0
+18 39 0
+19 13 0
+19 22 0
+19 40 0
+20 41 0
+20 42 0
+20 43 0
+20 16 0
+21 18 0
+21 22 0
+21 44 0
+22 19 0
+22 21 0
+22 4 0
+23 5 0
+23 24 0
+23 46 0
+24 23 0
+24 25 0
+24 33 0
+25 6 0
+25 24 0
+25 47 0
+26 8 0
+27 8 0
+28 4 0
+29 12 0
+30 12 0
+31 12 0
+32 14 0
+33 14 0
+33 24 0
+33 45 0
+34 16 0
+35 16 0
+36 17 0
+37 17 0
+38 17 0
+39 18 0
+40 19 0
+41 20 0
+42 20 0
+43 20 0
+44 21 0
+45 33 0
+46 23 0
+47 25 0
+48 13 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+END_EPT

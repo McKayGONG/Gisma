@@ -1,0 +1,342 @@
+BEGIN_EPT
+AnchorID: 39103  # ID of the anchor node
+RootIndex: 0  # Index of the root node in tree_nodes
+NodeCount: 3  # Total number of nodes in the EPT
+NodeStart
+EPTNodeID: 0
+AnchorID: 39103
+TreeNodeGraphID: 0
+Level: 0
+SimplifiedLevel: 0
+EditOperation: -1 0 -1 0 0
+AccumulatedOpsCount: 0
+ChildrenCount: 2
+ChildIndices: 1 2
+CompletedDBGraphIDsCount: 0
+GraphStart
+GraphDataStart
+ID: 0
+NumNodes: 39
+NumEdges: 84
+NodeLabels
+2 0 2 2 2 3 2 3 2 2 2 2 0 0 3 3 3 2 0 11 0 0 0 2 2 0 2 0 2 0 2 2 2 2 0 2 2 2 2 
+Edges
+0 1 0
+0 4 0
+0 17 0
+1 0 0
+1 2 0
+2 1 0
+2 3 0
+2 5 0
+3 2 0
+3 4 0
+4 0 0
+4 3 0
+4 14 0
+5 2 0
+5 6 0
+5 10 0
+6 5 0
+6 7 0
+6 13 0
+7 6 0
+7 8 0
+8 7 0
+8 9 0
+8 12 0
+9 8 0
+9 10 0
+9 11 0
+10 5 0
+10 9 0
+11 9 0
+12 8 0
+13 6 0
+14 4 0
+14 15 0
+15 14 0
+15 16 0
+16 15 0
+17 0 0
+17 18 0
+18 17 0
+18 19 0
+19 18 0
+19 20 0
+19 21 0
+19 22 0
+20 19 0
+21 19 0
+21 23 0
+22 19 0
+22 26 0
+23 21 0
+23 24 0
+24 23 0
+24 25 0
+24 33 0
+25 24 0
+26 22 0
+26 38 0
+27 38 0
+28 29 0
+28 31 0
+28 38 0
+29 28 0
+29 30 0
+30 29 0
+30 32 0
+31 28 0
+31 32 0
+32 30 0
+32 31 0
+33 24 0
+33 34 0
+33 36 0
+34 33 0
+34 35 0
+35 34 0
+35 37 0
+36 33 0
+36 37 0
+37 35 0
+37 36 0
+38 26 0
+38 27 0
+38 28 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 1
+AnchorID: 39103
+TreeNodeGraphID: 8
+Level: 8
+SimplifiedLevel: 0
+EditOperation: 5 29 40 0 0
+AccumulatedOpsCount: 8
+AccumulatedOp: 0 29 0 0 2
+AccumulatedOp: 2 39 0 0 2
+AccumulatedOp: 0 34 0 0 2
+AccumulatedOp: 4 28 29 0 0
+AccumulatedOp: 2 40 0 0 2
+AccumulatedOp: 4 33 34 0 0
+AccumulatedOp: 5 34 39 0 0
+AccumulatedOp: 5 29 40 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 5354
+GraphStart
+GraphDataStart
+ID: 8
+NumNodes: 41
+NumEdges: 84
+NodeLabels
+2 0 2 2 2 3 2 3 2 2 2 2 0 0 3 3 3 2 0 11 0 0 0 2 2 0 2 0 2 2 2 2 2 2 2 2 2 2 2 2 2 
+Edges
+0 1 0
+0 4 0
+0 17 0
+1 0 0
+1 2 0
+2 1 0
+2 3 0
+2 5 0
+3 2 0
+3 4 0
+4 0 0
+4 3 0
+4 14 0
+5 2 0
+5 6 0
+5 10 0
+6 5 0
+6 7 0
+6 13 0
+7 6 0
+7 8 0
+8 7 0
+8 9 0
+8 12 0
+9 8 0
+9 10 0
+9 11 0
+10 5 0
+10 9 0
+11 9 0
+12 8 0
+13 6 0
+14 4 0
+14 15 0
+15 14 0
+15 16 0
+16 15 0
+17 0 0
+17 18 0
+18 17 0
+18 19 0
+19 18 0
+19 20 0
+19 21 0
+19 22 0
+20 19 0
+21 19 0
+21 23 0
+22 19 0
+22 26 0
+23 21 0
+23 24 0
+24 23 0
+24 25 0
+24 33 0
+25 24 0
+26 22 0
+26 38 0
+27 38 0
+28 31 0
+28 38 0
+29 30 0
+29 40 0
+30 29 0
+30 32 0
+31 28 0
+31 32 0
+32 30 0
+32 31 0
+33 24 0
+33 36 0
+34 35 0
+34 39 0
+35 34 0
+35 37 0
+36 33 0
+36 37 0
+37 35 0
+37 36 0
+38 26 0
+38 27 0
+38 28 0
+39 34 0
+40 29 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+NodeStart
+EPTNodeID: 2
+AnchorID: 39103
+TreeNodeGraphID: 21
+Level: 13
+SimplifiedLevel: 0
+EditOperation: 5 23 35 0 0
+AccumulatedOpsCount: 13
+AccumulatedOp: 4 19 21 0 0
+AccumulatedOp: 0 21 0 0 3
+AccumulatedOp: 0 24 0 2 3
+AccumulatedOp: 4 34 35 0 0
+AccumulatedOp: 5 19 27 0 0
+AccumulatedOp: 4 24 25 0 0
+AccumulatedOp: 1 25 0 0 0
+AccumulatedOp: 4 26 38 0 0
+AccumulatedOp: 0 36 0 2 3
+AccumulatedOp: 4 22 26 0 0
+AccumulatedOp: 1 26 0 2 0
+AccumulatedOp: 5 30 36 0 0
+AccumulatedOp: 5 23 35 0 0
+ChildrenCount: 0
+ChildIndices:
+CompletedDBGraphIDsCount: 1
+CompletedDBGraphID: 31879
+GraphStart
+GraphDataStart
+ID: 21
+NumNodes: 37
+NumEdges: 80
+NodeLabels
+2 0 2 2 2 3 2 3 2 2 2 2 0 0 3 3 3 2 0 11 0 3 0 2 3 0 2 0 2 2 2 2 0 2 3 2 2 
+Edges
+0 1 0
+0 4 0
+0 17 0
+1 0 0
+1 2 0
+2 1 0
+2 3 0
+2 5 0
+3 2 0
+3 4 0
+4 0 0
+4 3 0
+4 14 0
+5 2 0
+5 6 0
+5 10 0
+6 5 0
+6 7 0
+6 13 0
+7 6 0
+7 8 0
+8 7 0
+8 9 0
+8 12 0
+9 8 0
+9 10 0
+9 11 0
+10 5 0
+10 9 0
+11 9 0
+12 8 0
+13 6 0
+14 4 0
+14 15 0
+15 14 0
+15 16 0
+16 15 0
+17 0 0
+17 18 0
+18 17 0
+18 19 0
+19 18 0
+19 20 0
+19 22 0
+19 25 0
+20 19 0
+21 23 0
+22 19 0
+23 21 0
+23 24 0
+23 33 0
+24 23 0
+24 31 0
+25 36 0
+25 19 0
+26 27 0
+26 29 0
+26 36 0
+27 26 0
+27 28 0
+28 27 0
+28 30 0
+28 34 0
+29 26 0
+29 30 0
+30 28 0
+30 29 0
+31 24 0
+31 32 0
+31 34 0
+32 31 0
+33 35 0
+33 23 0
+34 31 0
+34 35 0
+34 28 0
+35 33 0
+35 34 0
+36 25 0
+36 26 0
+GraphDataEnd
+GraphEnd
+NodeEnd
+END_EPT
