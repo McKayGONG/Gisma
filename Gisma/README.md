@@ -1,4 +1,4 @@
-# Gisma: A Giant-Step-Small-Step Indexing Framework for Approximate Similarity Search in Graph Databases
+# Gisma: Giant-Step-Small-Step Indexing for Approximate Similarity Search in Graph Databases
 
 A high-performance two-layer indexing framework for approximate graph similarity search based on Graph Edit Distance (GED).
 
