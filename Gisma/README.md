@@ -155,12 +155,12 @@ Add `--verify_reuse_baseline` to compare each EPT reuse computation against norm
 
 ```bash
 ./build/GismaProject -m experiment -s PubChem \
-  --alpha 12.0 --tau_index 8.0 --tau_values "4" \
+  --alpha 12.0 --tau_index 8.0 --tau_values "8" \
   --exp overall --q_start 0 --q_end 99 \
-  --verify_reuse_baseline
+  --verify_reuse_baseline --use_parallel --num_workers 100
 
 ./build/GismaProject -m experiment -s AIDS \
-  --alpha 12.0 --tau_index 8.0 --tau_values "4" \
+  --alpha 12.0 --tau_index 8.0 --tau_values "8" \
   --exp overall --q_start 0 --q_end 99 \
-  --verify_reuse_baseline
+  --verify_reuse_baseline --use_parallel --num_workers 100
 ```
