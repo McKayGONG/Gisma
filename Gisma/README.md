@@ -148,3 +148,19 @@ Evaluate the contribution of each EPT optimization. Methods: `Gisma-no-reuse`, `
   --alpha 12.0 --tau_index 8.0 --tau_values "8" \
   --exp ablation_epf --use_parallel --num_workers 100
 ```
+
+#### Reuse Effectiveness Verification
+
+Add `--verify_reuse_baseline` to compare each EPT reuse computation against normal App-BMao on the same graph pair.
+
+```bash
+./build/GismaProject -m experiment -s PubChem \
+  --alpha 12.0 --tau_index 8.0 --tau_values "4" \
+  --exp overall --q_start 0 --q_end 99 \
+  --verify_reuse_baseline
+
+./build/GismaProject -m experiment -s AIDS \
+  --alpha 12.0 --tau_index 8.0 --tau_values "4" \
+  --exp overall --q_start 0 --q_end 99 \
+  --verify_reuse_baseline
+```
