@@ -107,7 +107,7 @@ Compare the three core methods at default tau:
 
 #### Ablation Study of Gisma (Giant Step + Small Step)
 
-Evaluate the contribution of the Giant Step (GS) and Small Step (SS) stages by comparing Gisma with variants that remove one or both stages. Method order: `App-BMao` (no GS, no SS), `Base+GS` (GS only), `Base+SS` (SS only), `Gisma` (full).
+Evaluate the contribution of the Giant Step (GS) and Small Step (SS) stages. Methods: `App-BMao` (no GS, no SS), `Base+GS` (GS only), `Base+SS` (SS only), `Gisma` (full).
 
 ```bash
 ./build/GismaProject -m experiment -s PubChem \
@@ -129,7 +129,7 @@ Evaluate the contribution of the Giant Step (GS) and Small Step (SS) stages by c
 
 #### Ablation Study of EPT Optimizations
 
-Evaluate the contribution of each optimization (search tree reuse, subtree pruning, lower-bound propagation) by comparing Gisma with variants that disable one optimization at a time. Methods are ordered by expected impact: `Gisma-no-reuse` (most impactful removed first), then `Gisma-no-SP`, `Gisma-no-LP`, and `Gisma` (full version).
+Evaluate the contribution of each EPT optimization. Methods: `Gisma-no-reuse`, `Gisma-no-SP`, `Gisma-no-LP`, `Gisma` (full).
 
 ```bash
 ./build/GismaProject -m experiment -s PubChem \
