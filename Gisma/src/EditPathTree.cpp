@@ -21,7 +21,7 @@ namespace fs = std::filesystem;
 
 // TreeNode.cpp
 
-// TreeNode constructor
+// TreeNode 构造函数
 TreeNode::TreeNode(const EditOperation& operation,
                    int level,
                    int ept_node_id,
@@ -49,46 +49,46 @@ TreeNode::TreeNode(const EditOperation& operation,
         accumulated_ops.clear();
     }
 
-    // If ml_graph needs to be generated from graph_ptr at construction time (when graph_ptr exists and is valid):
+    // 如果需要在构造时由graph_ptr直接生成ml_graph（当graph_ptr存在且有效时）：
     // if (graph_ptr) {
     //     graph_ptr->initialize_vectors_from_arrays();
     //     ml_graph = graph_ptr->to_ML_graph();
     // }
-    // If immediate ML_graph conversion is not needed, it can be called when loading EPT or at another appropriate time
+    // 若不需要立刻转换为ML_graph，可在加载EPT时或其他合适的时机调用
 }
 
-// Destructor implementation
+// 析构函数实现
 TreeNode::~TreeNode() {
-    // If using pointers to store child nodes, memory needs manual deallocation
-    // But if using indices or other means, no manual deletion needed
+    // 如果使用指针存储子节点，需要手动释放内存
+    // 但如果使用索引或其他方式，不需要手动删除
     // for (auto child : children) {
     //     delete child;
     // }
 }
 
-// TreeNode::collect_graph_ids function
+// TreeNode::collect_graph_ids 函数
 void TreeNode::collect_graph_ids(const std::vector<TreeNode>& nodes, std::vector<int>& ids, int depth_limit, int current_depth) const {
-    // If current depth exceeds limit, do not continue recursion
+    // 如果当前深度超过限制，则不继续递归
     if (current_depth > depth_limit) {
         return;
     }
 
-    // Add all completed database graph IDs of current node to ids
+    // 将当前节点已完成的全部数据库图 ID 加入到 ids 中
     for (int cid : completed_db_graph_ids) {
         ids.push_back(cid);
     }
 
-    // Recursively traverse child nodes
+    // 递归遍历子节点
     for (size_t child_idx : children_indices) {
         const TreeNode& child = nodes[child_idx];
-        // Compute new depth: current depth + child node's accumulated_ops.size()
+        // 计算新的深度：当前深度 + 子节点的 accumulated_ops.size()
         int new_depth = current_depth + static_cast<int>(child.accumulated_ops.size());
         child.collect_graph_ids(nodes, ids, depth_limit, new_depth);
     }
 }
 
 
-// Constructor implementation
+// 构造函数的实现
 EditPathTree::EditPathTree(ui anchor_id)
     : root_index(0), anchor_id(anchor_id) {
     tree_nodes.clear();
@@ -102,19 +102,19 @@ void TreeNode::save_to_file(const std::string& filename) const {
     }
 
     try {
-        // Write file start marker
+        // 写入文件开始标记
         ofs << "BEGIN_TREE_NODE\n";
 
-        // Write node start marker
+        // 写入节点开始标记
         ofs << "NodeStart\n";
 
-        // Save node to stream
+        // 保存节点到流
         save_to_stream(ofs);
 
-        // Write node end marker
+        // 写入节点结束标记
         ofs << "NodeEnd\n";
 
-        // Write file end marker
+        // 写入文件结束标记
         ofs << "END_TREE_NODE\n";
     } catch (const std::exception& e) {
         std::cerr << "Error: Exception occurred while writing TreeNode to file: " << e.what() << std::endl;
@@ -123,16 +123,16 @@ void TreeNode::save_to_file(const std::string& filename) const {
     ofs.close();
 }
 
-// Save-to-stream function
+// 保存到流的函数
 void TreeNode::save_to_stream(std::ostream& os) const {
-    // Write node basic info
+    // 写入节点基本信息
     os << "EPTNodeID: " << ept_node_id << "\n";
     os << "AnchorID: " << anchor_id << "\n";
     os << "TreeNodeGraphID: " << tree_node_graph_id << "\n";
     os << "Level: " << level << "\n";
     os << "SimplifiedLevel: " << simplified_level << "\n";
 
-    // Write edit operation info
+    // 写入编辑操作信息
     os << "EditOperation: "
        << static_cast<int>(op.type) << " "
        << op.u << " "
@@ -140,7 +140,7 @@ void TreeNode::save_to_stream(std::ostream& os) const {
        << op.old_label << " "
        << op.new_label << "\n";
 
-    // Write accumulated edit operations
+    // 写入累积的编辑操作
     os << "AccumulatedOpsCount: " << accumulated_ops.size() << "\n";
     for (const auto& edit_op : accumulated_ops) {
         os << "AccumulatedOp: "
@@ -151,7 +151,7 @@ void TreeNode::save_to_stream(std::ostream& os) const {
            << edit_op.new_label << "\n";
     }
 
-    // Write child node info
+    // 写入子节点信息
     os << "ChildrenCount: " << children_indices.size() << "\n";
     os << "ChildIndices:";
     for (size_t child_idx : children_indices) {
@@ -159,13 +159,13 @@ void TreeNode::save_to_stream(std::ostream& os) const {
     }
     os << "\n";
 
-    // Write completed db_graph_ids
+    // 写入已完成的 db_graph_ids
     os << "CompletedDBGraphIDsCount: " << completed_db_graph_ids.size() << "\n";
     for (int cid : completed_db_graph_ids) {
         os << "CompletedDBGraphID: " << cid << "\n";
     }
 
-    // Write Graph data
+    // 写入 Graph 数据
     os << "GraphStart\n";
     if (graph_ptr) {
         graph_ptr->save_to_stream(os);
@@ -309,7 +309,7 @@ void TreeNode::load_from_stream(std::istream& is) {
                         std::istringstream graph_stream(graph_data_stream.str());
                         graph_ptr->load_from_stream(graph_stream);
 
-                        // After successfully loading graph_ptr, initialize and convert to ML_graph
+                        // 在成功加载graph_ptr后，初始化并转换为ML_graph
                         if (graph_ptr) {
                             graph_ptr->initialize_vectors_from_arrays();
                             // ml_graph = graph_ptr->to_ML_graph(); // Removed: using embedding vectors instead
@@ -335,7 +335,7 @@ void TreeNode::load_from_stream(std::istream& is) {
     std::cerr << "Error: Unexpected end of file while parsing TreeNode.\n";
 }
 
-// Static function to load a single TreeNode from file
+// 从文件加载单个 TreeNode 的静态函数
 TreeNode* TreeNode::load_from_file(const std::string& filename) {
     std::ifstream ifs(filename);
     if (!ifs.is_open()) {
@@ -351,7 +351,7 @@ TreeNode* TreeNode::load_from_file(const std::string& filename) {
         return nullptr;
     }
 
-    // Check NodeStart marker
+    // 检查 NodeStart 标记
     std::getline(ifs, line);
     if (!line.empty() && line.back() == '\r') line.pop_back();
     if (line != "NodeStart") {
@@ -359,11 +359,11 @@ TreeNode* TreeNode::load_from_file(const std::string& filename) {
         return nullptr;
     }
 
-    // Create node and load
+    // 创建节点并加载
     TreeNode* node = new TreeNode();
     node->load_from_stream(ifs);
 
-    // Check END_TREE_NODE marker
+    // 检查 END_TREE_NODE 标记
     if (std::getline(ifs, line)) {
         if (!line.empty() && line.back() == '\r') line.pop_back();
         if (line != "END_TREE_NODE") {
@@ -419,7 +419,7 @@ void EditPathTree::save_to_file(const std::string& filename) const {
     ofs.close();
 }
 
-// Function to load EPT from file
+// 从文件加载 EPT 的函数
 void EditPathTree::load_from_file(const std::string& filename) {
     tree_nodes.clear();
 
@@ -430,16 +430,16 @@ void EditPathTree::load_from_file(const std::string& filename) {
     }
 
     std::string line;
-    // General line preprocessing function
+    // 通用的行预处理函数
     auto preprocess_line = [](std::string& line) {
-        // Strip leading and trailing whitespace
+        // 去除行首尾空白字符
         line.erase(0, line.find_first_not_of(" \t\r\n"));
         line.erase(line.find_last_not_of(" \t\r\n") + 1);
-        // Ignore comments
+        // 忽略注释
         size_t comment_pos = line.find('#');
         if (comment_pos != std::string::npos) {
             line = line.substr(0, comment_pos);
-            // Strip extra whitespace after comment removal
+            // 去除因删除注释后产生的多余空白字符
             line.erase(line.find_last_not_of(" \t\r\n") + 1);
         }
     };
@@ -518,13 +518,13 @@ void EditPathTree::load_from_file(const std::string& filename) {
 void EditPathTreeManager::load_all_epts_from_directory_parallel(const std::string& directory_path) {
     namespace fs = std::filesystem;
 
-    // Check if directory exists
+    // 检查目录是否存在
     if (!fs::exists(directory_path) || !fs::is_directory(directory_path)) {
         std::cerr << "Error: Directory does not exist: " << directory_path << std::endl;
         return;
     }
 
-    // Collect all file paths
+    // 收集所有文件路径
     std::vector<std::string> file_paths;
     for (const auto& entry : fs::directory_iterator(directory_path)) {
         if (entry.is_regular_file()) {
@@ -540,31 +540,31 @@ void EditPathTreeManager::load_all_epts_from_directory_parallel(const std::strin
         std::cout << "Found " << num_files << " files in directory: " << directory_path << std::endl;
     }
 
-    // For tracking progress
+    // 用于跟踪进度
     std::atomic<size_t> files_processed(0);
 
-    // Set thread count, adjustable as needed
+    // 设置线程数量，可以根据需要调整
     size_t num_threads = std::thread::hardware_concurrency();
-    if (num_threads == 0) num_threads = 4; // If thread count cannot be obtained, default to 4 threads
+    if (num_threads == 0) num_threads = 4; // 如果无法获取线程数，默认使用4个线程
 
-    // Create thread pool
+    // 创建线程池
     std::vector<std::thread> thread_pool;
 
-    // Split file list and assign to different threads
+    // 分割文件列表，分配给不同的线程
     std::vector<std::vector<std::string>> file_chunks(num_threads);
     for (size_t i = 0; i < file_paths.size(); ++i) {
         file_chunks[i % num_threads].push_back(file_paths[i]);
     }
 
-    // Create task for each thread
+    // 为每个线程创建任务
     for (size_t t = 0; t < num_threads; ++t) {
         thread_pool.emplace_back([&, t]() {
             for (const auto& file_path : file_chunks[t]) {
-                // Load single EPT
+                // 加载单个 EPT
                 auto ept = std::make_unique<EditPathTree>();
                 ept->load_from_file(file_path);
 
-                // Check if loading succeeded
+                // 检查是否成功加载
                 if (ept->tree_nodes.empty()) {
                     std::cerr << "Warning: Failed to load EPT from file: " << file_path << std::endl;
                     continue;
@@ -572,16 +572,16 @@ void EditPathTreeManager::load_all_epts_from_directory_parallel(const std::strin
 
                 ui anchor_id = ept->anchor_id;
 
+                ept->precompute_max_subtree_depth();
                 {
-                    // Lock to protect write access to ept_map (using exclusive lock)
                     std::unique_lock<std::shared_mutex> lock(map_mutex);
                     ept_map[anchor_id] = std::move(ept);
                 }
 
-                // Update progress
+                // 更新进度
                 size_t processed = ++files_processed;
 
-                // Display progress (optional)
+                // 显示进度（可选）
                 if (processed % 100 == 0 || processed == num_files) {
                     double progress = static_cast<double>(processed) / num_files;
                     int bar_width = 50;
@@ -599,107 +599,48 @@ void EditPathTreeManager::load_all_epts_from_directory_parallel(const std::strin
         });
     }
 
-    // Wait for all threads to complete
+    // 等待所有线程完成
     for (auto& thread : thread_pool) {
         if (thread.joinable()) {
             thread.join();
         }
     }
 
-    // Ensure progress bar shows 100% at the end
-    std::cout << std::endl;
-    std::cout << "Successfully loaded " << ept_map.size() << " EPTs from directory: " << directory_path << std::endl;
-}
-
-
-void EditPathTreeManager::load_all_epts_from_directory(const std::string& directory_path) {
-    namespace fs = std::filesystem;
-
-    // Check if directory exists
-    if (!fs::exists(directory_path) || !fs::is_directory(directory_path)) {
-        std::cerr << "Error: Directory does not exist: " << directory_path << std::endl;
-        return;
-    }
-
-    // Collect all file paths
-    std::vector<std::string> file_paths;
-    for (const auto& entry : fs::directory_iterator(directory_path)) {
-        if (entry.is_regular_file()) {
-            file_paths.push_back(entry.path().string());
-        }
-    }
-
-    size_t num_files = file_paths.size();
-    if (num_files == 0) {
-        std::cout << "No files found in directory: " << directory_path << std::endl;
-        return;
-    } else {
-        std::cout << "Found " << num_files << " files in directory: " << directory_path << std::endl;
-    }
-
-    // Iterate all files, load one by one
-    size_t files_processed = 0;
-    for (const auto& file_path : file_paths) {
-        // Use EditPathTree's load_from_file to load single EPT
-        auto ept = std::make_unique<EditPathTree>();
-        ept->load_from_file(file_path);
-
-        // Check if loading succeeded
-        if (ept->tree_nodes.empty()) {
-            std::cerr << "Warning: Failed to load EPT from file: " << file_path << std::endl;
-            continue;
-        }
-
-        ui anchor_id = ept->anchor_id;
-
-        {
-            // Lock to protect write access to ept_map (using exclusive lock)
-            std::unique_lock<std::shared_mutex> lock(map_mutex);
-            ept_map[anchor_id] = std::move(ept);
-        }
-
-        files_processed++;
-
-        // Display progress
-        double progress = static_cast<double>(files_processed) / num_files;
-        int bar_width = 50;
-        std::cout << "\r[";  // Use "\r" to show progress bar on same line
-        int pos = static_cast<int>(bar_width * progress);
-        for (int i = 0; i < bar_width; ++i) {
-            if (i < pos) std::cout << "=";
-            else if (i == pos) std::cout << ">";
-            else std::cout << " ";
-        }
-        std::cout << "] " << int(progress * 100.0) << "% (" << files_processed << "/" << num_files << ")";
-        std::cout.flush();  // Flush output buffer to ensure progress bar updates immediately
-
-        // Output file path after processing each file
-        std::cout << "Load from file: " << file_path << std::endl;
-    }
-
-    // Ensure progress bar shows 100% at the end
+    // 最后确保进度条显示为100%
     std::cout << std::endl;
     std::cout << "Successfully loaded " << ept_map.size() << " EPTs from directory: " << directory_path << std::endl;
 }
 
 
 
-// EditPathTree::collect_graph_ids function
+
+
+// EditPathTree::collect_graph_ids 函数
 void EditPathTree::collect_graph_ids(std::vector<int>& ids, int depth_limit) const {
     if (!tree_nodes.empty()) {
-        tree_nodes[root_index].collect_graph_ids(tree_nodes, ids, depth_limit, 0); // initial depth is 0
+        tree_nodes[root_index].collect_graph_ids(tree_nodes, ids, depth_limit, 0); // 初始深度为 0
     }
 }
 
-// Function to compute distance between two graphs
-double compute_distance(const Graph& g1, const Graph& g2) {
-    // Implement actual distance computation logic here
-    // Simply return a placeholder value, e.g. absolute difference of vertex counts
-    return std::abs(static_cast<int>(g1.n) - static_cast<int>(g2.n));
+void EditPathTree::precompute_max_subtree_depth() {
+    if (tree_nodes.empty()) return;
+    // Post-order: process from last to first (children always have higher indices)
+    for (int i = (int)tree_nodes.size() - 1; i >= 0; --i) {
+        TreeNode& node = tree_nodes[i];
+        int max_depth = node.level;
+        for (size_t ch : node.children_indices) {
+            if (ch < tree_nodes.size() && tree_nodes[ch].max_subtree_depth > max_depth) {
+                max_depth = tree_nodes[ch].max_subtree_depth;
+            }
+        }
+        node.max_subtree_depth = max_depth;
+    }
 }
 
-// Get EPT by anchor ID
-// Use shared_lock to allow concurrent multi-threaded reads, resolving lock contention during parallel queries
+// 计算两个图之间的距离的函数
+
+// 根据锚点 ID 获取 EPT
+// 使用 shared_lock 允许多线程并发读取，解决并行查询时的锁竞争问题
 EditPathTree* EditPathTreeManager::get_ept(ui anchor_id) {
     std::shared_lock<std::shared_mutex> lock(map_mutex);
     auto it = ept_map.find(anchor_id);
@@ -711,26 +652,116 @@ EditPathTree* EditPathTreeManager::get_ept(ui anchor_id) {
     }
 }
 
-// Lock-free version: only use during read-only phase after EPT loading is complete
-// For query phase, completely eliminate lock overhead (including shared_lock atomic operations)
+// 无锁版本：仅在确保 EPT 加载完成后的只读阶段使用
+// 用于查询阶段，完全消除锁开销（包括 shared_lock 的原子操作）
 EditPathTree* EditPathTreeManager::get_ept_no_lock(ui anchor_id) const {
     auto it = ept_map.find(anchor_id);
     if (it != ept_map.end()) {
         return it->second.get();
     }
-    return nullptr;  // Do not print error info to avoid concurrent output issues
+    return nullptr;  // 不打印错误信息，避免并发输出问题
 }
 
-// Get count of loaded EPTs
-// Use shared_lock for concurrent multi-threaded reads
+// 获取已加载的 EPT 数量
+// 使用 shared_lock 允许多线程并发读取
 size_t EditPathTreeManager::get_ept_count() const {
     std::shared_lock<std::shared_mutex> lock(map_mutex);
     return ept_map.size();
 }
 
 void EditPathTreeManager::clear_all_epts() {
-    std::unique_lock<std::shared_mutex> lock(map_mutex);  // Write operation requires exclusive lock
-    ept_map.clear();  // Smart pointers will automatically clean up EPT objects
+    std::unique_lock<std::shared_mutex> lock(map_mutex);  // 写操作需要独占锁
+    ept_map.clear();  // 智能指针会自动清理EPT对象
+}
+
+std::vector<int> EditPathTreeManager::collect_leaf_db_ids() const {
+    // E11: 遍历所有 EPT，收集叶子节点(无 children、非 root)对应的 db 图 id。
+    std::vector<int> ids;
+    std::shared_lock<std::shared_mutex> lock(map_mutex);
+    for (const auto& kv : ept_map) {
+        const EditPathTree* ept = kv.second.get();
+        if (!ept) continue;
+        for (size_t i = 0; i < ept->tree_nodes.size(); ++i) {
+            if (i == ept->root_index) continue;            // 跳过 root(=anchor)
+            const TreeNode& node = ept->tree_nodes[i];
+            if (!node.children_indices.empty()) continue;   // 仅叶子
+            for (int gid : node.completed_db_graph_ids) ids.push_back(gid);
+        }
+    }
+    return ids;
+}
+
+std::vector<ui> EditPathTreeManager::all_anchor_ids() const {
+    std::vector<ui> ids;
+    std::shared_lock<std::shared_mutex> lock(map_mutex);
+    ids.reserve(ept_map.size());
+    for (const auto& kv : ept_map) ids.push_back(kv.first);
+    return ids;
+}
+
+// E11: 从本 EPT 所有节点的 completed_db_graph_ids 删除指定 id，返回实际被删的(去重)id 列表。
+std::vector<int> EditPathTree::remove_db_graph_ids(const std::unordered_set<int>& ids_to_remove) {
+    std::unordered_set<int> removed_set;
+    for (auto& node : tree_nodes) {
+        auto& v = node.completed_db_graph_ids;
+        if (v.empty()) continue;
+        std::vector<int> kept;
+        kept.reserve(v.size());
+        for (int id : v) {
+            if (ids_to_remove.count(id)) removed_set.insert(id);
+            else kept.push_back(id);
+        }
+        v.swap(kept);
+    }
+    return std::vector<int>(removed_set.begin(), removed_set.end());
+}
+
+// E11 真增量插入(merge): 把 db 图 g 合并进本 EPT。详见头文件注释。
+void EditPathTree::insert_graph_merge(const std::vector<EditOperation>& full_ops, Graph* g_graph, int db_graph_id) {
+    if (tree_nodes.empty() || !g_graph) return;
+    // 剩余待消化的 op 集合(可乱序)
+    std::unordered_set<EditOperation, EditOperationHash, EditOperationEqual> remaining(full_ops.begin(), full_ops.end());
+
+    // 从 root 贪心下走: 每步选"整条压缩边 op 集 ⊆ 剩余"且共享最多的子节点
+    size_t cur = root_index;
+    while (!remaining.empty()) {
+        long long best_child = -1; size_t best_share = 0;
+        for (size_t c : tree_nodes[cur].children_indices) {
+            const auto& cops = tree_nodes[c].accumulated_ops;
+            if (cops.empty() || cops.size() > remaining.size()) continue;
+            bool all_in = true;
+            for (const auto& op : cops) if (!remaining.count(op)) { all_in = false; break; }
+            if (all_in && cops.size() > best_share) { best_share = cops.size(); best_child = (long long)c; }
+        }
+        if (best_child < 0) break;                       // 没有可继续共享的子节点 → 另起分支
+        for (const auto& op : tree_nodes[best_child].accumulated_ops) remaining.erase(op);
+        cur = (size_t)best_child;
+    }
+
+    if (remaining.empty()) {
+        // g 与现有节点 cur 重合 → 直接登记
+        tree_nodes[cur].completed_db_graph_ids.push_back(db_graph_id);
+        return;
+    }
+
+    // 另起一个压缩节点: accumulated_ops = 剩余全部, db_graph 指向真实 g(非拥有别名)
+    std::vector<EditOperation> rem_ops(remaining.begin(), remaining.end());
+    EditOperation none_op;  // type=NONE(-1)
+    size_t new_idx = tree_nodes.size();
+    int new_level = tree_nodes[cur].level + (int)rem_ops.size();
+    PseudoGraph pg(*g_graph);
+    std::shared_ptr<Graph> gp(g_graph, [](Graph*){});
+    TreeNode node(none_op, new_level, (int)new_idx, anchor_id, (int)new_idx, cur, pg, gp);
+    node.accumulated_ops = rem_ops;
+    node.db_graph_n = g_graph->n;
+    node.db_graph_m = g_graph->m;
+    node.db_vlabels = g_graph->vlabels;
+    node.db_graph = g_graph;
+    node.completed_db_graph_ids.clear();
+    node.completed_db_graph_ids.push_back(db_graph_id);
+    node.max_subtree_depth = new_level;
+    tree_nodes.push_back(std::move(node));
+    tree_nodes[cur].children_indices.push_back(new_idx);
 }
 
 
@@ -745,12 +776,12 @@ void build_edit_path_tree_recursive(
     int current_level,
     int& ept_node_counter)
 {
-    // [DEBUG] Add recursive debug info
+    // [DEBUG] 添加递归调试信息
     // if (current_level == 0) {
     //     std::cout << "[DEBUG EPT] Starting EPT build for anchor " << anchor_id
     //               << " with " << curr_indices.size() << " graphs" << std::endl;
     //
-    //     // Check initial operation count of each graph
+    //     // 检查每个图的初始操作数量
     //     for (size_t i = 0; i < undone_ops_lists.size() && i < 5; i++) {
     //         std::cout << "[DEBUG EPT] Graph " << i << " has " << undone_ops_lists[i].size()
     //                   << " undone operations" << std::endl;
@@ -760,21 +791,21 @@ void build_edit_path_tree_recursive(
     // std::cout << "[DEBUG EPT] Level " << current_level << ": Processing "
     //           << curr_indices.size() << " graphs" << std::endl;
 
-    // If no remaining graphs, return directly
+    // 如果没有剩余的图，直接返回
     if (curr_indices.empty()) {
         // std::cout << "[DEBUG EPT] Level " << current_level << ": No remaining graphs, returning" << std::endl;
         return;
     }
 
-    // Separate in-progress and completed graphs
+    // 将进行中的图和已完成的图分开
     std::vector<ui> done_indices;
     std::vector<ui> ongoing_indices;
     for (ui idx : curr_indices) {
         if (undone_ops_lists[idx].empty()) {
-            // If no pending operations, the graph is complete
+            // 如果没有未完成的操作，表示图已经完成
             done_indices.push_back(idx);
         } else {
-            // If graph has pending operations, put it in in-progress graphs
+            // 如果图有未完成的操作，将其放入进行中的图中
             ongoing_indices.push_back(idx);
         }
     }
@@ -782,7 +813,7 @@ void build_edit_path_tree_recursive(
     // std::cout << "[DEBUG EPT] Level " << current_level << ": " << done_indices.size()
     //           << " completed, " << ongoing_indices.size() << " ongoing" << std::endl;
 
-    // Add completed graph's db_graph_id to current node's completed_db_graph_ids
+    // 将已完成图的 db_graph_id 加入当前节点的 completed_db_graph_ids
     if (!done_indices.empty()) {
         for (ui idx : done_indices) {
             int db_graph_id = static_cast<int>(db_graph_ids[idx]);
@@ -790,43 +821,43 @@ void build_edit_path_tree_recursive(
         }
     }
 
-    // [DEBUG] If all graphs are complete, do not continue expansion
+    // [DEBUG] 如果所有图都完成了，不继续展开
     if (ongoing_indices.empty()) {
         // std::cout << "[DEBUG EPT] Level " << current_level
         //           << ": All graphs completed, stopping expansion" << std::endl;
         return;
     }
 
-    // Collect operations from all in-progress graphs and count frequencies
+    // 收集所有进行中的图的操作并统计出现频率
     std::unordered_map<EditOperation, std::vector<ui>, EditOperationHash, EditOperationEqual> op_to_indices;
     // std::cout << "node_idx: " << node_idx << "  ongoing_indices.size(): " << ongoing_indices.size() << std::endl;
     for (ui idx : ongoing_indices) {
         for (const auto& op : undone_ops_lists[idx]) {
-            op_to_indices[op].push_back(idx);  // Record graph indices where each operation appears
+            op_to_indices[op].push_back(idx);  // 记录每个操作出现的图的索引
         }
     }
    
 
-    // Sort by operation frequency, prioritize most frequent operations
+    // 根据操作出现的频率排序，优先处理出现次数最多的操作
     std::vector<std::pair<EditOperation, std::vector<ui>>> sorted_ops(op_to_indices.begin(), op_to_indices.end());
     std::sort(sorted_ops.begin(), sorted_ops.end(), [](const auto& a, const auto& b) {
-        return a.second.size() > b.second.size();  // Sort by operation frequency in descending order
+        return a.second.size() > b.second.size();  // 按操作出现频率降序排序
     });
     // for (const auto& [op, indices] : sorted_ops) {
     //     if (indices.size() > 1) std::cout << "Sorted Operation: " << op.to_string() << "  Count: " << indices.size() << std::endl;
     // }
-    std::unordered_set<ui> processed_indices;  // Record already processed graphs
-    bool any_operation_applied = false;  // Flag whether any operation was successfully applied
+    std::unordered_set<ui> processed_indices;  // 记录已经处理过的图
+    bool any_operation_applied = false;  // 标记是否有操作被成功应用
 
     // std::cout << "[DEBUG EPT] Level " << current_level << ": Trying to apply "
     //           << sorted_ops.size() << " different operations" << std::endl;
 
-    // Iterate all operations, try to apply to in-progress graphs
+    // 遍历所有的操作，尝试应用于进行中的图
     for (const auto& op_pair : sorted_ops) {
-        const EditOperation& op = op_pair.first;  // current operation
-        const std::vector<ui>& indices_with_op = op_pair.second;  // indices of graphs needing this operation
+        const EditOperation& op = op_pair.first;  // 当前操作
+        const std::vector<ui>& indices_with_op = op_pair.second;  // 需要应用该操作的图的索引
 
-        std::vector<ui> applicable_indices;  // Store indices of graphs that can apply current operation
+        std::vector<ui> applicable_indices;  // 存储能应用当前操作的图的索引
 
         bool can_apply = ept.tree_nodes[node_idx].pseudo_graph.can_apply_operation(op);
 
@@ -836,81 +867,73 @@ void build_edit_path_tree_recursive(
 
         if (!can_apply) continue;
         for (ui idx : indices_with_op) {
-            // If current graph not yet processed and can apply this operation
+            // 如果当前图未被处理过且能够应用此操作
             if (processed_indices.count(idx) == 0) {
                 applicable_indices.push_back(idx);
             }
         }
 
-        // If no graph can apply this operation, skip it
+        // 如果没有图能应用该操作，则跳过当前操作
         if (applicable_indices.empty()) {
             continue;
         }
 
-        // Apply operation, generate child node
+        // 应用操作，生成子节点
         PseudoGraph child_pseudo_graph = ept.tree_nodes[node_idx].pseudo_graph;
-        child_pseudo_graph.apply_edit_operation(op);  // Apply operation on current graph
+        child_pseudo_graph.apply_edit_operation(op);  // 在当前图的基础上应用操作
 
-        // Create child node
-        // Increment node counter
+        // 创建子节点
+        // 增加节点计数器
         ept_node_counter++;
         size_t child_idx = ept.tree_nodes.size();
         TreeNode child_node(op, current_level + 1,
                             child_idx, anchor_id,
-                            child_idx,  // tree_node_graph_id uses ept_node_counter
-                            node_idx,          // current node's index as parent index
+                            child_idx,  // tree_node_graph_id 使用 ept_node_counter
+                            node_idx,          // 当前节点的索引作为父节点索引
                             child_pseudo_graph);
 
-        // Record applied operations
+        // 记录已应用的操作
         child_node.accumulated_ops.clear();
         child_node.accumulated_ops.push_back(op);
 
-        // Convert pseudo_graph to Graph and store in child node's graph_ptr
+        // 将 pseudo_graph 转换为 Graph，并存储到子节点的 graph_ptr
         child_node.graph_ptr = std::make_shared<Graph>(child_node.pseudo_graph.to_graph());
 
         child_node.graph_ptr->id = std::to_string(child_node.tree_node_graph_id);
 
         
 
-        // Add child node to tree
+        // 将子节点添加到树中
         ept.tree_nodes.push_back(child_node);
         
         // size_t child_idx = ept_node_counter;
         
-        // Add child node's index to parent's children_indices
+        // 将子节点的索引加入父节点的 children_indices
         ept.tree_nodes[node_idx].children_indices.push_back(child_idx);
-        // std::cout << "node_idx: " << node_idx << std::endl;
-        // std::cout << "children: ";
-        // for (auto idx : ept.tree_nodes[node_idx].children_indices) {
-        //     std::cout << idx << " " << std::endl;
-        // }
-        // std::cout << "Add child node: " << child_idx << " to parent node: " << node_idx << std::endl;
-        // std::cout << "child_node.parent_index: " << child_node.parent_index << std::endl;
-        // Update operation list
         auto updated_undone_ops_lists = undone_ops_lists;
         for (ui idx : applicable_indices) {
-            updated_undone_ops_lists[idx].erase(op);  // Delete completed operation
-            processed_indices.insert(idx);  // Mark as processed
+            updated_undone_ops_lists[idx].erase(op);  // 删除已完成的操作
+            processed_indices.insert(idx);  // 标记为已处理
         }
 
-        any_operation_applied = true;  // Mark that at least one operation was applied in this recursion
+        any_operation_applied = true;  // 标记本次递归中至少应用了一次操作
 
-        // Recursively process child nodes
+        // 递归地处理子节点
         build_edit_path_tree_recursive(ept, updated_undone_ops_lists, db_graph_ids, anchor_id,
                                        child_idx, applicable_indices, current_level + 1, ept_node_counter);
     }
 
-    // If no operation was successfully applied but there are still unprocessed graphs, this branch cannot complete
+    // 如果没有成功应用任何操作，但仍有未处理的图，表示此分支无法完成
     if (!any_operation_applied) {
         std::vector<ui> final_remaining_indices;
         for (ui idx : ongoing_indices) {
-            // Find graphs that were not successfully processed
+            // 找到没有成功处理的图
             if (processed_indices.count(idx) == 0) {
                 final_remaining_indices.push_back(idx);
             }
         }
 
-        // If graphs still cannot complete, report error and print relevant info
+        // 如果仍有图未能完成，报错并打印相关信息
         if (!final_remaining_indices.empty()) {
             std::cerr << "Error: The following db_graph_ids cannot be completed from this branch:\n";
             for (ui idx : final_remaining_indices) {
@@ -919,11 +942,11 @@ void build_edit_path_tree_recursive(
             }
             std::cerr << "\n";
 
-            // Print current pseudo_graph state
+            // 打印当前 pseudo_graph 状态
             std::cerr << "Current pseudo graph state:\n";
             ept.tree_nodes[node_idx].pseudo_graph.print_pseudo_graph();
 
-            // Print remaining operations
+            // 打印剩余操作
             std::cerr << "Remaining operations for these DB graphs:\n";
             for (ui idx : final_remaining_indices) {
                 int db_graph_id = (int)db_graph_ids[idx];
@@ -945,19 +968,19 @@ void print_tree(const EditPathTree& ept) {
     for (size_t i = 0; i < ept.tree_nodes.size(); ++i) {
         const TreeNode& node = ept.tree_nodes[i];
 
-        // Print node's ept_node_id
+        // 打印节点的 ept_node_id
         tmp += std::to_string(i) + " (ept_node_id = " + std::to_string(node.ept_node_id) + ") ";
 
-        // Print parent node index
+        // 打印父节点索引
         tmp += "(parent = ";
         if (node.parent_index == SIZE_MAX) {
-            tmp += "None"; // or "ROOT"
+            tmp += "None"; // 或者 "ROOT"
         } else {
             tmp += std::to_string(node.parent_index);
         }
         tmp += ") : "; 
 
-        // Print all child node indices
+        // 打印所有子节点索引
         for (size_t child_idx : node.children_indices) {
             tmp += std::to_string(child_idx) + " ; ";
         }
@@ -985,15 +1008,15 @@ void build_edit_path_tree(
     EditOperation dummy_op;
     dummy_op.type = static_cast<EditOperation::OperationType>(-1);
 
-    // Remove db_graph_id parameter
+    // 去掉db_graph_id参数
     TreeNode root_node(dummy_op, 0, ept_node_counter, anchor_id, ept_node_counter, SIZE_MAX, root_pseudo_graph);
     root_node.graph_ptr = root_graph_ptr;
     root_node.graph_ptr->id = std::to_string(root_node.tree_node_graph_id);
     ept_node_counter++;
 
     root_node.accumulated_ops.clear();
-    // Important: add anchor_id to root node's completed_db_graph_ids
-    // So when query's GED<=tau to anchor, the anchor itself will be returned as result
+    // 重要：将anchor_id添加到root节点的completed_db_graph_ids中
+    // 这样当query与anchor的GED<=tau时，anchor本身会被返回为结果
     root_node.completed_db_graph_ids.push_back((int)anchor_id);
 
     ept.tree_nodes.push_back(root_node);
@@ -1018,17 +1041,15 @@ void build_edit_path_tree(
     simplify_EPT(ept);
     print_tree(ept);
     // update_simplified_levels(ept, ept.root_index, 0);
-    // Renumber and update ept_node_id
-    // rebuild_and_reindex_ept_dfs(ept);
+    // 重新编号并更新 ept_node_id
     // print_tree(ept);
 
-    // remove_parent_inf_nodes(ept);
     ept.reorder();
     print_tree(ept);
     
    
 
-    // Coverage check
+    // 覆盖率检查
     std::queue<size_t> q;
     q.push(ept.root_index);
 
@@ -1095,62 +1116,62 @@ void build_edit_path_tree(
 }
 
 void simplifyNode(EditPathTree& ept, size_t node_idx) {
-    // 1. Safety check
+    // 1. 安全检查
     if (node_idx >= ept.tree_nodes.size()) {
         return;
     }
     TreeNode& node = ept.tree_nodes[node_idx];
 
-    // 2. First let all child nodes perform recursive simplification
+    // 2. 先让所有子节点进行递归化简
     for (size_t child_idx : node.children_indices) {
         if (child_idx < ept.tree_nodes.size()) {
             simplifyNode(ept, child_idx);
         }
     }
 
-    // 3. Try merging: when "child has no completed graphs && child has only 1 child"
+    // 3. 尝试合并：当 "子节点没有完成图 && 子节点也只带1个孩子"
     bool canMerge = true;
     while (canMerge) {
-        // Find child nodes meeting merge conditions
+        // 查找符合合并条件的子节点
         for (size_t child_idx : node.children_indices) {
             if (child_idx >= ept.tree_nodes.size()) continue;
 
             TreeNode& child = ept.tree_nodes[child_idx];
-            // Condition: child has no completed_db_graph_ids and has exactly 1 child
+            // 条件：child没有 completed_db_graph_ids 且它也有且仅有 1 个子节点
             if (child.completed_db_graph_ids.empty() && child.children_indices.size() == 1) {
-                // Prepare to merge child -> grandchild
+                // 准备合并 child -> grandchild
                 size_t grandchild_idx = child.children_indices[0];
                 if (grandchild_idx >= ept.tree_nodes.size()) break;
 
                 TreeNode& grandchild = ept.tree_nodes[grandchild_idx];
 
-                // Prepend all child's accumulated_ops to grandchild
+                // 把 child 的所有 accumulated_ops 放到 grandchild 前面
                 grandchild.accumulated_ops.insert(
                     grandchild.accumulated_ops.begin(),
                     child.accumulated_ops.begin(),
                     child.accumulated_ops.end()
                 );
 
-                // Update grandchild's parent to point to current node
+                // 更新 grandchild 的 parent 指向当前 node
                 grandchild.parent_index = node_idx;
 
-                // Change node's sole child to grandchild
+                // 把 node 的唯一子节点改成 grandchild
                 auto it = std::find(node.children_indices.begin(), node.children_indices.end(), child_idx);
                 if (it != node.children_indices.end()) {
                     *it = grandchild_idx;
                 }
 
-                // Set merged child node's parent_index to SIZE_MAX (or INF) to indicate merged
+                // 将被合并的子节点的 parent_index 设置为 SIZE_MAX（或 INF）表示已合并
                 child.parent_index = INF;
 
-                // Clear child (it was merged)
+                // 把 child 清空（它被合并掉了）
                 child.children_indices.clear();
 
-                // Continue checking if new sole child can be further merged
+                // 继续看新的唯一子节点是否还可合并
                 continue;
             }
         }
-        // If no more nodes can be merged, exit loop
+        // 如果没有可以继续合并的节点，退出循环
         canMerge = false;
     }
 }
@@ -1159,7 +1180,7 @@ void simplifyNode(EditPathTree& ept, size_t node_idx) {
 void simplify_EPT(EditPathTree& ept) {
     if (ept.tree_nodes.empty()) return;
 
-    // First perform node merge operations
+    // 先进行节点合并操作
     simplifyNode(ept, ept.root_index);
 
 }
@@ -1177,557 +1198,15 @@ void update_simplified_levels(EditPathTree& ept, size_t node_index, int current_
 }
 
 
-// Function to simplify edit path tree
-// void simplify_EPT(EditPathTree& ept) {
-//     if (ept.tree_nodes.empty()) return;
 
-//     // Use stack to simulate recursion
-//     std::stack<size_t> stack;
-//     stack.push(ept.root_index);
 
-//     while (!stack.empty()) {
-//         size_t node_idx = stack.top();
-//         stack.pop();
 
-//         TreeNode& node = ept.tree_nodes[node_idx];
 
-//         if (node.children_indices.empty()) continue;
 
-//         for (size_t i = 0; i < node.children_indices.size(); ++i) {
-//             size_t child_idx = node.children_indices[i];
-//             TreeNode& child = ept.tree_nodes[child_idx];
-
-//             // When child has no associated real target graph (db_graph_id == -1) and has exactly one child, simplify
-//             while (child.db_graph_id == -1 && child.children_indices.size() == 1) {
-//                 size_t grandchild_idx = child.children_indices[0];
-//                 TreeNode& grandchild = ept.tree_nodes[grandchild_idx];
-
-//                 // Update grandchild's accumulated_ops to only contain operations from child
-//                 // Since accumulated_ops already only contains operations from parent to current node, no extra handling needed
-
-//                 // Update grandchild's parent_index
-//                 grandchild.parent_index = node_idx;
-
-//                 // Replace child with grandchild
-//                 node.children_indices[i] = grandchild_idx;
-
-//                 // Clear child's children list to avoid duplicate references
-//                 child.children_indices.clear();
-
-//                 // Continue checking the new child node
-//                 child_idx = grandchild_idx;
-//                 child = ept.tree_nodes[child_idx];
-//             }
-
-//             // Push child index to stack, continue processing
-//             stack.push(child_idx);
-//         }
-//     }
-// }
-
-
-// Update levels after simplification
-// void update_simplified_levels(EditPathTree& ept, size_t node_index, int current_level) {
-//     if (node_index >= ept.tree_nodes.size()) return;
-
-//     TreeNode& node = ept.tree_nodes[node_index];
-//     node.simplified_level = current_level;
-
-//     for (size_t child_idx : node.children_indices) {
-//         update_simplified_levels(ept, child_idx, current_level + 1);
-//     }
-// }
-
-
-
-
-
-// Function to print tree
-void print_EPT(const EditPathTree& ept, bool simplified) {
-    if (ept.tree_nodes.empty()) {
-        std::cout << "[print_EPT] ept.tree_nodes is empty.\n";
-        return;
-    }
-
-    const std::vector<TreeNode>& nodes = ept.tree_nodes;
-    TreeStatistics stats;
-
-    // Use queue for BFS traversal
-    std::queue<size_t> node_queue;
-    node_queue.push(ept.root_index);
-
-    while (!node_queue.empty()) {
-        size_t node_idx = node_queue.front();
-        node_queue.pop();
-
-        const TreeNode& node = nodes[node_idx];
-
-        // ========== 1) Record total node count ========== 
-        stats.total_nodes++;
-
-        // ========== 2) Based on simplified flag, choose simplified_level or original level ==========
-        int depth = simplified ? node.simplified_level : node.level;
-        int original_level = node.level;  // only for recording distribution
-
-        // ========== 3) Count graphs contained in this node ==========
-        //  node.completed_db_graph_ids may record multiple completed graph IDs,
-        //  accumulate their count to total_graph_count
-        stats.total_graph_count += node.completed_db_graph_ids.size();
-
-        // ========== 4) Record depth range (currently determined by leaf nodes for max_depth/min_depth) ==========
-        if (node.children_indices.empty()) {
-            // Leaf node
-            if (depth > stats.max_depth) stats.max_depth = depth;
-            if (depth < stats.min_depth) stats.min_depth = depth;
-        }
-
-        // ========== 5) Per-layer node count + level distribution ========== 
-        stats.nodes_per_level[depth]++;
-        stats.level_breakdown[depth][original_level]++;
-
-        // ========== 6) If has children => fanout statistics ==========
-        if (!node.children_indices.empty()) {
-            int fanout = (int)node.children_indices.size();
-            if (fanout > stats.max_fanout) stats.max_fanout = fanout;
-            if (stats.min_fanout == 0 || fanout < stats.min_fanout) {
-                stats.min_fanout = fanout;
-            }
-            stats.total_fanout += fanout;
-            stats.internal_node_count++;
-
-            // Add child nodes to queue
-            for (size_t child_idx : node.children_indices) {
-                node_queue.push(child_idx);
-            }
-
-            // Record to per-layer fanout statistics
-            auto &level_stats = stats.fanout_per_level[depth];
-            level_stats.count++;
-            level_stats.sum_fanout += fanout;
-            level_stats.sum_squares += (long long)fanout * fanout;
-            if (fanout > level_stats.max_fanout) {
-                level_stats.max_fanout = fanout;
-            }
-            if (fanout < level_stats.min_fanout) {
-                level_stats.min_fanout = fanout;
-            }
-        }
-    }
-
-    // If tree has no leaves => guard against initial values
-    if (stats.min_depth == std::numeric_limits<int>::max()) {
-        stats.min_depth = 0;
-    }
-
-    // ========== Output statistics ==========
-    std::cout << "\nTree Statistics:\n";
-
-    // 1) Depth
-    std::cout << "Maximum Depth: " << stats.max_depth << std::endl;
-    std::cout << "Minimum Depth: " << stats.min_depth << std::endl;
-
-    // 2) Per-layer node count
-    std::cout << "Nodes per Level:\n";
-    std::vector<int> levels;
-    levels.reserve(stats.nodes_per_level.size());
-    for (const auto& pair : stats.nodes_per_level) {
-        levels.push_back(pair.first);
-    }
-    std::sort(levels.begin(), levels.end());
-
-    for (int level : levels) {
-        int count_nodes = stats.nodes_per_level[level];
-        std::cout << "  Level " << level << ": " << count_nodes << " nodes\n";
-    }
-
-    // 3) Fanout global info
-    std::cout << "Maximum Fanout (global): " << stats.max_fanout << std::endl;
-    std::cout << "Minimum Fanout (global): "
-              << (stats.internal_node_count > 0 ? stats.min_fanout : 0)
-              << std::endl;
-    double average_fanout = (stats.internal_node_count > 0)
-                            ? (double)stats.total_fanout / stats.internal_node_count
-                            : 0.0;
-    std::cout << "Average Fanout (global): " << average_fanout << std::endl;
-
-    // 4) Per-layer fanout statistics
-    std::cout << "\nFanout statistics per level:\n";
-    for (int level : levels) {
-        auto it = stats.fanout_per_level.find(level);
-        if (it == stats.fanout_per_level.end()) {
-            // This layer contains only leaf nodes, no internal nodes => no fanout data
-            std::cout << "  Level " << level
-                      << ": (no internal nodes, fanout=0)\n";
-            continue;
-        }
-
-        const auto &fs = it->second;
-        if (fs.count == 0) {
-            // Also indicates this layer has no internal nodes
-            std::cout << "  Level " << level
-                      << ": (count=0, no internal nodes)\n";
-            continue;
-        }
-
-        double avg = (double)fs.sum_fanout / fs.count;
-        double mean_of_squares = (double)fs.sum_squares / fs.count;
-        double variance = mean_of_squares - avg * avg;
-        double stddev = (variance > 1e-12) ? std::sqrt(variance) : 0.0;
-
-        std::cout << "  Level " << level << ": \n"
-                  << "    count = " << fs.count << " (internal nodes)\n"
-                  << "    max   = " << fs.max_fanout << "\n"
-                  << "    min   = " << fs.min_fanout << "\n"
-                  << "    avg   = " << avg << "\n"
-                  << "    std   = " << stddev << "\n";
-    }
-
-    // 5) Print total_graph_count
-    std::cout << "\nTotal Graph Count: " << stats.total_graph_count << std::endl;
-
-    // 6) New: print total_nodes
-    std::cout << "Total Nodes (BFS counted): " << stats.total_nodes << std::endl;
-
-    std::cout << std::endl;
-}
-
-
-
-void print_EPT_with_actual_steps(const EditPathTree& ept) {
-    if(ept.tree_nodes.empty()) {
-        std::cout << "[WARN] ept is empty\n";
-        return;
-    }
-
-    TreeStatistics stats;
-
-    // Prepare BFS queue: (node_idx, dist)
-    std::queue<std::pair<size_t,int>> q;
-    q.push({ ept.root_index, 0 });
-
-    while(!q.empty()) {
-        auto [curr_idx, dist] = q.front();
-        q.pop();
-
-        stats.total_nodes++;
-
-        const TreeNode &node = ept.tree_nodes[curr_idx];
-        int ept_level = node.level;  // this is the EPT level
-
-        // if it is a leaf
-        if(node.children_indices.empty()) {
-            // BFS-dist = dist
-            // EPT-level = ept_level
-
-            // 1) leaf count/layer statistics
-            stats.leaf_count_per_level[ept_level]++;
-
-            // 2) add BFS-dist to leaf_dist_per_ept_level[ept_level]
-            auto &lds = stats.leaf_dist_per_ept_level[ept_level];
-            lds.count++;
-            lds.sum_dist += dist;
-            lds.sum_squares += (long long)dist * dist;
-        } 
-        else {
-            // has children => fanout
-            stats.internal_node_count++;
-            int fanout = (int)node.children_indices.size();
-            stats.total_fanout += fanout;
-            if(fanout>stats.max_fanout) stats.max_fanout=fanout;
-            if(stats.min_fanout==0 || fanout<stats.min_fanout){
-                stats.min_fanout = fanout;
-            }
-
-            // BFS push children
-            for(auto child_idx : node.children_indices) {
-                q.push({ child_idx, dist+1 });
-            }
-        }
-    }
-
-    // ========== Print statistics ==========
-
-    // 1) total node count
-    std::cout << "Total Node Count: " << stats.total_nodes << "\n";
-
-    // 2) Per-layer leaf node BFS-dist distribution
-    std::cout << "\n=== BFS-dist distribution grouped by EPT-level ===\n";
-    // Collect all ept_levels
-    std::vector<int> ept_levels;
-    ept_levels.reserve(stats.leaf_dist_per_ept_level.size());
-    for(const auto &kv : stats.leaf_dist_per_ept_level) {
-        ept_levels.push_back(kv.first);
-    }
-    std::sort(ept_levels.begin(), ept_levels.end());
-
-    for(int lvl : ept_levels){
-        auto &lds = stats.leaf_dist_per_ept_level[lvl];
-        if(lds.count==0) {
-            std::cout<<"  EPT-level="<<lvl<<": (no leaf??)\n";
-            continue;
-        }
-        double avg = (double)lds.sum_dist/ lds.count;
-        double mean_sq = (double)lds.sum_squares/ lds.count;
-        double var = mean_sq - avg*avg;
-        double stddev = (var>1e-12) ? std::sqrt(var) : 0.0;
-        std::cout<<"  EPT-level="<<lvl<<" => leaf_count="<<lds.count
-                 <<", BFS-dist avg="<<avg<<", std="<<stddev<<"\n";
-    }
-}
-
-void test_EPT_structure(const EditPathTree &ept)
-{
-    // 1) basic info
-    std::cout << "\n===== [Test EPT Structure] =====\n";
-    std::cout << "Tree node count: " << ept.tree_nodes.size() << "\n";
-    std::cout << "root_index: " << ept.root_index << "\n";
-    std::cout << "anchor_id:  " << ept.anchor_id << "\n";
-
-    if (ept.tree_nodes.empty()) {
-        std::cout << "[INFO] EPT is empty => no further tests.\n";
-        return;
-    }
-
-    // 2) check node basic properties
-    int max_level = std::numeric_limits<int>::lowest();
-    int min_level = std::numeric_limits<int>::max();
-    // count levels => vector<nodeIndex>
-    std::map<int, std::vector<size_t>> level_map;
-
-    // assuming during EPT construction, node parent_index is set to SIZE_MAX for root
-    // if not, modify as needed
-    size_t root_cnt = 0; // count how many nodes parent_index=SIZE_MAX
-
-    std::cout << "\n[Node Basic Info]\n";
-    for (size_t i = 0; i < ept.tree_nodes.size(); i++) {
-        const TreeNode &node = ept.tree_nodes[i];
-        int lvl = node.level;
-
-        // update min/max
-        if (lvl > max_level) max_level = lvl;
-        if (lvl < min_level) min_level = lvl;
-
-        // add to level_map
-        level_map[lvl].push_back(i);
-
-        // check parent_index
-        bool is_root_like = (node.parent_index == SIZE_MAX);
-        if (is_root_like) {
-            root_cnt++;
-        }
-
-        // std::cout << "Node #" << i 
-        //           << ": parent_index=" << (is_root_like ? -1 : (int)node.parent_index)
-        //           << ", level=" << node.level
-        //           << ", children=" << node.children_indices.size()
-        //           << ", db_graph_n=" << node.db_graph_n
-        //           << ", db_graph_m=" << node.db_graph_m
-        //           << ", completed_ids=" << node.completed_db_graph_ids.size()
-        //           << "\n";
-    }
-
-    std::cout << "max_level=" << max_level << ", min_level=" << min_level << "\n";
-    std::cout << "nodes that have parent_index=SIZE_MAX: " << root_cnt << "\n";
-
-    // 3) list node count per layer
-    std::cout << "\n[Level Distribution by node.level]\n";
-    for (auto &pair : level_map) {
-        int lvl = pair.first;
-        size_t count_nodes = pair.second.size();
-        std::cout << "  Level=" << lvl << ", " << count_nodes << " nodes\n";
-    }
-
-    // 4) BFS connectivity check (starting from root_index)
-    //    if root_index is not necessarily the unique “true root”, you can iterate all parent_index=SIZE_MAX nodes and do BFS for each
-    std::vector<bool> visited(ept.tree_nodes.size(), false);
-
-    std::queue<size_t> Q;
-    Q.push(ept.root_index);
-    visited[ept.root_index] = true;
-    int bfs_max_depth = 0;
-
-    // for recording BFS depth
-    std::vector<int> bfs_depth(ept.tree_nodes.size(), -1);
-    bfs_depth[ept.root_index] = 0;
-
-    while (!Q.empty()) {
-        size_t u = Q.front();
-        Q.pop();
-        int d = bfs_depth[u];
-
-        // update max depth
-        if (d > bfs_max_depth) {
-            bfs_max_depth = d;
-        }
-
-        // iterate child nodes
-        for (auto child_idx : ept.tree_nodes[u].children_indices) {
-            if (!visited[child_idx]) {
-                visited[child_idx] = true;
-                bfs_depth[child_idx] = d + 1;
-                Q.push(child_idx);
-            }
-        }
-    }
-
-    // count nodes visited by BFS
-    int visit_count = 0;
-    for (auto b : visited) {
-        if (b) visit_count++;
-    }
-
-    std::cout << "\n[BFS from root_index=" << ept.root_index << "]\n"
-              << "  visited " << visit_count << " / " << ept.tree_nodes.size() << " nodes\n"
-              << "  BFS max depth = " << bfs_max_depth << "\n";
-
-    // list unvisited nodes (if any)
-    if (visit_count < (int)ept.tree_nodes.size()) {
-        std::cout << "  The following nodes were NOT visited from root:\n";
-        for (size_t i = 0; i < ept.tree_nodes.size(); i++) {
-            if (!visited[i]) {
-                std::cout << "    Node #" << i 
-                          << " (level=" << ept.tree_nodes[i].level
-                          << ", parent=" << ept.tree_nodes[i].parent_index
-                          << ")\n";
-            }
-        }
-    }
-
-    // 5) (optional) list BFS depth distribution
-    std::map<int,int> bfs_depth_count;
-    for (size_t i=0; i<bfs_depth.size(); i++) {
-        if (bfs_depth[i] >= 0) {
-            bfs_depth_count[bfs_depth[i]]++;
-        }
-    }
-    std::cout << "\n[BFS Depth Distribution]\n";
-    for (auto &dc : bfs_depth_count) {
-        std::cout << "  depth=" << dc.first 
-                  << ", count=" << dc.second << "\n";
-    }
-
-    // 6) end
-    std::cout << "\n===== [Test EPT Structure DONE] =====\n";
-}
-
-void merge_children_by_WLhash_bfs(EditPathTree & ept)
-{
-    // flag for whether merged/cleared
-    std::vector<bool> merged_flags(ept.tree_nodes.size(), false);
-
-    // 1) BFS queue
-    std::queue<size_t> Q;
-    Q.push(ept.root_index);
-
-    // 2) BFS
-    while (!Q.empty()) {
-        size_t u = Q.front();
-        Q.pop();
-
-        // if this node was merged (flagged), skip it
-        if (merged_flags[u]) {
-            continue;
-        }
-
-        TreeNode &nodeU = ept.tree_nodes[u];
-
-        // Collect "WL-hash -> vector<childIdx>" for children_indices
-        std::unordered_map<std::string, std::vector<size_t>> hash_groups;
-
-        // 2.1) build hash_groups
-        for (auto childIdx : nodeU.children_indices) {
-            // if child has been marked as merged, maybe skip or treat as“empty”node
-            if (merged_flags[childIdx]) {
-                continue;
-            }
-
-            TreeNode &childNode = ept.tree_nodes[childIdx];
-            // compute WL-hash
-            std::string hval = get_wl_hash(childNode); 
-            hash_groups[hval].push_back(childIdx);
-        }
-
-        // 2.2) for each hash-value group => merge
-        //      keep only the first occurrence  => representative node rep
-        //      merge the rest into rep and mark merged_flags=true
-        //      and remove from nodeU.children_indices
-        std::set<size_t> toRemove; // children that get merged
-        for (auto &grpPair : hash_groups) {
-            auto &sameHashChildIdxs = grpPair.second;
-            if (sameHashChildIdxs.size() <= 1) {
-                // only 1 => no merge needed
-                continue;
-            }
-
-            // representative
-            size_t rep = sameHashChildIdxs[0];
-            TreeNode &repNode = ept.tree_nodes[rep];
-
-            // merge childrenIndices & completed_ids
-            std::set<size_t> unionChildren(repNode.children_indices.begin(), repNode.children_indices.end());
-            std::set<int> unionCompleted(repNode.completed_db_graph_ids.begin(), repNode.completed_db_graph_ids.end());
-
-            // the rest
-            for (size_t k = 1; k < sameHashChildIdxs.size(); k++){
-                size_t otherIdx = sameHashChildIdxs[k];
-                TreeNode &otherNode = ept.tree_nodes[otherIdx];
-
-                // union children
-                for (auto c : otherNode.children_indices) {
-                    unionChildren.insert(c);
-                }
-                // union completed
-                for (auto cid : otherNode.completed_db_graph_ids) {
-                    unionCompleted.insert(cid);
-                }
-
-                // set merged_flags
-                merged_flags[otherIdx] = true;
-                // record nodes to remove from nodeU.children_indices otherIdx
-                toRemove.insert(otherIdx);
-            }
-
-            // write back
-            repNode.children_indices.assign(unionChildren.begin(), unionChildren.end());
-            repNode.completed_db_graph_ids.assign(unionCompleted.begin(), unionCompleted.end());
-        }
-
-        // 2.3) delete toRemove from nodeU.children_indices
-        if (!toRemove.empty()) {
-            std::vector<size_t> newChildren;
-            newChildren.reserve(nodeU.children_indices.size());
-            for (auto c : nodeU.children_indices) {
-                if (toRemove.find(c) == toRemove.end()) {
-                    newChildren.push_back(c);
-                }
-            }
-            nodeU.children_indices.swap(newChildren);
-        }
-
-        // 2.4) push all still-valid children into queue
-        for (auto c : nodeU.children_indices) {
-            if (!merged_flags[c]) {
-                Q.push(c);
-            }
-        }
-    }
-
-    // 3) optional: clear merged nodes(making it childless, no completed)
-    for (size_t i = 0; i < ept.tree_nodes.size(); i++){
-        if (merged_flags[i]) {
-            TreeNode &tn = ept.tree_nodes[i];
-            tn.children_indices.clear();
-            tn.completed_db_graph_ids.clear();
-            // can also tn.db_graph=nullptr, etc
-        }
-    }
-
-    std::cout << "[merge_children_by_WLhash_bfs] done.\n";
-}
 
 /**
- * @brief compute WL-hash for a node
- *        here you can directly use tn.db_graph->compute_wl_hash() or write your own
+ * @brief 计算某节点 WL-hash
+ *        这里你可以直接 tn.db_graph->compute_wl_hash() 或者写你自己的
  */
 std::string get_wl_hash(const TreeNode &tn)
 {
@@ -1736,26 +1215,3 @@ std::string get_wl_hash(const TreeNode &tn)
 }
 
 
-void shrink_completed_ids_to_first(EditPathTree& ept)
-{
-    if (ept.tree_nodes.empty()) {
-        std::cout << "[shrink_completed_ids_to_first] empty tree, skip.\n";
-        return;
-    }
-
-    size_t touched = 0;
-    for (TreeNode& tn : ept.tree_nodes)
-    {
-        if (tn.completed_db_graph_ids.size() > 1)
-        {
-            int first = tn.completed_db_graph_ids.front();
-            tn.completed_db_graph_ids.clear();
-            tn.completed_db_graph_ids.push_back(first);
-            ++touched;
-        }
-    }
-
-    std::cout << "[shrink_completed_ids_to_first] processed "
-              << ept.tree_nodes.size() << " nodes; "
-              << "shrunk " << touched  << " node(s).\n";
-}

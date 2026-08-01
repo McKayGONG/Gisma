@@ -1,6 +1,7 @@
 #include "GismaSearchEngine.h"
 #include "EditPathTree.h"
 #include "Application.h"
+#include "OrigApp.h"
 #include "Utility.h"
 #include <cmath>
 #include <algorithm>
@@ -21,11 +22,15 @@
 #include <filesystem>
 #include <cstdlib>  // for std::atexit
 
-// Global coverage sets (defined in experiment_mode_impl.cpp)
+// 全局覆盖集合（在 experiment_mode_impl.cpp 中定义）
 extern std::unordered_set<int> g_ept_coverage;
 extern std::unordered_set<int> g_extra_coverage;
 
-// Cross-platform localtime function
+// Reuse logging (defined in experiment_mode_impl.cpp)
+extern FILE* g_reuse_log;
+extern std::mutex g_reuse_log_mutex;
+
+// 跨平台 localtime 函数
 #ifdef _WIN32
     #define LOCALTIME_SAFE(tm_ptr, time_ptr) localtime_s(tm_ptr, time_ptr)
 #else
@@ -33,11 +38,11 @@ extern std::unordered_set<int> g_extra_coverage;
 #endif
 
 
-// Constructor implementation - Test modification
+// 构造函数的实现 - Test modification
 GismaSearchEngine::GismaSearchEngine(
     std::shared_ptr<NetDag> net_dag,
     double tau_index,
-    // double tau,  // removed
+    // double tau,  // 移除
     double error_tolerance_search,
     int q_start,
     int q_end,
@@ -64,10 +69,10 @@ GismaSearchEngine::GismaSearchEngine(
     double _nd_filter_ratio,
     bool _disable_lsa_pruning,
     bool _disable_reuse_lsa,
-    bool _verify_reuse_baseline,
+    bool _verify_reuse,
     bool _chain_reuse) : net_dag(net_dag),
                                         tau_index(tau_index),
-                                        // tau(tau),  // removed
+                                        // tau(tau),  // 移除
                                         error_tolerance_search(error_tolerance_search),
                                         has_ged_matrix(has_ged_matrix),
                                         ged_matrix(ged_matrix),
@@ -94,7 +99,7 @@ GismaSearchEngine::GismaSearchEngine(
                                         nd_filter_ratio(_nd_filter_ratio),
                                         disable_lsa_pruning(_disable_lsa_pruning),
                                         disable_reuse_lsa(_disable_reuse_lsa),
-                                        verify_reuse_baseline(_verify_reuse_baseline),
+                                        verify_reuse(_verify_reuse),
                                         chain_reuse(_chain_reuse),
                                         disable_subtree_pruning(false),
                                         disable_lb_propagation(false)
@@ -102,9 +107,9 @@ GismaSearchEngine::GismaSearchEngine(
 }
 
 GismaSearchEngine::~GismaSearchEngine() {
-    // Explicitly clean up EPT manager resources
+    // 显式清理EPT管理器相关资源
     if (ept_manager) {
-        // Let EPT manager clean up all EPT resources
+        // 让EPT管理器清理所有EPT资源
         ept_manager->clear_all_epts();
     }
 }
@@ -127,85 +132,24 @@ double GismaSearchEngine::get_ged_from_matrix(int i, int j)
     return ged_matrix[index];
 }
 
-double GismaSearchEngine::compute_ged_online_by_pyg(int i, int query_index)
-{
-    return get_ged_from_matrix(i, query_index);
-}
 
-std::vector<int> GismaSearchEngine::BMao_scan_on_subset(
-    std::shared_ptr<Node> query_node,
-    const std::vector<int> &subset,
-    double tau,
-    SearchStats &stats)
-{
-    // 1) Get the query graph
-    Graph *query_graph = query_node->graph.get();
-    std::vector<int> exact_results;
-
-    // 2) Iterate graph IDs in subset
-    for(int node_id : subset)
-    {
-        if(node_id < 0 || node_id >= (int)db.size()) {
-            continue; // guard
-        }
-        Graph *db_graph = db[node_id];
-        if(!db_graph) {
-            continue;
-        }
-
-        // NDC statistics: count each visited node once (deduplicated)
-        stats.EPT_ndc_count++;
-
-        // ========== LB computation ==========
-        auto lb_start = std::chrono::high_resolution_clock::now();
-        stats.EPT_lb_count++;
-
-        ui lb = query_graph->ged_lower_bound_filter(
-            db_graph, static_cast<ui>(tau), vM.size(), eM.size(), max_n);
-
-        auto lb_end = std::chrono::high_resolution_clock::now();
-        stats.EPT_lb_time += std::chrono::duration<double>(lb_end - lb_start).count();
-
-        if (lb > tau) {
-            continue;
-        }
-
-        // ========== A* ==========
-        auto astar_start = std::chrono::high_resolution_clock::now();
-        stats.EPT_astar_count++;
-
-        Application app((ui)tau, "BMao", app_max_iter);
-        app.init(db_graph, query_graph);
-        app.set_disable_lsa_pruning(disable_lsa_pruning);
-        int ged_res = app.App();
-
-        auto astar_end = std::chrono::high_resolution_clock::now();
-        stats.EPT_astar_time += std::chrono::duration<double>(astar_end - astar_start).count();
-
-        if (ged_res <= (int)tau) {
-            exact_results.push_back(node_id);
-        }
-    }
-
-    return exact_results;
-}
 
 std::vector<int> GismaSearchEngine::BMao_scan_search(std::shared_ptr<Node> query_node, double tau, SearchStats &stats)
 {
     Graph *query_graph = query_node->graph.get();
     int query_id = query_node->node_id;
 
-    // Results
+    // 结果
     std::vector<int> exact_results_within_tau;
 
     for (size_t node_id = 0; node_id < db.size(); ++node_id)
     {
         Graph *db_graph = db[node_id];
 
-        // NDC statistics: count each visited node once (deduplicated)
+        // NDC统计：每个被访问的节点计数一次（去重）
         stats.EPT_ndc_count++;
 
-        // ========== LB computation ==========
+        // ========== LB 计算 ==========
         auto lb_start = std::chrono::high_resolution_clock::now();
         stats.EPT_lb_count++;
 
@@ -224,11 +168,89 @@ std::vector<int> GismaSearchEngine::BMao_scan_search(std::shared_ptr<Node> query
 
         stats.EPT_astar_count++;
         Application app(static_cast<ui>(tau), "BMao", app_max_iter, exact_max_iter);
+        app.set_all_edge_labels_same(all_edge_labels_same);
 
         app.init(db_graph, query_graph);
 
         int ged_res = app.App_baseline(nullptr, nullptr);
 
+        auto astar_end = std::chrono::high_resolution_clock::now();
+        stats.EPT_astar_time += std::chrono::duration<double>(astar_end - astar_start).count();
+
+        if (ged_res <= tau)
+        {
+            exact_results_within_tau.push_back(static_cast<int>(node_id));
+        }
+    }
+
+    return exact_results_within_tau;
+}
+
+std::vector<int> GismaSearchEngine::App_LSa_scan_search(std::shared_ptr<Node> query_node, double tau, SearchStats &stats)
+{
+    Graph *query_graph = query_node->graph.get();
+    int query_id = query_node->node_id;
+
+    std::vector<int> exact_results_within_tau;
+
+    for (size_t node_id = 0; node_id < db.size(); ++node_id)
+    {
+        Graph *db_graph = db[node_id];
+        stats.EPT_ndc_count++;
+
+#if USE_FILTERS_FOR_APP_BMAO
+        auto lb_start = std::chrono::high_resolution_clock::now();
+        stats.EPT_lb_count++;
+        ui lb = query_graph->ged_lower_bound_filter(
+            db_graph, static_cast<ui>(tau), vM.size(), eM.size(), max_n);
+        auto lb_end = std::chrono::high_resolution_clock::now();
+        stats.EPT_lb_time += std::chrono::duration<double>(lb_end - lb_start).count();
+        if (lb > tau) { continue; }
+#endif
+
+        auto astar_start = std::chrono::high_resolution_clock::now();
+        stats.EPT_astar_count++;
+        Application app(static_cast<ui>(tau), "LSa", app_max_iter);
+        app.set_all_edge_labels_same(all_edge_labels_same);
+        app.init(db_graph, query_graph);
+        int ged_res = app.App_baseline(nullptr, nullptr);
+        auto astar_end = std::chrono::high_resolution_clock::now();
+        stats.EPT_astar_time += std::chrono::duration<double>(astar_end - astar_start).count();
+
+        if (ged_res <= tau)
+        {
+            exact_results_within_tau.push_back(static_cast<int>(node_id));
+        }
+    }
+
+    return exact_results_within_tau;
+}
+
+std::vector<int> GismaSearchEngine::AStar_LSa_scan_search(std::shared_ptr<Node> query_node, double tau, SearchStats &stats)
+{
+    Graph *query_graph = query_node->graph.get();
+    int query_id = query_node->node_id;
+
+    std::vector<int> exact_results_within_tau;
+
+    for (size_t node_id = 0; node_id < db.size(); ++node_id)
+    {
+        Graph *db_graph = db[node_id];
+
+        auto lb_start = std::chrono::high_resolution_clock::now();
+        stats.EPT_lb_count++;
+        ui lb = query_graph->ged_lower_bound_filter(
+            db_graph, static_cast<ui>(tau), vM.size(), eM.size(), max_n);
+        auto lb_end = std::chrono::high_resolution_clock::now();
+        stats.EPT_lb_time += std::chrono::duration<double>(lb_end - lb_start).count();
+        if (lb > tau) { continue; }
+
+        auto astar_start = std::chrono::high_resolution_clock::now();
+        stats.EPT_astar_count++;
+        Application app(static_cast<ui>(tau), "LSa", app_max_iter);
+        app.set_all_edge_labels_same(all_edge_labels_same);
+        app.init(db_graph, query_graph);
+        int ged_res = app.AStar_baseline(nullptr, nullptr);
         auto astar_end = std::chrono::high_resolution_clock::now();
         stats.EPT_astar_time += std::chrono::duration<double>(astar_end - astar_start).count();
 
@@ -246,18 +268,18 @@ std::vector<int> GismaSearchEngine::App_BMao_search(std::shared_ptr<Node> query_
     Graph *query_graph = query_node->graph.get();
     int query_id = query_node->node_id;
 
-    // Results
+    // 结果
     std::vector<int> exact_results_within_tau;
 
     for (size_t node_id = 0; node_id < db.size(); ++node_id)
     {
         Graph *db_graph = db[node_id];
 
-        // NDC statistics: count each visited node once (deduplicated)
+        // NDC统计：每个被访问的节点计数一次（去重）
         stats.EPT_ndc_count++;
 
 #if USE_FILTERS_FOR_APP_BMAO
-        // ========== LB computation ==========
+        // ========== LB 计算 ==========
         auto lb_start = std::chrono::high_resolution_clock::now();
         stats.EPT_lb_count++;
 
@@ -277,6 +299,7 @@ std::vector<int> GismaSearchEngine::App_BMao_search(std::shared_ptr<Node> query_
 
         stats.EPT_astar_count++;
         Application app(static_cast<ui>(tau), "BMao", app_max_iter);
+        app.set_all_edge_labels_same(all_edge_labels_same);
         app.init(db_graph, query_graph);
         int ged_res = app.App_baseline(nullptr, nullptr);
 
@@ -292,7 +315,44 @@ std::vector<int> GismaSearchEngine::App_BMao_search(std::shared_ptr<Node> query_
     return exact_results_within_tau;
 }
 
-// Pure Base method using AStar_baseline() (exact A*)
+// 原版 App-BMao: 全量扫 db + Gisma 的 LB filter + origbmao 引擎(精简 State + 原版 AStar)
+// 与 App_BMao_search 结构相同, 唯一区别 verify 用 origbmao::Application (逐字节原版), 无 LSa/reuse/snapshot 开销
+std::vector<int> GismaSearchEngine::App_BMao_orig_search(std::shared_ptr<Node> query_node, double tau, SearchStats &stats)
+{
+    Graph *query_graph = query_node->graph.get();
+    std::vector<int> exact_results_within_tau;
+
+    for (size_t node_id = 0; node_id < db.size(); ++node_id)
+    {
+        Graph *db_graph = db[node_id];
+        stats.EPT_ndc_count++;
+
+#if USE_FILTERS_FOR_APP_BMAO
+        auto lb_start = std::chrono::high_resolution_clock::now();
+        stats.EPT_lb_count++;
+        ui lb = query_graph->ged_lower_bound_filter(
+            db_graph, static_cast<ui>(tau), vM.size(), eM.size(), max_n);
+        auto lb_end = std::chrono::high_resolution_clock::now();
+        stats.EPT_lb_time += std::chrono::duration<double>(lb_end - lb_start).count();
+        if (lb > tau) continue;
+#endif
+
+        auto astar_start = std::chrono::high_resolution_clock::now();
+        stats.EPT_astar_count++;
+        origbmao::Application app(static_cast<ui>(tau), "BMao", app_max_iter);
+        app.init(db_graph, query_graph);     // origbmao::init 读 Gisma Graph 的 n/pstarts/edges/vlabels/elabels
+        int ged_res = app.AStar();           // 原版精确 A* (app_max_iter>0 时近似截断)
+        auto astar_end = std::chrono::high_resolution_clock::now();
+        stats.EPT_astar_time += std::chrono::duration<double>(astar_end - astar_start).count();
+
+        if (ged_res >= 0 && ged_res <= tau)
+            exact_results_within_tau.push_back(static_cast<int>(node_id));
+    }
+
+    return exact_results_within_tau;
+}
+
+// 纯Base方法，使用AStar_baseline()（精确A*）
 std::vector<int> GismaSearchEngine::AStar_scan_search(std::shared_ptr<Node> query_node, double tau, SearchStats &stats)
 {
     Graph *query_graph = query_node->graph.get();
@@ -304,11 +364,11 @@ std::vector<int> GismaSearchEngine::AStar_scan_search(std::shared_ptr<Node> quer
     {
         Graph *db_graph = db[node_id];
 
-        // NDC statistics: count each visited node once (deduplicated)
+        // NDC统计：每个被访问的节点计数一次（去重）
         stats.EPT_ndc_count++;
 
 #if USE_FILTERS_FOR_APP_BMAO
-        // ========== LB computation ==========
+        // ========== LB 计算 ==========
         auto lb_start = std::chrono::high_resolution_clock::now();
         stats.EPT_lb_count++;
 
@@ -328,8 +388,9 @@ std::vector<int> GismaSearchEngine::AStar_scan_search(std::shared_ptr<Node> quer
 
         stats.EPT_astar_count++;
         Application app(static_cast<ui>(tau), "BMao", app_max_iter);
+        app.set_all_edge_labels_same(all_edge_labels_same);
         app.init(db_graph, query_graph);
-        int ged_res = app.AStar_baseline();  // using exact A*
+        int ged_res = app.AStar_baseline();  // 使用精确A*
 
         auto astar_end = std::chrono::high_resolution_clock::now();
         stats.EPT_astar_time += std::chrono::duration<double>(astar_end - astar_start).count();
@@ -343,7 +404,7 @@ std::vector<int> GismaSearchEngine::AStar_scan_search(std::shared_ptr<Node> quer
     return exact_results_within_tau;
 }
 
-// Pure Base method using AStar() with LSa pruning disabled (fair comparison with App_baseline)
+// 纯Base方法，使用AStar()但禁用LSa剪枝（公平对比App_baseline）
 std::vector<int> GismaSearchEngine::AStar_scan_no_lsa_search(std::shared_ptr<Node> query_node, double tau, SearchStats &stats)
 {
     Graph *query_graph = query_node->graph.get();
@@ -355,11 +416,11 @@ std::vector<int> GismaSearchEngine::AStar_scan_no_lsa_search(std::shared_ptr<Nod
     {
         Graph *db_graph = db[node_id];
 
-        // NDC statistics: count each visited node once (deduplicated)
+        // NDC统计：每个被访问的节点计数一次（去重）
         stats.EPT_ndc_count++;
 
 #if USE_FILTERS_FOR_APP_BMAO
-        // ========== LB computation ==========
+        // ========== LB 计算 ==========
         auto lb_start = std::chrono::high_resolution_clock::now();
         stats.EPT_lb_count++;
 
@@ -379,8 +440,9 @@ std::vector<int> GismaSearchEngine::AStar_scan_no_lsa_search(std::shared_ptr<Nod
 
         stats.EPT_astar_count++;
         Application app(static_cast<ui>(tau), "BMao", app_max_iter);
+        app.set_all_edge_labels_same(all_edge_labels_same);
         app.init(db_graph, query_graph);
-        app.set_disable_lsa_pruning(true);  // Disable LSa pruning
+        app.set_disable_lsa_pruning(true);  // 禁用LSa剪枝
         int ged_res = app.App();
 
         auto astar_end = std::chrono::high_resolution_clock::now();
@@ -400,14 +462,14 @@ std::vector<int> GismaSearchEngine::AStar_BMao_search(std::shared_ptr<Node> quer
     Graph *query_graph = query_node->graph.get();
     int query_id = query_node->node_id;
 
-    // Results
+    // 结果
     std::vector<int> exact_results_within_tau;
 
     for (size_t node_id = 0; node_id < db.size(); ++node_id)
     {
         Graph *db_graph = db[node_id];
 
-        // ========== LB computation ==========
+        // ========== LB 计算 ==========
         auto lb_start = std::chrono::high_resolution_clock::now();
         stats.EPT_lb_count++;
 
@@ -426,6 +488,7 @@ std::vector<int> GismaSearchEngine::AStar_BMao_search(std::shared_ptr<Node> quer
 
         stats.EPT_astar_count++;
         Application app(static_cast<ui>(tau), "BMao", app_max_iter);
+        app.set_all_edge_labels_same(all_edge_labels_same);
 
         app.init(db_graph, query_graph);
         int ged_res = app.AStar_baseline(nullptr, nullptr);
@@ -442,7 +505,7 @@ std::vector<int> GismaSearchEngine::AStar_BMao_search(std::shared_ptr<Node> quer
     return exact_results_within_tau;
 }
 
-// Base+GS: use GS to select anchors, then iterate their cluster and exact_cluster, verify with App-BMao
+// Base+GS: 用GS选anchors，然后遍历这些anchors的cluster和exact_cluster，用App-BMao验证
 std::vector<int> GismaSearchEngine::Base_GS_search(std::shared_ptr<Node> query_node, double tau, SearchStats &stats)
 {
     Graph *query_graph = query_node->graph.get();
@@ -450,14 +513,14 @@ std::vector<int> GismaSearchEngine::Base_GS_search(std::shared_ptr<Node> query_n
 
     std::vector<int> exact_results_within_tau;
 
-    // 1) Use GS_search to get candidate anchors
+    // 1) 使用 GS_search 获取候选 anchors
     auto candidate_anchors_with_results = GS_search(query_node, tau, stats);
 
     if (candidate_anchors_with_results.empty()) {
         return exact_results_within_tau;
     }
 
-    // 2) Collect all candidate anchor complete_ids (from EPT) and graph IDs in cluster not in EPT
+    // 2) 收集所有候选anchor的complete_ids（从EPT中收集）和cluster中未进EPT的图ID
     std::unordered_set<int> candidate_graph_ids;
 
     for (const auto& [anchor_id, netdag_lb, netdag_ged] : candidate_anchors_with_results) {
@@ -466,18 +529,18 @@ std::vector<int> GismaSearchEngine::Base_GS_search(std::shared_ptr<Node> query_n
             continue;
         }
 
-        // First add anchor itself
+        // 首先加入anchor本身
         candidate_graph_ids.insert(anchor_id);
 
-        // Collect all graph IDs from nodes_in_cluster_vec (these are graphs not in EPT)
+        // 从nodes_in_cluster_vec中收集所有图ID（这些是没进EPT的图）
         for (const auto& [dist, graph_id] : anchor_ptr->nodes_in_cluster_vec) {
             candidate_graph_ids.insert(graph_id);
         }
 
-        // Collect complete_ids from EPT (graphs with exact GED already computed)
+        // 从EPT中收集complete_ids（已经计算过精确GED的图）
         EditPathTree *ept = ept_manager->get_ept_no_lock(anchor_id);
         if (ept && !ept->tree_nodes.empty()) {
-            // Iterate all EPT nodes, collect complete_ids
+            // 遍历EPT的所有节点，收集complete_ids
             for (const auto& tree_node : ept->tree_nodes) {
                 for (int complete_id : tree_node.completed_db_graph_ids) {
                     candidate_graph_ids.insert(complete_id);
@@ -486,11 +549,11 @@ std::vector<int> GismaSearchEngine::Base_GS_search(std::shared_ptr<Node> query_n
         }
     }
 
-    // 3) Sort candidate graph IDs to improve cache locality, then verify using App-BMao
+    // 3) 排序候选图ID以提升cache locality，然后使用App-BMao方式验证
     std::vector<int> sorted_candidates(candidate_graph_ids.begin(), candidate_graph_ids.end());
     std::sort(sorted_candidates.begin(), sorted_candidates.end());
     for (int node_id : sorted_candidates) {
-        // Check if node_id is valid
+        // 检查node_id是否有效
         if (node_id < 0 || node_id >= static_cast<int>(db.size())) {
             continue;
         }
@@ -500,11 +563,11 @@ std::vector<int> GismaSearchEngine::Base_GS_search(std::shared_ptr<Node> query_n
             continue;
         }
 
-        // NDC statistics: count each visited node once (deduplicated)
+        // NDC统计：每个被访问的节点计数一次（去重）
         stats.EPT_ndc_count++;
 
 #if USE_FILTERS_FOR_APP_BMAO
-        // ========== LB computation ==========
+        // ========== LB 计算 ==========
         auto lb_start = std::chrono::high_resolution_clock::now();
         stats.EPT_lb_count++;
         ui lb = query_graph->ged_lower_bound_filter(
@@ -522,6 +585,7 @@ std::vector<int> GismaSearchEngine::Base_GS_search(std::shared_ptr<Node> query_n
 
         stats.EPT_astar_count++;
         Application app(static_cast<ui>(tau), "BMao", app_max_iter);
+        app.set_all_edge_labels_same(all_edge_labels_same);
         app.init(db_graph, query_graph);
         int ged_res = app.App_baseline(nullptr, nullptr);
 
@@ -536,7 +600,7 @@ std::vector<int> GismaSearchEngine::Base_GS_search(std::shared_ptr<Node> query_n
     return exact_results_within_tau;
 }
 
-// Base+SS: skip GS hierarchical navigation, compute distance to all anchors directly, then use SS
+// Base+SS: 跳过GS层次化导航，直接对所有anchors做距离计算，然后用SS
 std::vector<int> GismaSearchEngine::Base_SS_search(std::shared_ptr<Node> query_node, double tau, SearchStats &stats)
 {
     Graph *query_graph = query_node->graph.get();
@@ -546,16 +610,16 @@ std::vector<int> GismaSearchEngine::Base_SS_search(std::shared_ptr<Node> query_n
 
     // Debug: Store selected anchors for Query 9
     std::vector<int> base_ss_selected_anchors;
-    std::unordered_set<int> result_set;  // for deduplication
+    std::unordered_set<int> result_set;  // 用于去重
 
-    // Base+SS: Similar to Gisma but skips GS hierarchical navigation
-    // 1. Compute distance from all anchors to query
-    // 2. Select anchors within distance range
-    // 3. For selected anchors:Search EPT + Search cluster
+    // Base+SS: 类似Gisma但跳过GS层次化导航
+    // 1. 计算所有anchor到query的距离
+    // 2. 选择距离在范围内的anchor
+    // 3. 对选中的anchor：搜索EPT + 搜索cluster
 
     std::vector<std::tuple<int, double, int>> candidate_anchors;  // (anchor_id, netdag_lb, netdag_ged)
 
-    // Iterate all anchors, compute distance
+    // 遍历所有anchor，计算距离
     for (const auto& anchor_ptr : net_dag->anchors) {
         if (!anchor_ptr) continue;
 
@@ -563,15 +627,15 @@ std::vector<int> GismaSearchEngine::Base_SS_search(std::shared_ptr<Node> query_n
         Graph *anchor_graph = anchor_ptr->graph.get();
         if (!anchor_graph) continue;
 
-        // Compute distance from anchor to query
+        // 计算anchor到query的距离
         ui netdag_lb, netdag_ged;
 
-        // NDC statistics: count each visited node once (deduplicated)
+        // NDC统计：每个被访问的节点计数一次（去重）
         stats.ND_ndc_count++;
 
-        // Three NetDag modes (consistent with GS_search)
+        // 三种NetDag模式（与GS_search一致）
         if (nd_mode == "filters") {
-            // Use traditional lower bound filters
+            // 使用传统下界过滤器
             auto t0 = std::chrono::high_resolution_clock::now();
 
             stats.ND_lb_count++;
@@ -584,11 +648,12 @@ std::vector<int> GismaSearchEngine::Base_SS_search(std::shared_ptr<Node> query_n
 
             if (netdag_lb > (net_dag->alpha + tau) * nd_filter_ratio) continue;
         } else if (nd_mode == "astar") {
-            // Use App_test to compute exact distance
+            // 使用App_test计算精确距离
             auto t0 = std::chrono::high_resolution_clock::now();
 
             stats.ND_astar_count++;
             Application app(static_cast<ui>(tau), "BMao", app_max_iter);
+            app.set_all_edge_labels_same(all_edge_labels_same);
             app.init(anchor_graph, query_graph);
             netdag_ged = app.App_test(nullptr, nullptr);
             netdag_lb = app.get_overall_lb();
@@ -599,7 +664,7 @@ std::vector<int> GismaSearchEngine::Base_SS_search(std::shared_ptr<Node> query_n
 
             if (netdag_lb > (net_dag->alpha + tau) * nd_filter_ratio) continue;
         } else if (nd_mode == "filters_astar") {
-            // First compute lb using filters, if lb<=tau then use AStar for exact GED
+            // 先用filters计算lb，如果lb<=tau则用AStar获取精确GED
             auto t0 = std::chrono::high_resolution_clock::now();
 
             stats.ND_lb_count++;
@@ -611,12 +676,13 @@ std::vector<int> GismaSearchEngine::Base_SS_search(std::shared_ptr<Node> query_n
 
             if (netdag_lb > (net_dag->alpha + tau) * nd_filter_ratio) continue;
 
-            // If lb<=tau, call AStar for exact GED
+            // 如果lb<=tau，调用AStar获取精确GED
             if (netdag_lb <= tau) {
                 auto t2 = std::chrono::high_resolution_clock::now();
 
                 stats.ND_astar_count++;
                 Application app(static_cast<ui>(tau), "BMao", app_max_iter);
+                app.set_all_edge_labels_same(all_edge_labels_same);
                 app.init(anchor_graph, query_graph);
                 netdag_ged = app.App_test(nullptr, nullptr);
                 netdag_lb = app.get_overall_lb();
@@ -628,7 +694,7 @@ std::vector<int> GismaSearchEngine::Base_SS_search(std::shared_ptr<Node> query_n
                 netdag_ged = INF;
             }
         } else {
-            // Unknown mode, use filters mode as default
+            // 未知模式，使用filters模式作为默认
             auto t0 = std::chrono::high_resolution_clock::now();
 
             stats.ND_lb_count++;
@@ -645,14 +711,14 @@ std::vector<int> GismaSearchEngine::Base_SS_search(std::shared_ptr<Node> query_n
         candidate_anchors.emplace_back(anchor_id, netdag_lb, netdag_ged);
     }
 
-    // Perform EPT search and cluster search on selected anchors
+    // 对选中的anchor进行EPT搜索和cluster搜索
     for (const auto& [anchor_id, netdag_lb, netdag_ged] : candidate_anchors) {
         auto anchor_ptr = std::dynamic_pointer_cast<Anchor>(net_dag->nodes[anchor_id]);
         if (!anchor_ptr) continue;
 
-        // 0. Check if anchor itself satisfies the condition
+        // 0. 检查anchor本身是否满足条件
         {
-            stats.EPT_ndc_count++;  // NDC: checking anchor itself
+            stats.EPT_ndc_count++;  // NDC: anchor本身的检查
             auto lb_start = std::chrono::high_resolution_clock::now();
             stats.EPT_lb_count++;
             ui lb = query_graph->ged_lower_bound_filter(
@@ -661,11 +727,12 @@ std::vector<int> GismaSearchEngine::Base_SS_search(std::shared_ptr<Node> query_n
             stats.EPT_lb_time += std::chrono::duration<double>(lb_end - lb_start).count();
 
             if (lb <= tau) {
-                // Further verify with A*
+                // 进一步用A*验证
                 stats.EPT_astar_count++;
                 auto astar_start = std::chrono::high_resolution_clock::now();
 
                 Application app(static_cast<ui>(tau), "BMao", app_max_iter);
+                app.set_all_edge_labels_same(all_edge_labels_same);
                 app.init(db[anchor_id], query_graph);
                 app.set_disable_lsa_pruning(disable_lsa_pruning);
                 int ged_res = app.App();
@@ -676,8 +743,8 @@ std::vector<int> GismaSearchEngine::Base_SS_search(std::shared_ptr<Node> query_n
                 if (ged_res <= tau) {
                     result_set.insert(anchor_id);
 
-                    // IMPORTANT: if anchor itself satisfies condition (GED=0), also add completed_db_graph_ids from EPT root node
-                    // These are graphs identical to anchor (GED=0)
+                    // IMPORTANT: 如果anchor自己满足条件（GED=0），也要把EPT root节点中的completed_db_graph_ids加入
+                    // 这些是与anchor完全相同（GED=0）的图
                     if (ged_res == 0) {
                         EditPathTree *ept = ept_manager->get_ept_no_lock(anchor_id);
                         if (ept && !ept->tree_nodes.empty()) {
@@ -691,7 +758,7 @@ std::vector<int> GismaSearchEngine::Base_SS_search(std::shared_ptr<Node> query_n
             }
         }
 
-        // 1. Search EPT
+        // 1. 搜索EPT
         EditPathTree *ept = ept_manager->get_ept_no_lock(anchor_id);
         if (ept && !ept->tree_nodes.empty()) {
             auto ss_results = SS_search(query_node, anchor_id, netdag_lb, netdag_ged, tau, stats);
@@ -700,37 +767,37 @@ std::vector<int> GismaSearchEngine::Base_SS_search(std::shared_ptr<Node> query_n
             }
         }
 
-        // 2. Search cluster (extra_cluster_search)
+        // 2. 搜索cluster（extra_cluster_search）
         auto cluster_results = extra_cluster_search(query_node, anchor_id, tau, stats);
         for (int gid : cluster_results) {
             result_set.insert(gid);
         }
     }
 
-    // Convert to vector and return
+    // 转换为vector返回
     exact_results_within_tau.assign(result_set.begin(), result_set.end());
 
     return exact_results_within_tau;
 }
 
-// Base_All_EPT: iterate all anchors without any filtering, directly do SS_search and extra_search
+// Base_All_EPT: 遍历所有anchor，不做任何过滤，直接做SS_search和extra_search
 std::vector<int> GismaSearchEngine::Base_All_EPT_search(std::shared_ptr<Node> query_node, double tau, SearchStats &stats)
 {
     Graph *query_graph = query_node->graph.get();
     int query_id = query_node->node_id;
 
     std::vector<int> exact_results_within_tau;
-    std::unordered_set<int> result_set;  // for deduplication
+    std::unordered_set<int> result_set;  // 用于去重
 
-    // Iterate all anchors without any filtering
+    // 遍历所有anchor，不做任何过滤
     for (const auto& anchor_ptr : net_dag->anchors) {
         if (!anchor_ptr) continue;
 
         int anchor_id = anchor_ptr->node_id;
 
-        // 0. Check if anchor itself satisfies the condition
+        // 0. 检查anchor本身是否满足条件
         {
-            stats.EPT_ndc_count++;  // NDC: checking anchor itself
+            stats.EPT_ndc_count++;  // NDC: anchor本身的检查
             auto lb_start = std::chrono::high_resolution_clock::now();
             stats.EPT_lb_count++;
             ui lb = query_graph->ged_lower_bound_filter(
@@ -739,11 +806,12 @@ std::vector<int> GismaSearchEngine::Base_All_EPT_search(std::shared_ptr<Node> qu
             stats.EPT_lb_time += std::chrono::duration<double>(lb_end - lb_start).count();
 
             if (lb <= tau) {
-                // Further verify with A*
+                // 进一步用A*验证
                 stats.EPT_astar_count++;
                 auto astar_start = std::chrono::high_resolution_clock::now();
 
                 Application app(static_cast<ui>(tau), "BMao", app_max_iter);
+                app.set_all_edge_labels_same(all_edge_labels_same);
                 app.init(db[anchor_id], query_graph);
                 app.set_disable_lsa_pruning(disable_lsa_pruning);
                 int ged_res = app.App();
@@ -754,8 +822,8 @@ std::vector<int> GismaSearchEngine::Base_All_EPT_search(std::shared_ptr<Node> qu
                 if (ged_res <= tau) {
                     result_set.insert(anchor_id);
 
-                    // IMPORTANT: if anchor itself satisfies condition (GED=0), also add completed_db_graph_ids from EPT root node
-                    // These are graphs identical to anchor (GED=0)
+                    // IMPORTANT: 如果anchor自己满足条件（GED=0），也要把EPT root节点中的completed_db_graph_ids加入
+                    // 这些是与anchor完全相同（GED=0）的图
                     if (ged_res == 0) {
                         EditPathTree *ept = ept_manager->get_ept_no_lock(anchor_id);
                         if (ept && !ept->tree_nodes.empty()) {
@@ -769,85 +837,29 @@ std::vector<int> GismaSearchEngine::Base_All_EPT_search(std::shared_ptr<Node> qu
             }
         }
 
-        // 1. Search EPT (using SS_search)
+        // 1. 搜索EPT (使用SS_search)
         EditPathTree *ept = ept_manager->get_ept_no_lock(anchor_id);
         if (ept && !ept->tree_nodes.empty()) {
-            // Pass netdag_lb=0, netdag_ged=-1 to indicate no NetDag filtering
+            // 传递netdag_lb=0, netdag_ged=-1表示不使用NetDag过滤
             auto ss_results = SS_search(query_node, anchor_id, 0.0, -1, tau, stats);
             for (int gid : ss_results) {
                 result_set.insert(gid);
             }
         }
 
-        // 2. Search cluster (extra_cluster_search)
+        // 2. 搜索cluster（extra_cluster_search）
         auto cluster_results = extra_cluster_search(query_node, anchor_id, tau, stats);
         for (int gid : cluster_results) {
             result_set.insert(gid);
         }
     }
 
-    // Convert to vector and return
+    // 转换为vector返回
     exact_results_within_tau.assign(result_set.begin(), result_set.end());
 
     return exact_results_within_tau;
 }
 
-std::vector<int> GismaSearchEngine::BMao_export_candidates(std::shared_ptr<Node> query_node, double tau, const std::string& output_file)
-{
-    Graph *query_graph = query_node->graph.get();
-    int query_id = query_node->node_id;
-    
-    std::vector<int> candidates;
-    
-    auto filter_start = std::chrono::high_resolution_clock::now();
-    
-    // If output file is specified, open file stream
-    std::ofstream outfile;
-    bool write_to_file = !output_file.empty();
-    if (write_to_file) {
-        outfile.open(output_file, std::ios::app);  // append mode
-        if (!outfile.is_open()) {
-            printf("[ERROR] Cannot open output file: %s\n", output_file.c_str());
-            return candidates;
-        }
-    }
-    
-    printf("[INFO] Query %d: Running BMao filtering for candidate export...\n", query_id);
-    
-    for (size_t node_id = 0; node_id < db.size(); ++node_id)
-    {
-        Graph *db_graph = db[node_id];
-        
-        // BMao lower bound filtering (same logic as in BMao_scan_search)
-        ui lb = query_graph->ged_lower_bound_filter(
-            db_graph, static_cast<ui>(tau), vM.size(), eM.size(), max_n);
-        
-        // If lower bound passes filter, add to candidate set
-        if (lb <= tau) {
-            candidates.push_back(static_cast<int>(node_id));
-        }
-    }
-    
-    auto filter_end = std::chrono::high_resolution_clock::now();
-    double filter_time = std::chrono::duration<double, std::milli>(filter_end - filter_start).count();
-    
-    printf("[TIMING] Query %d BMao_Filtering: %.2fms, Candidates: %d/%d (%.2f%% reduction)\n", 
-           query_id, filter_time, (int)candidates.size(), (int)db.size(), 
-           (1.0 - (double)candidates.size() / db.size()) * 100.0);
-    
-    // Write to file
-    if (write_to_file) {
-        outfile << query_id << "," << tau << ",";
-        for (size_t i = 0; i < candidates.size(); ++i) {
-            outfile << candidates[i];
-            if (i < candidates.size() - 1) outfile << ";";
-        }
-        outfile << "\n";
-        outfile.close();
-    }
-    
-    return candidates;
-}
 
 std::vector<int> GismaSearchEngine::answer_search(std::shared_ptr<Node> query_node, double tau, SearchStats &stats)
 {
@@ -859,7 +871,7 @@ std::vector<int> GismaSearchEngine::answer_search(std::shared_ptr<Node> query_no
         {
             const std::map<double, std::vector<int>> &distances = it->second;
 
-            // 1) Find all nodes in ground truth with actual ged <= tau
+            // 1) 找到 ground truth 中实际 ged <= tau 的所有节点
             for (const auto &distance_pair : distances)
             {
                 double ged = distance_pair.first;
@@ -870,18 +882,18 @@ std::vector<int> GismaSearchEngine::answer_search(std::shared_ptr<Node> query_no
                 }
             }
         }
-    }  // lock released here, A* computation no longer holds lock
+    }  // lock 在此释放，A* 计算不再持锁
     Graph *query_graph = query_node->graph.get();
     int query_id = query_node->node_id;
 
-    // Results
+    // 结果
     std::vector<int> exact_results_within_tau;
 
     for (auto node_id : ids_within_tau)
     {
         Graph *db_graph = db[node_id];
 
-        // NDC statistics: count each visited node once (deduplicated)
+        // NDC统计：每个被访问的节点计数一次（去重）
         stats.EPT_ndc_count++;
 
         // ========== A* ==========
@@ -889,6 +901,7 @@ std::vector<int> GismaSearchEngine::answer_search(std::shared_ptr<Node> query_no
 
         stats.EPT_astar_count++;
         Application app(static_cast<ui>(tau), "BMao", app_max_iter);
+        app.set_all_edge_labels_same(all_edge_labels_same);
         app.init(db_graph, query_graph);
         app.set_disable_lsa_pruning(disable_lsa_pruning);
         int ged_res = app.App();
@@ -907,11 +920,11 @@ std::vector<int> GismaSearchEngine::answer_search(std::shared_ptr<Node> query_no
 
 std::vector<std::tuple<int, double, int>> GismaSearchEngine::GS_search(std::shared_ptr<Node> query_node, double tau, SearchStats &stats)
 {
-    // ========== 1) Basic checks and initialization ==========
+    // ========== 1) 基本检查及初始化 ==========
 
-    // candidate_anchor_ids has been replaced by candidate_anchors_with_lb
+    // candidate_anchor_ids 已被 candidate_anchors_with_lb 替代
 
-    // Get root node (Anchor)
+    // 获取根节点 (Anchor)
     auto current_node = std::dynamic_pointer_cast<Anchor>(net_dag->root);
     if (!current_node)
     {
@@ -919,20 +932,20 @@ std::vector<std::tuple<int, double, int>> GismaSearchEngine::GS_search(std::shar
         return {};
     }
 
-    // Set initial phase
+    // 设定初始相位
     double current_phase = static_cast<double>(current_node->children.rbegin()->first);
 
-    // Store candidate anchors and their NetDag results, avoiding redundant computation during DFS
+    // 存储候选anchor及其对应的NetDag计算结果，避免DFS中重复计算
     std::vector<std::tuple<int, double, int>> candidate_anchors_with_results;  // (anchor_id, lb, ged_result)
-    // Note: when USE_ND_FILTERS=0, App_test is used and ged_result is exact GED; when =1, ged_result=-1 means no exact result
+    // 注意：当USE_ND_FILTERS=0时，使用App_test，ged_result是精确GED；当=1时，ged_result=-1表示无精确结果
 
-    // Define variables for tracking the best node (outside loop for later use)
+    // 定义用于记录最优节点的变量（在循环外部，便于后续使用）
     double min_dist = std::numeric_limits<double>::infinity();
     int min_child_node_id = -1;
 
-    // ========== Special case: root node directly connects to anchor layer ==========
-    // When current_phase <= alpha, root node's children are the anchor layer,
-    // no hierarchical navigation needed, directly collect candidates from root children
+    // ========== 特殊情况：根节点直接连接到anchor层 ==========
+    // 当 current_phase <= alpha 时，根节点的子节点就是anchor层，
+    // 无需层级导航，直接对根节点children做候选收集
     if (current_phase <= net_dag->alpha)
     {
         auto it = current_node->children.find(static_cast<int>(current_phase));
@@ -973,12 +986,12 @@ std::vector<std::tuple<int, double, int>> GismaSearchEngine::GS_search(std::shar
         return candidate_anchors_with_results;
     }
 
-    // ========== 2) Loop: phase halves repeatedly until <= alpha ==========
+    // ========== 2) 循环：phase 不断折半，直到 <= alpha ==========
 
     while (current_phase > net_dag->alpha)
     {
         double child_phase = current_phase / 2.0;
-        // Reset per-round minimum distance and node ID
+        // 重置每一轮的最小距离和节点ID
         min_dist = std::numeric_limits<double>::infinity();
         min_child_node_id = -1;
 
@@ -988,11 +1001,11 @@ std::vector<std::tuple<int, double, int>> GismaSearchEngine::GS_search(std::shar
         {
             std::shared_lock<std::shared_mutex> lock(net_dag->children_mutex);
 
-            // Find the corresponding child_phase
+            // 找到对应 child_phase
             auto it = current_node->children.find(static_cast<int>(child_phase));
             if (it == current_node->children.end())
             {
-                // If no corresponding child_phase found, exit
+                // 若无对应 child_phase，退出
                 return {};
             }
 
@@ -1002,24 +1015,24 @@ std::vector<std::tuple<int, double, int>> GismaSearchEngine::GS_search(std::shar
 
         const auto &children_at_phase = children_at_phase_copy;
 
-        // ========== 3) Iterate children_at_phase, LB check ==========
+        // ========== 3) 遍历 children_at_phase，LB检查 ==========
 
         for (const auto &[child_node_id, child_node_dist] : children_at_phase)
         {
-            // First do a simple child_node_dist check
+            // 先简单检查 child_node_dist
             // TEMPORARILY DISABLED: This pre-filtering may cause recall loss
             // if (child_node_dist <= 1.5 * current_phase + 2 * tau + 3 * error_tolerance_search)
             if (true)  // Check all children without pre-filtering
             {
-                // Get childNode
+                // 获取 childNode
                 auto childNode = net_dag->nodes[child_node_id];
                 if (!childNode || !childNode->graph)
                 {
-                    // Skip invalid node
+                    // 略过无效节点
                     continue;
                 }
 
-                // Get the graph for LB check
+                // 拿到要做 LB 检查的图
                 Graph *db_graph = childNode->graph.get();
                 Graph *query_graph = (query_node && query_node->graph)
                                          ? query_node->graph.get()
@@ -1029,24 +1042,24 @@ std::vector<std::tuple<int, double, int>> GismaSearchEngine::GS_search(std::shar
                     continue;
                 }
 
-                // Declare outside for later use
+                // 声明在外部以便后续使用
                 ui netdag_lb, netdag_ged;
                 bool is_last_layer = (child_phase <= net_dag->alpha);
 
-                // NDC statistics: count each visited node once (deduplicated)
+                // NDC统计：每个被访问的节点计数一次（去重）
                 stats.ND_ndc_count++;
 
-                // ========== Three NetDag modes ==========
+                // ========== 三种NetDag模式 ==========
                 if (nd_mode == "filters") {
-                    // ========== Mode 1: ND_only_filters (use traditional LB filters only, no AStar) ==========
+                    // ========== Mode 1: ND_only_filters (只用传统LB过滤器，不用AStar) ==========
                     auto t0 = std::chrono::high_resolution_clock::now();
 
-                    // Use unified ged_lower_bound_filter
+                    // 使用统一的ged_lower_bound_filter
                     stats.ND_lb_count++;
                     ui threshold = static_cast<ui>(child_phase + tau);
                     netdag_lb = query_graph->ged_lower_bound_filter(
                         db_graph, threshold, vM.size(), eM.size(), max_n);
-                    netdag_ged = INF; // filters mode has no exact GED, set to INF
+                    netdag_ged = INF; // filters模式没有精确GED，设为INF
 
                     auto t1 = std::chrono::high_resolution_clock::now();
                     stats.ND_lb_time += std::chrono::duration<double>(t1 - t0).count();
@@ -1057,15 +1070,16 @@ std::vector<std::tuple<int, double, int>> GismaSearchEngine::GS_search(std::shar
                     }
                 }
                 else if (nd_mode == "astar") {
-                    // ========== Mode 2: ND_only_AStar (skip traditional filters, use AStar directly) ==========
+                    // ========== Mode 2: ND_only_AStar (跳过传统过滤器，直接用AStar) ==========
                     auto t0 = std::chrono::high_resolution_clock::now();
 
-                    stats.ND_astar_count++; // App_test is full A* search, counted in astar_count
+                    stats.ND_astar_count++; // App_test是完整A*搜索，计入astar_count
                     Application app(static_cast<ui>(tau), "BMao", app_max_iter);
+                    app.set_all_edge_labels_same(all_edge_labels_same);
                     app.init(db_graph, query_graph);
                     netdag_ged = app.App_test(nullptr, nullptr);
                     netdag_lb = app.get_overall_lb();
-                    stats.ND_app_test_count++; // Count App_test invocations
+                    stats.ND_app_test_count++; // 统计App_test调用次数
 
                     auto t1 = std::chrono::high_resolution_clock::now();
                     stats.ND_astar_time += std::chrono::duration<double>(t1 - t0).count();
@@ -1076,13 +1090,13 @@ std::vector<std::tuple<int, double, int>> GismaSearchEngine::GS_search(std::shar
                     }
                 }
                 else if (nd_mode == "filters_astar") {
-                    // ========== Mode 3: ND_filters_AStar (use filters first, only use AStar at last layer when lb<=tau) ==========
-                    // Non-last layer: filters only
-                    // Last layer: use filters first, if lb<=tau, then call AStar for exact GED
+                    // ========== Mode 3: ND_filters_AStar (先用filters，最后一层且lb<=tau时才用AStar) ==========
+                    // 非最后一层：只用filters
+                    // 最后一层：先用filters，如果lb<=tau，再调用AStar获取精确GED
 
                     auto t0 = std::chrono::high_resolution_clock::now();
 
-                    // Use unified ged_lower_bound_filter
+                    // 使用统一的ged_lower_bound_filter
                     stats.ND_lb_count++;
                     ui threshold = static_cast<ui>(child_phase + tau);
                     netdag_lb = query_graph->ged_lower_bound_filter(
@@ -1096,16 +1110,17 @@ std::vector<std::tuple<int, double, int>> GismaSearchEngine::GS_search(std::shar
                         continue;
                     }
 
-                    // Key decision: only call AStar at last layer when lb<=tau
+                    // 关键判断：只有在最后一层且lb<=tau时才调用AStar
                     if (is_last_layer && netdag_lb <= tau)
                     {
                         auto t2 = std::chrono::high_resolution_clock::now();
 
                         stats.ND_astar_count++;
                         Application app(static_cast<ui>(tau), "BMao", app_max_iter);
+                        app.set_all_edge_labels_same(all_edge_labels_same);
                         app.init(db_graph, query_graph);
                         netdag_ged = app.App_test(nullptr, nullptr);
-                        netdag_lb = app.get_overall_lb();  // Update with AStar's lb
+                        netdag_lb = app.get_overall_lb();  // 使用AStar的lb更新
                         stats.ND_app_test_count++;
 
                         auto t3 = std::chrono::high_resolution_clock::now();
@@ -1113,17 +1128,17 @@ std::vector<std::tuple<int, double, int>> GismaSearchEngine::GS_search(std::shar
                     }
                     else
                     {
-                        // Not last layer, or last layer but lb>tau, do not call AStar
+                        // 非最后一层，或者最后一层但lb>tau，不调用AStar
                         netdag_ged = INF;
                     }
                 }
                 else {
-                    // Unknown mode, default to filters mode
+                    // 未知模式，默认使用filters模式
                     std::cerr << "[GS_search] Warning: Unknown nd_mode '" << nd_mode << "', using 'filters' mode\n";
 
                     auto t0 = std::chrono::high_resolution_clock::now();
 
-                    // Use unified ged_lower_bound_filter
+                    // 使用统一的ged_lower_bound_filter
                     stats.ND_lb_count++;
                     ui threshold = static_cast<ui>(child_phase + tau);
                     netdag_lb = query_graph->ged_lower_bound_filter(
@@ -1136,20 +1151,20 @@ std::vector<std::tuple<int, double, int>> GismaSearchEngine::GS_search(std::shar
                     if (netdag_lb > (child_phase + tau) * nd_filter_ratio) continue;
                 }
 
-                // ========== 4) Select node based on strategy ==========
-                // If last layer, collect all qualifying anchors while tracking best node for continued traversal
+                // ========== 4) 根据策略选择节点 ==========
+                // 如果是最后一层，收集所有符合条件的anchor，同时记录最优节点以继续遍历
                 if (child_phase <= net_dag->alpha)
                 {
-                    // Last layer: collect all anchors satisfying lower bound condition
-                    // Use error_tolerance_search parameter to expand candidate range
+                    // 最后一层：收集所有符合下界条件的anchor
+                    // 使用 error_tolerance_search 参数扩展候选范围
                     double range_threshold = net_dag->alpha + tau + error_tolerance_search;
                     if (netdag_lb <= range_threshold)
                     {
-                        // Store anchor_id, lower bound and exact GED result (currently using App_test, so exact result available)
+                        // 存储anchor_id、下界和精确GED结果（当前使用App_test，所以有精确结果）
                         candidate_anchors_with_results.emplace_back(child_node_id, netdag_lb, netdag_ged);
                     }
 
-                    // Also track best node for continuing while loop
+                    // 同时记录最优节点以继续while循环
                     if (netdag_lb < min_dist)
                     {
                         min_dist = netdag_lb;
@@ -1158,20 +1173,20 @@ std::vector<std::tuple<int, double, int>> GismaSearchEngine::GS_search(std::shar
                 }
                 else
                 {
-                    // Non-last layer: choose strategy based on fast_down flag
+                    // 非最后一层：根据fast_down标志选择策略
                     if (fast_down)
                     {
-                        // Fast-down strategy: immediately select first qualifying node
+                        // 快速下降策略：找到第一个满足条件的就立即选择
                         if (netdag_lb <= (child_phase + tau) * nd_filter_ratio)
                         {
                             min_dist = netdag_lb;
                             min_child_node_id = child_node_id;
-                            break;  // Immediately break out of for loop, select this node to descend
+                            break;  // 立即跳出for循环，选择此节点往下走
                         }
                     }
                     else
                     {
-                        // Greedy strategy: select node with minimum distance
+                        // 贪心策略：选择最小距离的节点
                         if (netdag_lb < min_dist)
                         {
                             min_dist = netdag_lb;
@@ -1183,13 +1198,13 @@ std::vector<std::tuple<int, double, int>> GismaSearchEngine::GS_search(std::shar
             } // end if (child_node_dist <= ...)
         }
 
-        // If no suitable child found, exit
+        // 若没找到合适子节点，则退出
         if (min_child_node_id == -1)
         {
             return {};
         }
 
-        // Move to next childNode
+        // 转到下一个 childNode
         current_node = std::dynamic_pointer_cast<Anchor>(net_dag->nodes[min_child_node_id]);
         if (!current_node)
         {
@@ -1198,8 +1213,14 @@ std::vector<std::tuple<int, double, int>> GismaSearchEngine::GS_search(std::shar
         current_phase = child_phase;
     }
 
-    // ========== 5) If while exits, then current_phase <= alpha ==========
+    // ========== 5) 若退出 while 说明 current_phase <= alpha ==========
 
+    // [diagnostic] env-gated dump of the giant-step candidate anchors (no production overhead unless set)
+    if (std::getenv("GISMA_GS_DEBUG")) {
+        std::cerr << "[GS-DBG] candidate anchors (" << candidate_anchors_with_results.size() << "): ";
+        for (const auto& t : candidate_anchors_with_results) std::cerr << std::get<0>(t) << " ";
+        std::cerr << "\n";
+    }
 
     return candidate_anchors_with_results;
 }
@@ -1213,12 +1234,13 @@ std::vector<int> GismaSearchEngine::SS_search(std::shared_ptr<Node> query_node, 
 
     EditPathTree *ept = ept_manager->get_ept_no_lock(anchor_id);
 
-    // Count total nodes of used EPTs
+    // 统计使用的EPT的总节点数
     if (ept) {
         stats.EPT_total_nodes_in_used_epts += ept->tree_nodes.size();
+        if (e7_stats) stats.e7_ept_trees++;  // E7: count this EPT tree as entered
     }
 
-    // Directly call traverse_ept_and_search(...), passing NetDag results to avoid redundant DFS root computation
+    // 直接调用 traverse_ept_and_search(...)，传递NetDag计算结果，避免DFS根节点重复计算
     traverse_ept_and_search(*ept, query_node, exact_results_within_tau, tau, stats, netdag_lb, netdag_ged, dfs_mode_override);
     return exact_results_within_tau;
 }
@@ -1226,817 +1248,6 @@ std::vector<int> GismaSearchEngine::SS_search(std::shared_ptr<Node> query_node, 
 
 
 
-void draw_all_needed_db_graphs(
-    const EditPathTree &ept,
-    const std::shared_ptr<Node> &query_node,  // for getting query->graph
-    const std::string &output_dir
-)
-{
-    namespace fs = std::filesystem;
-    fs::create_directories(output_dir);
-
-    if (ept.tree_nodes.empty()) {
-        std::cerr << "[draw_all_needed_db_graphs] EPT empty => no nodes.\n";
-        return;
-    }
-
-    // 1) draw root's db_graph
-    size_t root_idx = ept.root_index;
-    const TreeNode &root_node = ept.tree_nodes[root_idx];
-    if (root_node.db_graph) {
-        root_node.db_graph->draw_single_graph(
-            *root_node.db_graph, 
-            output_dir, 
-            "root"
-        );
-    } else {
-        std::cerr << "[draw_all_needed_db_graphs] root has no db_graph\n";
-    }
-
-    // 2) draw all level=1 nodes => db_graph
-    for (size_t i = 0; i < ept.tree_nodes.size(); i++) {
-        const TreeNode &tn = ept.tree_nodes[i];
-        if (tn.level == 1 && tn.db_graph) {
-            std::string prefix = "lvl1_node_" + std::to_string(i);
-            tn.db_graph->draw_single_graph(
-                *tn.db_graph,
-                output_dir,
-                prefix
-            );
-        }
-    }
-
-    // 3) draw query_node's db_graph
-    if (query_node && query_node->graph) {
-        query_node->graph->draw_single_graph(
-            *query_node->graph,
-            output_dir,
-            "query_" + std::to_string(query_node->node_id)
-        );
-    } else {
-        std::cerr << "[draw_all_needed_db_graphs] query_node->graph is null.\n";
-    }
-}
-
-void draw_merged_all_in_one_image(
-    const EditPathTree & ept,
-    const std::vector<bool> & node_has_answer,
-    const std::shared_ptr<Node> & query_node,
-    double tau,
-    const std::string & out_dir
-)
-{
-    namespace fs = std::filesystem;
-    fs::create_directories(out_dir);
-
-    // construct filename: merged_tau_{tau}.dot / merged_tau_{tau}.png
-    // for decimal output use std::to_string(tau). can also add more format control.
-    std::string dot_file = out_dir + "/merged_tau_" + std::to_string(tau) + ".dot";
-    std::string png_file = out_dir + "/merged_tau_" + std::to_string(tau) + ".png";
-
-    std::ofstream ofs(dot_file);
-    if (!ofs.is_open()) {
-        std::cerr << "[draw_merged_all_in_one_image] cannot open " << dot_file << "\n";
-        return;
-    }
-
-    // write main graph header
-    ofs << "graph G {\n";
-    ofs << "  rankdir=LR;\n"; 
-    ofs << "  node [shape=circle];\n";
-
-    // use subgraph cluster to separate root, query, level=1
-    // and write (with answer) or (no answer) in label
-
-    // ========== 1) Root ==========
-    size_t root_idx = ept.root_index;
-    if (root_idx < ept.tree_nodes.size()) {
-        const TreeNode &root_node = ept.tree_nodes[root_idx];
-        if (root_node.db_graph) {
-            bool ans = node_has_answer[root_idx];
-            // cluster_0
-            ofs << "  subgraph cluster_root {\n";
-            ofs << "    label=\"Root(" << root_idx << ") " 
-                << (ans ? "(with answer)" : "(no answer)") 
-                << "\";\n";
-            ofs << "    style=rounded;\n";
-
-            // output vertices/edges in root_node.db_graph => use special prefix to avoid conflicts
-            // e.g. "root0_u"
-            Graph *g = root_node.db_graph;
-            for (ui u = 0; u < g->n; u++) {
-                ui lbl = (u < g->vlabels_vec.size()) ? g->vlabels_vec[u] : 0;
-                ofs << "    root0_" << u
-                    << " [label=\"" << lbl << "\"];\n";
-            }
-            // edges (u<v)
-            for (ui u = 0; u < g->adjacency_list.size(); u++) {
-                for (auto &p : g->adjacency_list[u]) {
-                    ui v = p.first;
-                    if (v > u) {
-                        ofs << "    root0_" << u 
-                            << " -- root0_" << v << ";\n";
-                    }
-                }
-            }
-
-            ofs << "  }\n\n"; // subgraph end
-        }
-    }
-
-    // ========== 2) Query ==========
-    // if query_node exists => cluster_query
-    if (query_node && query_node->graph) {
-        bool ans_query = false;
-        // query_node->node_id may not be in ept.tree_nodes? 
-        // or we can see if node_id < ept.tree_nodes.size() and node_has_answer[node_id]
-        if ((size_t)query_node->node_id < ept.tree_nodes.size()) {
-            ans_query = node_has_answer[query_node->node_id];
-        }
-
-        ofs << "  subgraph cluster_query {\n";
-        ofs << "    label=\"Query(" << query_node->node_id << ") "
-            << (ans_query ? "(with answer)" : "(no answer)")
-            << "\";\n";
-        ofs << "    style=rounded;\n";
-
-        Graph *gq = query_node->graph.get();
-        for (ui u = 0; u < gq->n; u++) {
-            ui lbl = (u < gq->vlabels_vec.size()) ? gq->vlabels_vec[u] : 0;
-            ofs << "    query_" << u
-                << " [label=\"" << lbl << "\"];\n";
-        }
-        for (ui u = 0; u < gq->adjacency_list.size(); u++) {
-            for (auto &p : gq->adjacency_list[u]) {
-                ui v = p.first;
-                if (v > u) {
-                    ofs << "    query_" << u 
-                        << " -- query_" << v << ";\n";
-                }
-            }
-        }
-
-        ofs << "  }\n\n"; 
-    }
-
-    // ========== 3) level=1 ==========
-    // assign cluster_l1_{i} sequentially, i represents ept node index
-    // label="L1 i (with answer/no)"
-    for (size_t i = 0; i < ept.tree_nodes.size(); i++) {
-        const TreeNode &tn = ept.tree_nodes[i];
-        if (tn.level == 1 && tn.db_graph) {
-            bool ans = node_has_answer[i];
-
-            ofs << "  subgraph cluster_l1_" << i << " {\n";
-            ofs << "    label=\"L1(" << i << ") " 
-                << (ans ? "(with answer)" : "(no answer)")
-                << "\";\n";
-            ofs << "    style=rounded;\n";
-
-            Graph *g = tn.db_graph;
-            for (ui u = 0; u < g->n; u++) {
-                ui lbl = (u < g->vlabels_vec.size()) ? g->vlabels_vec[u] : 0;
-                ofs << "    l1_" << i << "_" << u 
-                    << " [label=\"" << lbl << "\"];\n";
-            }
-            for (ui u = 0; u < g->adjacency_list.size(); u++) {
-                for (auto &p : g->adjacency_list[u]) {
-                    ui v = p.first;
-                    if (v > u) {
-                        ofs << "    l1_" << i << "_" << u
-                            << " -- l1_" << i << "_" << v 
-                            << ";\n";
-                    }
-                }
-            }
-
-            ofs << "  }\n\n"; 
-        }
-    }
-
-    // end of main graph
-    ofs << "}\n";
-    ofs.close();
-
-    // call dot => png
-    std::string cmd = "dot -Tpng " + dot_file + " -o " + png_file;
-    int ret = std::system(cmd.c_str());
-    if (ret == 0) {
-        std::cout << "[draw_merged_all_in_one_image] => " << png_file << " generated.\n";
-    } else {
-        std::cerr << "[WARN] dot command failed with code=" << ret << "\n";
-    }
-}
-
-void draw_merged_root_query_bfs1(
-    const EditPathTree & ept,
-    const std::vector<bool> & node_has_answer,
-    const std::shared_ptr<Node> & query_node,
-    double tau,
-    const std::string & out_dir
-)
-{
-    namespace fs = std::filesystem;
-    fs::create_directories(out_dir);
-
-    // 1) filename
-    int tau_int = static_cast<int>(tau);
-    std::string dot_file = out_dir + "/merged_tau_" + std::to_string(tau_int) + ".dot";
-    std::string png_file = out_dir + "/merged_tau_" + std::to_string(tau_int) + ".png";
-
-    std::ofstream ofs(dot_file);
-    if (!ofs.is_open()) {
-        std::cerr << "[draw_merged_root_query_bfs1] cannot open " << dot_file << "\n";
-        return;
-    }
-
-    // 2) write graph header
-    ofs << "graph G {\n";
-    ofs << "  rankdir=LR;\n"; 
-    ofs << "  node [shape=circle];\n";
-
-    // ========== A) root ==========
-    size_t root_idx = ept.root_index;
-    if (root_idx < ept.tree_nodes.size()) {
-        const TreeNode &root_node = ept.tree_nodes[root_idx];
-        if (root_node.db_graph) {
-            // root with/without answer
-            bool ansRoot = node_has_answer[root_idx];
-            std::string lbl_root = std::string(ansRoot ? "(with answer) " : "(no answer) ")
-                                   + "Root(" + std::to_string(root_idx) + ")";
-
-            ofs << "  subgraph cluster_root {\n";
-            ofs << "    label=\"" << lbl_root << "\";\n";
-            ofs << "    style=rounded;\n";
-
-            Graph *g = root_node.db_graph;
-            // node
-            for (ui u = 0; u < g->n; u++) {
-                ui lbl = (u < g->vlabels_vec.size()) ? g->vlabels_vec[u] : 0;
-                ofs << "    root_" << u 
-                    << " [label=\"" << lbl << "\"];\n";
-            }
-            // edges
-            for (ui u = 0; u < g->adjacency_list.size(); u++) {
-                for (auto &p : g->adjacency_list[u]) {
-                    ui v = p.first;
-                    if (v > u) {
-                        ofs << "    root_" << u << " -- root_" << v << ";\n";
-                    }
-                }
-            }
-            ofs << "  }\n\n";
-        }
-    }
-
-    // ========== B) query ==========
-    // do not write answer
-    if (query_node && query_node->graph) {
-        ofs << "  subgraph cluster_query {\n";
-        ofs << "    label=\"Query(" << query_node->node_id << ")\";\n";
-        ofs << "    style=rounded;\n";
-
-        Graph *gq = query_node->graph.get();
-        for (ui u = 0; u < gq->n; u++) {
-            ui lbl = (u < gq->vlabels_vec.size()) ? gq->vlabels_vec[u] : 0;
-            ofs << "    query_" << u 
-                << " [label=\"" << lbl << "\"];\n";
-        }
-        for (ui u = 0; u < gq->adjacency_list.size(); u++) {
-            for (auto &p : gq->adjacency_list[u]) {
-                ui v = p.first;
-                if (v > u) {
-                    ofs << "    query_" << u << " -- query_" << v << ";\n";
-                }
-            }
-        }
-
-        ofs << "  }\n\n";
-    }
-
-    // ========== C) BFS depth=1 ==========
-    // first compute BFS depth
-    std::vector<int> bfs_depth(ept.tree_nodes.size(), -1);
-    {
-        bfs_depth[root_idx] = 0;
-        std::queue<size_t>Q;
-        Q.push(root_idx);
-        while(!Q.empty()){
-            auto u = Q.front(); Q.pop();
-            int d = bfs_depth[u];
-            for (auto c : ept.tree_nodes[u].children_indices) {
-                if (bfs_depth[c] == -1) {
-                    bfs_depth[c] = d + 1;
-                    Q.push(c);
-                }
-            }
-        }
-    }
-
-    // split into with/no
-    std::vector<size_t> bfs1_with;
-    std::vector<size_t> bfs1_no;
-    for (size_t i = 0; i < ept.tree_nodes.size(); i++) {
-        if (bfs_depth[i] == 1) {
-            bool ans = node_has_answer[i];
-            if (ans) {
-                bfs1_with.push_back(i);
-            } else {
-                bfs1_no.push_back(i);
-            }
-        }
-    }
-
-    // (C.1) draw BFS=1 with answer first
-    for (auto i : bfs1_with) {
-        const TreeNode &tn = ept.tree_nodes[i];
-        std::string lbl_bfs1 = "(with answer) BFS(" + std::to_string(i) + ") depth=1";
-
-        ofs << "  subgraph cluster_bfs1_" << i << " {\n";
-        ofs << "    label=\"" << lbl_bfs1 << "\";\n";
-        ofs << "    style=rounded;\n";
-
-        if (tn.db_graph) {
-            Graph *g = tn.db_graph;
-            for (ui u = 0; u < g->n; u++){
-                ui lbl = (u < g->vlabels_vec.size())? g->vlabels_vec[u]:0;
-                ofs << "    bfs1_"<< i << "_" << u << " [label=\"" << lbl << "\"];\n";
-            }
-            for (ui u = 0; u < g->adjacency_list.size(); u++){
-                for (auto &p : g->adjacency_list[u]) {
-                    ui v = p.first;
-                    if (v > u) {
-                        ofs << "    bfs1_"<< i<<"_"<< u << " -- bfs1_"<< i<<"_"<< v << ";\n";
-                    }
-                }
-            }
-        }
-        ofs << "  }\n\n";
-    }
-
-    // (C.2) then draw BFS=1 no answer
-    for (auto i : bfs1_no) {
-        const TreeNode &tn = ept.tree_nodes[i];
-        std::string lbl_bfs1 = "(no answer) BFS(" + std::to_string(i) + ") depth=1";
-
-        ofs << "  subgraph cluster_bfs1_" << i << " {\n";
-        ofs << "    label=\"" << lbl_bfs1 << "\";\n";
-        ofs << "    style=rounded;\n";
-
-        if (tn.db_graph) {
-            Graph *g = tn.db_graph;
-            for (ui u = 0; u < g->n; u++){
-                ui lbl = (u < g->vlabels_vec.size())? g->vlabels_vec[u]:0;
-                ofs << "    bfs1_"<< i << "_" << u << " [label=\"" << lbl << "\"];\n";
-            }
-            for (ui u = 0; u < g->adjacency_list.size(); u++){
-                for (auto &p : g->adjacency_list[u]) {
-                    ui v = p.first;
-                    if (v > u) {
-                        ofs << "    bfs1_"<< i<<"_"<< u << " -- bfs1_"<< i<<"_"<< v << ";\n";
-                    }
-                }
-            }
-        }
-        ofs << "  }\n\n";
-    }
-
-    ofs << "}\n";
-    ofs.close();
-
-    // dot => png
-    std::string cmd = "dot -Tpng " + dot_file + " -o " + png_file;
-    int ret = std::system(cmd.c_str());
-    if (ret == 0) {
-        std::cout << "[draw_merged_root_query_bfs1] => " << png_file << " generated.\n";
-    } else {
-        std::cerr << "[WARN] dot command failed with code=" << ret << "\n";
-    }
-}
-
-void draw_all_exact_results_in_one_image_plus_query(
-    const std::vector<int> & exact_results,
-    const std::vector<std::shared_ptr<Node>> & db_node_list,
-    const std::shared_ptr<Node> & query_node,
-    double tau,
-    const std::string & out_dir
-)
-{
-    namespace fs = std::filesystem;
-    fs::create_directories(out_dir);
-
-    int tau_int = static_cast<int>(tau);
-    std::string dot_file = out_dir + "/allAnswers_and_query_tau_" + std::to_string(tau_int) + ".dot";
-    std::string png_file = out_dir + "/allAnswers_and_query_tau_" + std::to_string(tau_int) + ".png";
-
-    std::ofstream ofs(dot_file);
-    if(!ofs.is_open()){
-        std::cerr << "[draw_all_exact_results_in_one_image_plus_query] cannot open " << dot_file << "\n";
-        return;
-    }
-
-    // write dot header
-    ofs << "graph G {\n";
-    ofs << "  rankdir=LR;\n";
-    ofs << "  node [shape=circle];\n";
-
-    // ========== A) draw query subgraph first ==========
-    if (query_node && query_node->graph) {
-        // ensure query_graph is also initialized
-        query_node->graph->initialize_vectors_from_arrays();
-
-        ofs << "  subgraph cluster_query {\n";
-        ofs << "    label=\"Query(" << query_node->node_id << ")\";\n";
-        ofs << "    style=rounded;\n";
-
-        Graph *gq = query_node->graph.get();
-        for (ui u = 0; u < gq->n; u++) {
-            ui lbl = (u < gq->vlabels_vec.size()) ? gq->vlabels_vec[u] : 0;
-            ofs << "    query_" << u
-                << " [label=\"" << lbl << "\"];\n";
-        }
-        for (ui u = 0; u < gq->adjacency_list.size(); u++) {
-            for (auto &p : gq->adjacency_list[u]) {
-                ui v = p.first;
-                if (v > u) {
-                    ofs << "    query_" << u
-                        << " -- query_" << v
-                        << ";\n";
-                }
-            }
-        }
-
-        ofs << "  }\n\n";
-    }
-
-    // ========== B) exact_results => dedup => subgraph ==========
-
-    // 1) dedup
-    std::unordered_set<int> unique_ids;
-    for (auto id : exact_results) {
-        unique_ids.insert(id);
-    }
-
-    // 2) for each unique ID => subgraph cluster_ans_id
-    bool anyDraw = false;
-    for (auto id : unique_ids) {
-        // range check
-        if (id < 0 || id >= (int)db_node_list.size()) {
-            std::cerr << "[WARN] invalid ID=" << id << "\n";
-            continue;
-        }
-        auto nodePtr = db_node_list[id];
-        if(!nodePtr || !nodePtr->graph) {
-            std::cerr << "[WARN] db_node_list["<<id<<"] is null or no graph\n";
-            continue;
-        }
-
-        // before visualization, initialize
-        nodePtr->graph->initialize_vectors_from_arrays();
-
-        Graph *g = nodePtr->graph.get();
-        anyDraw = true;
-
-        // label => "DB ID=xxx"
-        ofs << "  subgraph cluster_ans_" << id << " {\n";
-        ofs << "    label=\"DB ID=" << id << "\";\n";
-        ofs << "    style=rounded;\n";
-
-        // node
-        for (ui u = 0; u < g->n; u++) {
-            ui lbl = (u < g->vlabels_vec.size()) ? g->vlabels_vec[u] : 0;
-            ofs << "    ans_" << id << "_" << u
-                << " [label=\"" << lbl << "\"];\n";
-        }
-
-        // edges
-        for (ui u = 0; u < g->adjacency_list.size(); u++){
-            for (auto &p : g->adjacency_list[u]) {
-                ui v = p.first;
-                if (v > u) {
-                    ofs << "    ans_" << id << "_" << u
-                        << " -- ans_" << id << "_" << v
-                        << ";\n";
-                }
-            }
-        }
-        ofs << "  }\n\n";
-    }
-
-    if (!anyDraw) {
-        ofs << "  // no exact results => none drawn\n";
-    }
-
-    ofs << "}\n";
-    ofs.close();
-
-    // call dot => png
-    std::string cmd = "dot -Tpng " + dot_file + " -o " + png_file;
-    int ret = std::system(cmd.c_str());
-    if (ret==0){
-        std::cout<<"[draw_all_exact_results_in_one_image_plus_query] => "<<png_file<<" generated.\n";
-    } else {
-        std::cerr<<"[WARN] dot command failed with code="<<ret<<"\n";
-    }
-}
-
-bool dfs_find_path_no_parent_index(
-    const EditPathTree & ept,
-    size_t cur,
-    size_t target,
-    std::vector<size_t> &temp,
-    std::vector<size_t> &result_path
-)
-{
-    // 1) first push current node into temp path
-    temp.push_back(cur);
-
-    // 2) if it is exactly target, path found => copy to result_path
-    if (cur == target) {
-        result_path = temp;  // copy
-        temp.pop_back();
-        return true;
-    }
-
-    // 3) otherwise iterate cur's child nodes
-    const TreeNode &tn = ept.tree_nodes[cur];
-    for (auto child : tn.children_indices) {
-        // DFS
-        if (dfs_find_path_no_parent_index(ept, child, target, temp, result_path)) {
-            // found => return true
-            temp.pop_back(); 
-            return true;
-        }
-    }
-
-    // 4) if not found => backtrack
-    temp.pop_back();
-    return false;
-}
-
-void draw_path_to_answer_in_one_image(
-    const EditPathTree & ept,
-    size_t answer_idx,
-    const std::shared_ptr<Node> & query_node,
-    double tau,
-    const std::string & out_dir
-)
-{
-    namespace fs = std::filesystem;
-    fs::create_directories(out_dir);
-
-    int tau_int = static_cast<int>(tau);
-    // filename
-    std::string dot_file = out_dir + "/path_to_answer_noparent_" 
-                           + std::to_string(answer_idx) + "_tau_" 
-                           + std::to_string(tau_int) + ".dot";
-    std::string png_file = out_dir + "/path_to_answer_noparent_" 
-                           + std::to_string(answer_idx) + "_tau_" 
-                           + std::to_string(tau_int) + ".png";
-
-    std::ofstream ofs(dot_file);
-    if (!ofs.is_open()) {
-        std::cerr << "[draw_path_to_answer_in_one_image_no_parent_plus_query] cannot open " 
-                  << dot_file << "\n";
-        return;
-    }
-
-    // 1) find path to root->answer_idx
-    std::vector<size_t> path_nodes;
-    {
-        std::vector<size_t> temp;
-        bool ok = dfs_find_path_no_parent_index(
-            ept,
-            ept.root_index,  // from root
-            answer_idx,      
-            temp,
-            path_nodes       // out
-        );
-        if (!ok) {
-            std::cerr 
-                << "[draw_path_to_answer_in_one_image_no_parent_plus_query] cannot find path from root to answer_idx=" 
-                << answer_idx << "\n";
-            return;
-        }
-    }
-
-    ofs << "graph G {\n";
-    ofs << "  rankdir=LR;\n";
-    ofs << "  node [shape=circle];\n";
-
-    // ============ A) draw root->answer_idx path first ============
-    for (size_t i = 0; i < path_nodes.size(); i++) {
-        size_t node_idx = path_nodes[i];
-        const TreeNode &tn = ept.tree_nodes[node_idx];
-
-        // show level / root / answer
-        std::string label_str = "PathStep #" + std::to_string(i) +
-                                " (EPT node=" + std::to_string(node_idx) +
-                                ", level=" + std::to_string(tn.level) + ")";
-        if (node_idx == ept.root_index) {
-            label_str += " [root]";
-        }
-        if (node_idx == answer_idx && node_idx != ept.root_index) {
-            label_str += " [answer]";
-        }
-
-        ofs << "  subgraph cluster_path_" << i << " {\n";
-        ofs << "    label=\"" << label_str << "\";\n";
-        ofs << "    style=rounded;\n";
-
-        if (tn.db_graph) {
-            tn.db_graph->initialize_vectors_from_arrays();
-            Graph *g = tn.db_graph;
-
-            // output vertices
-            for (ui u = 0; u < g->n; u++) {
-                ui lbl = (u < g->vlabels_vec.size()) ? g->vlabels_vec[u] : 0;
-                ofs << "    step" << i << "_" << u 
-                    << " [label=\"" << lbl << "\"];\n";
-            }
-
-            // output edges
-            for (ui u = 0; u < g->adjacency_list.size(); u++){
-                for (auto &p : g->adjacency_list[u]) {
-                    ui v = p.first;
-                    if (v > u) {
-                        ofs << "    step" << i << "_" << u
-                            << " -- step" << i << "_" << v
-                            << ";\n";
-                    }
-                }
-            }
-        } else {
-            ofs << "    // node_idx="<< node_idx <<" has no db_graph\n";
-        }
-
-        ofs << "  }\n\n";
-    }
-
-    // ============ B) then draw query subgraph ============
-    if (query_node && query_node->graph) {
-        ofs << "  subgraph cluster_query {\n";
-        ofs << "    label=\"Query(" << query_node->node_id << ")\";\n";
-        ofs << "    style=rounded;\n";
-
-        query_node->graph->initialize_vectors_from_arrays();
-        Graph *gq = query_node->graph.get();
-        // node
-        for (ui u = 0; u < gq->n; u++) {
-            ui lbl = (u < gq->vlabels_vec.size()) ? gq->vlabels_vec[u] : 0;
-            ofs << "    query_" << u 
-                << " [label=\"" << lbl << "\"];\n";
-        }
-        // edges
-        for (ui u = 0; u < gq->adjacency_list.size(); u++){
-            for (auto &p : gq->adjacency_list[u]) {
-                ui v = p.first;
-                if (v > u) {
-                    ofs << "    query_" << u
-                        << " -- query_" << v
-                        << ";\n";
-                }
-            }
-        }
-
-        ofs << "  }\n\n";
-    }
-
-    ofs << "}\n";
-    ofs.close();
-
-    // dot => png
-    std::string cmd = "dot -Tpng " + dot_file + " -o " + png_file;
-    int ret = std::system(cmd.c_str());
-    if (ret == 0) {
-        std::cout << "[draw_path_to_answer_in_one_image_no_parent_plus_query] => "
-                  << png_file << " generated.\n";
-    } else {
-        std::cerr << "[WARN] dot command failed with code=" << ret << "\n";
-    }
-}
-
-
-/**
- * @brief Print statistics grouped by node.level in EPT
- */
-void GismaSearchEngine::print_statistics_by_ept_level(
-    const EditPathTree &ept,
-    const std::vector<bool> &node_has_answer
-)
-{
-    // Collect each level -> nodes at that level
-    std::map<int, std::vector<size_t>> nodes_per_level;
-    for (size_t i = 0; i < ept.tree_nodes.size(); i++) {
-        int lvl = ept.tree_nodes[i].level; // EPT's own level
-        nodes_per_level[lvl].push_back(i);
-    }
-
-    std::cout << "\n===== [Per-level EPT Statistics (using node.level)] =====\n";
-    for (auto &pair : nodes_per_level) {
-        int lvl = pair.first;
-        const auto &node_indices = pair.second;
-        size_t total_cnt = node_indices.size();
-
-        // split into “with answer” vs “no answer”
-        size_t has_answer_count = 0;
-        for (auto idx : node_indices) {
-            if (node_has_answer[idx]) {
-                has_answer_count++;
-            }
-        }
-        size_t no_answer_count = total_cnt - has_answer_count;
-
-        std::cout << "----- [Level = " << lvl << "] -----\n";
-        std::cout << "Total nodes   : " << total_cnt << "\n";
-        std::cout << "  => with answer   : " << has_answer_count << " nodes\n";
-        std::cout << "  => without answer: " << no_answer_count << " nodes\n";
-    }
-    std::cout << "=========================================================\n\n";
-}
-
-
-/**
- * @brief  Perform actual BFS to compute each node's depth relative to root_index
- *         stored in bfs_depth[node_index]
- */
-void GismaSearchEngine::compute_bfs_depth(
-    const EditPathTree &ept,
-    std::vector<int> &bfs_depth
-)
-{
-    if (ept.tree_nodes.empty()) return;
-    std::fill(bfs_depth.begin(), bfs_depth.end(), -1);
-
-    // BFS depth of root_index = 0
-    size_t root_idx = ept.root_index;
-    bfs_depth[root_idx] = 0;
-
-    // BFS using queue
-    std::queue<size_t> Q;
-    Q.push(root_idx);
-
-    while (!Q.empty()) {
-        auto u = Q.front();
-        Q.pop();
-        int parent_depth = bfs_depth[u];
-        // iterate its child nodes
-        for (auto child_idx : ept.tree_nodes[u].children_indices) {
-            // if depth not yet marked, set to parent_depth + 1
-            if (bfs_depth[child_idx] == -1) {
-                bfs_depth[child_idx] = parent_depth + 1;
-                Q.push(child_idx);
-            }
-        }
-    }
-}
-
-
-/**
- * @brief  Print statistics grouped by BFS depth using bfs_depth[] from previous step
- */
-void GismaSearchEngine::print_statistics_by_bfs_depth(
-    const EditPathTree &ept,
-    const std::vector<bool> &node_has_answer,
-    const std::vector<int> &bfs_depth
-)
-{
-    // Collect BFS depth -> list of node indices
-    std::map<int, std::vector<size_t>> level_map;
-    for (size_t i = 0; i < ept.tree_nodes.size(); i++) {
-        int d = bfs_depth[i];
-        if (d >= 0) { // already visited by BFS
-            level_map[d].push_back(i);
-        }
-        else {
-            // If EPT has disconnected branches, or nodes unreachable by BFS
-            // d will remain -1
-            // not handled here; can be classified as "disconnected" if needed 
-        }
-    }
-
-    std::cout << "\n===== [Per-level EPT Statistics (using BFS depth)] =====\n";
-    for (auto &pair : level_map) {
-        int lvl = pair.first;
-        const auto &node_indices = pair.second;
-        size_t total_cnt = node_indices.size();
-
-        // split into “with answer” vs “no answer”
-        size_t has_answer_count = 0;
-        for (auto idx : node_indices) {
-            if (node_has_answer[idx]) {
-                has_answer_count++;
-            }
-        }
-        size_t no_answer_count = total_cnt - has_answer_count;
-
-        std::cout << "----- [BFS depth = " << lvl << "] -----\n";
-        std::cout << "Total nodes   : " << total_cnt << "\n";
-        std::cout << "  => with answer   : " << has_answer_count << " nodes\n";
-        std::cout << "  => without answer: " << no_answer_count << " nodes\n";
-    }
-    std::cout << "=========================================================\n\n";
-}
 
 
 
@@ -2053,22 +1264,24 @@ void GismaSearchEngine::print_statistics_by_bfs_depth(
 
 // COMPUTE_ASTAR_ONLY_FOR_DATA_GRAPH macro is now defined in Utility.h
 
-// Helper function to compute EPT subtree size
+// 计算EPT子树大小的辅助函数
 size_t GismaSearchEngine::calculate_subtree_size(const EditPathTree& ept, size_t node_index) {
     if (node_index >= ept.tree_nodes.size()) {
         return 0;
     }
 
     const TreeNode& node = ept.tree_nodes[node_index];
-    size_t subtree_size = 1; // current node itself
+    size_t subtree_size = 1; // 当前节点本身
 
-    // Recursively compute subtree size of all children
+    // 递归计算所有子节点的子树大小
     for (size_t child_index : node.children_indices) {
         subtree_size += calculate_subtree_size(ept, child_index);
     }
 
     return subtree_size;
 }
+
+bool GismaSearchEngine::use_orig_verifier = false;
 
 bool GismaSearchEngine::dfs_traverse_no_reuse(
     size_t                node_index,
@@ -2088,39 +1301,11 @@ bool GismaSearchEngine::dfs_traverse_no_reuse(
     Graph *db_g = node.db_graph;
     Graph *qry_g = query_node->graph.get();
     
-    // Convert tau to ui type to avoid type issues
+    // 将tau转换为ui类型，避免类型问题
     ui tau_ui = (ui)tau;
     
-#ifdef USE_DYNAMIC_DEPTH_PROBE
-    // ========== Dynamic depth probing function (defined only when needed)==========
-    auto probe_max_depth = [&ept](size_t node_idx) -> int {
-        const TreeNode& current = ept.tree_nodes[node_idx];
-        int current_level = current.level;
-        
-        // Find maximum level in subtree
-        std::function<int(size_t)> find_max_level = [&](size_t idx) -> int {
-            if (idx >= ept.tree_nodes.size()) {
-                return current_level;  // return current level as baseline
-            }
-            
-            const TreeNode& n = ept.tree_nodes[idx];
-            int max_level = n.level;  // this node's level
-            
-            // Recursively search all child nodes
-            for (size_t ch : n.children_indices) {
-                int child_max = find_max_level(ch);
-                max_level = std::max(max_level, child_max);
-            }
-            
-            return max_level;
-        };
-        
-        int max_level_in_subtree = find_max_level(node_idx);
-        return max_level_in_subtree - current_level;  // return level difference
-    };
-#endif
 
-    // ========== Node type statistics ==========
+    // ========== 节点类型统计 ==========
     if (node.children_indices.empty()) {
         stats.EPT_leaf_nodes_processed++;
     } else {
@@ -2131,27 +1316,27 @@ bool GismaSearchEngine::dfs_traverse_no_reuse(
         stats.EPT_nodes_with_completed_ids++;
     }
     
-    // Count edit operation types
+    // 统计编辑操作类型
     if (node.op.type != EditOperation::NONE) {
         stats.EPT_op_type_count[node.op.type]++;
     }
     
-    // ========== estimate_lb for passing to child nodes ==========
-    ui new_estimate_lb = estimate_lb;  // default to passed-in value
+    // ========== 用于传递给子节点的estimate_lb ==========
+    ui new_estimate_lb = estimate_lb;  // 默认使用传入的值
 
-    // Determine if it is a db graph (root node or node with completed_db_graph_ids)
+    // 判断是否是db图（根节点或有completed_db_graph_ids的节点）
     bool is_db_graph = (node_index == ept.root_index) || !node.completed_db_graph_ids.empty();
 
-    // ========== Lower Bound check ==========
+    // ========== Lower Bound 检查 ==========
     bool should_compute_ged = true;
 
-    // NDC counting flag: ensure each node counted only once during actual computation
+    // NDC计数标志：确保每个节点只在实际做计算时计数一次
     bool ndc_counted = false;
 
-    // Count total visited nodes
+    // 统计访问的节点总数
     stats.EPT_total_nodes_visited++;
 
-    // Debug counters
+    // 调试计数器
     static size_t debug_total_nodes = 0;
     static size_t debug_estimate_lb_skip = 0;
     static size_t debug_filter_skip = 0;
@@ -2162,10 +1347,10 @@ bool GismaSearchEngine::dfs_traverse_no_reuse(
     bool is_root = (node_index == ept.root_index);
 
 #ifdef USE_ESTIMATE_LB_OPTIMIZATION
-    // LB Propagation: if estimate_lb > tau, skip computation
+    // LB Propagation: 如果estimate_lb > tau则跳过计算
     if (estimate_lb > tau_ui) {
         should_compute_ged = false;
-        stats.lb_pruning_count++;  // Count App_test computations skipped due to estimate_lb > tau
+        stats.lb_pruning_count++;  // 统计因estimate_lb > tau跳过的App_test计算
         debug_estimate_lb_skip++;
         if (is_root) {
             debug_estimate_lb_skip_at_root++;
@@ -2178,12 +1363,12 @@ bool GismaSearchEngine::dfs_traverse_no_reuse(
 #endif
 
     if (use_ept_filters && should_compute_ged) {
-        // NDC statistics
-        if (!ndc_counted && is_db_graph) {
+        // NDC统计
+        if (!ndc_counted ) {
             stats.EPT_ndc_count++;
             ndc_counted = true;
         }
-        // Flag: entering filter computation, indicating computation was performed
+        // 标记：进入filter计算，说明做了计算
         stats.EPT_nodes_computed++;
 
         auto lb_start = std::chrono::high_resolution_clock::now();
@@ -2195,7 +1380,7 @@ bool GismaSearchEngine::dfs_traverse_no_reuse(
         double lb_duration = std::chrono::duration<double>(lb_end - lb_start).count();
         stats.EPT_lb_time += lb_duration;
 
-        // Track filter time separately for db graphs and intermediate graphs
+        // 分开统计db图和中间图的filter时间
         if (is_db_graph) {
             stats.EPT_db_graph_lb_count++;
             stats.EPT_db_graph_lb_time += lb_duration;
@@ -2204,11 +1389,11 @@ bool GismaSearchEngine::dfs_traverse_no_reuse(
             stats.EPT_intermediate_graph_lb_time += lb_duration;
         }
 
-        new_estimate_lb = std::max(new_estimate_lb, lb);  // update estimate_lb
+        new_estimate_lb = std::max(new_estimate_lb, lb);  // 更新 estimate_lb
 
         if (lb > tau_ui) {
             should_compute_ged = false;
-            stats.EPT_filter_pruned_nodes++;  // Count nodes pruned by filter
+            stats.EPT_filter_pruned_nodes++;  // 统计被filter剪枝的节点
             debug_filter_skip++;
             if (is_root) {
                 debug_filter_skip_at_root++;
@@ -2216,29 +1401,18 @@ bool GismaSearchEngine::dfs_traverse_no_reuse(
         }
     }
     
-    // ========== Root node optimization: directly use GED cached by NetDag ==========
-    // Note: must be before COMPUTE_GED_ONLY_FOR_COMPLETED check, since root node's GED was already computed in NetDag
-
-    // DEBUG: trace search process of specific anchor (disabled)
-    // bool debug_this_anchor = (node_index == ept.root_index &&
-    //     (ept.anchor_id == 12735 || ept.anchor_id == 11953 || ept.anchor_id == 5791 ||
-    //      ept.anchor_id == 16611 || ept.anchor_id == 11382 || ept.anchor_id == 9934));
-    // if (debug_this_anchor) {
-    //     printf("[DEBUG_ANCHOR] anchor_id=%d, query_id=%d, anchor_netdag_ged=%d, anchor_netdag_lb=%.1f, tau=%u, completed_db_graph_ids.size=%zu\n",
-    //            (int)ept.anchor_id, query_node->node_id, anchor_netdag_ged, anchor_netdag_lb, tau_ui, node.completed_db_graph_ids.size());
-    // }
 
     if (node_index == ept.root_index && anchor_netdag_ged >= 0 && anchor_netdag_ged < (int)INF) {
-        // Only use cache when netdag_ged is valid (not INF)
-        // When nd_mode="filters", netdag_ged=INF, cannot skip computation
-        // When nd_mode="astar"/"filters_astar", netdag_ged may be valid
+        // 只有当 netdag_ged 是有效值时（不是 INF）才使用缓存
+        // nd_mode="filters" 时 netdag_ged=INF，此时不能跳过计算
+        // nd_mode="astar"/"filters_astar" 时可能有有效的netdag_ged
 
-        // If GED computed by NetDag <= tau, directly add to answer
+        // 如果NetDag计算的GED <= tau，直接收入answer
         if (anchor_netdag_ged <= (int)tau_ui) {
-            // Root node: ensure anchor itself is added, then add other graphs from completed_db_graph_ids
+            // 根节点：确保anchor本身被添加，再添加completed_db_graph_ids中的其他图
             int anchor_id = static_cast<int>(node.anchor_id);
 
-            // First check if anchor_id is already in completed_db_graph_ids
+            // 首先检查anchor_id是否已经在completed_db_graph_ids中
             bool anchor_in_completed = false;
             for (int id : node.completed_db_graph_ids) {
                 if (id == anchor_id) {
@@ -2247,65 +1421,81 @@ bool GismaSearchEngine::dfs_traverse_no_reuse(
                 }
             }
 
-            // If anchor not in completed_db_graph_ids, add separately
+            // 如果anchor不在completed_db_graph_ids中，需要单独添加
             if (!anchor_in_completed) {
                 exact_results_within_tau.push_back(anchor_id);
                 stats.EPT_results_from_astar++;
             }
 
-            // Add all graphs from completed_db_graph_ids
+            // 添加completed_db_graph_ids中的所有图
             exact_results_within_tau.insert(exact_results_within_tau.end(),
                                            node.completed_db_graph_ids.begin(),
                                            node.completed_db_graph_ids.end());
             stats.EPT_results_from_astar += node.completed_db_graph_ids.size();
 
             found_here = true;
-            stats.root_netdag_ged_reuse_count++;  // Count root node reuse occurrences
+            stats.root_netdag_ged_reuse_count++;  // 统计根节点复用次数
         }
-        // else: netdag_ged > tau, do not add to answer, but continue traversing children
-        // because children may reduce GED to <=tau through edit operations
+        // else: netdag_ged > tau，不收入answer，但继续遍历子节点
+        // 因为子节点通过编辑操作可能使GED减小到<=tau
 
-        // Update estimate_lb to NetDag's overall_lb (for passing to children)
+        // 更新estimate_lb为NetDag的overall_lb（用于传递给子节点）
         new_estimate_lb = std::max(new_estimate_lb, static_cast<ui>(anchor_netdag_lb));
 
-        // Root node already used NetDag's GED, no further computation needed
+        // 根节点已经使用NetDag的GED，不需要再计算
         should_compute_ged = false;
     } else if (node_index == ept.root_index && anchor_netdag_lb >= 0) {
-        // When nd_mode="filters": netdag_ged=INF, but netdag_lb is valid
-        // Pass netdag_lb to children, but do not skip root node's GED computation
+        // nd_mode="filters" 时：netdag_ged=INF，但 netdag_lb 有效
+        // 传递 netdag_lb 给子节点，但不跳过根节点的 GED 计算
         new_estimate_lb = std::max(new_estimate_lb, static_cast<ui>(anchor_netdag_lb));
     }
 
-    // ========== Check ifNeed to computeGED ==========
-    // If EPT filters or only_compute_db_graph is enabled, only compute GED for nodes with completed_db_graph_idsnodes compute GED
-    // Root node (anchor itself) even if completed_db_graph_ids is empty stillNeed to computeGED，because anchor itself may be a result
+    // ========== 检查是否需要计算GED ==========
+    // 如果启用了EPT filters或only_compute_db_graph，则只对有completed_db_graph_ids的节点计算GED
+    // 根节点（anchor本身）即使completed_db_graph_ids为空也需要计算GED，因为anchor本身可能就是一个结果
     if ((use_ept_filters || only_compute_db_graph) && should_compute_ged && node.completed_db_graph_ids.empty() && node_index != ept.root_index) {
         should_compute_ged = false;
     }
 
-    // ========== If LB check passes, execute App_test ==========
+    // ========== 如果通过LB检查，执行App_test ==========
     if (should_compute_ged) {
-        // NDC statistics：If LB skipped but A* computed, still count
-        if (!ndc_counted && is_db_graph) {
+        // NDC统计：如果跳过LB但做A*计算，也要计数
+        if (!ndc_counted ) {
             stats.EPT_ndc_count++;
             ndc_counted = true;
         }
-        // Flag: GED computation executed
+        // 标记：执行了GED计算
         stats.EPT_nodes_computed++;
 
-        // Execute App_test computation (no reuse, with overall_lb setting)
+        // 执行App_test计算（无reuse，有overall_lb设置）
         auto t0 = std::chrono::high_resolution_clock::now();
-        Application app(tau_ui, "BMao", app_max_iter);
-        app.init(db_g, qry_g);
-
-        int ged = app.App_test(nullptr, nullptr);
+        // E8 fix noreuse LSa: gisma-lsa / app-lsa 在 no_reuse 路径也须用 LSa 验证器（原硬编码 BMao）。
+        const char* v_lb = (ged_algorithm == "gisma-lsa" || ged_algorithm == "app-lsa") ? "LSa" : "BMao";
+        int ged;
+        ui overall_lb_val = 0, overall_ub_val = 0;
+        if (use_orig_verifier) {
+            // 原作者引擎(48B State / 2 级堆比较 / 无 reuse 载荷), 与全扫 baseline 同一份验证器代码。
+            origbmao::Application oapp(tau_ui, v_lb, (long long)app_max_iter);
+            oapp.init(db_g, qry_g);
+            ged = (int)oapp.AStar();
+            overall_lb_val = oapp.get_overall_lb();
+            overall_ub_val = (ui)ged;
+        } else {
+            Application app(tau_ui, v_lb, app_max_iter);
+            app.set_all_edge_labels_same(all_edge_labels_same);
+            app.init(db_g, qry_g);
+            ged = app.App_test(nullptr, nullptr);
+            overall_lb_val = app.get_overall_lb();
+            overall_ub_val = app.get_overall_ub();
+        }
+        (void)overall_ub_val;
         auto t1 = std::chrono::high_resolution_clock::now();
         double elapsed_time = std::chrono::duration<double>(t1 - t0).count();
 
         stats.EPT_astar_count++;
         stats.EPT_astar_time += elapsed_time;
 
-        // Track verification time separately for db graphs and intermediate graphs
+        // 分开统计db图和中间图的verification时间
         if (is_db_graph) {
             stats.EPT_db_graph_astar_count++;
             stats.EPT_db_graph_astar_time += elapsed_time;
@@ -2314,13 +1504,13 @@ bool GismaSearchEngine::dfs_traverse_no_reuse(
             stats.EPT_intermediate_graph_astar_time += elapsed_time;
         }
 
-        // Process results
+        // 处理结果
         if (ged <= (int)tau_ui) {
-            // For root node, ensure anchor itself is added to results
+            // 对于根节点，需要确保anchor本身被添加到结果中
             if (node_index == ept.root_index) {
                 int anchor_id = static_cast<int>(ept.anchor_id);
 
-                // Check if anchor is already in completed_db_graph_ids
+                // 检查anchor是否已在completed_db_graph_ids中
                 bool anchor_in_completed = std::find(node.completed_db_graph_ids.begin(),
                                                      node.completed_db_graph_ids.end(),
                                                      anchor_id) != node.completed_db_graph_ids.end();
@@ -2330,7 +1520,7 @@ bool GismaSearchEngine::dfs_traverse_no_reuse(
                 }
             }
 
-            // Add all graphs from completed_db_graph_ids
+            // 添加completed_db_graph_ids中的所有图
             size_t num_results = node.completed_db_graph_ids.size();
             stats.EPT_results_from_astar += num_results;
 
@@ -2341,29 +1531,21 @@ bool GismaSearchEngine::dfs_traverse_no_reuse(
         }
 
 #ifdef USE_ESTIMATE_LB_OPTIMIZATION
-        // LB Propagation: Update estimate_lb
-        new_estimate_lb = app.get_overall_lb();
+        // LB Propagation: 更新estimate_lb
+        new_estimate_lb = overall_lb_val;
 #endif
 
-        // ========== Subtree Pruning check ==========
+        // ========== Subtree Pruning 剪枝检查 ==========
 #if USE_SUBTREE_PRUNING
-        // Get current graph pair's overall_lb (local variable)
-        ui overall_lb = app.get_overall_lb();
+        // 获取当前图对的overall_lb（局部变量）
+        ui overall_lb = overall_lb_val;
 
-        // Subtree Pruning: Leaf nodeskip (no child nodes to prune)
-        if (!node.children_indices.empty() && overall_lb > 0 && overall_lb < 10000) {  // assuming reasonable GED does not exceed 10000
-            // Compute maximum steps remaining from current node
-            int max_step_more;
+        // Subtree Pruning: 叶子节点跳过（没有子节点可以剪枝）
+        if (!node.children_indices.empty() && overall_lb > 0 && overall_lb < 10000) {  // 假设合理的GED不会超过10000
+            // 计算从当前节点还能走的最大步数
+            int max_step_more = node.max_subtree_depth - node.level;
             
-#ifdef USE_DYNAMIC_DEPTH_PROBE
-            // Using dynamic depth probing
-            max_step_more = probe_max_depth(node_index);
-#else
-            // Using fixed maximum depth
-            max_step_more = MAX_EPT_DEPTH - node.level;
-#endif
-            
-            // Debug output (controlled by DEBUG_PRUNING macro)
+            // 调试输出（通过DEBUG_PRUNING宏控制）
 #ifdef DEBUG_PRUNING
             printf("Subtree pruning check: node.level=%d, max_step_more=%d, tau=%u, overall_lb=%u\n",
                    node.level, max_step_more, tau_ui, overall_lb);
@@ -2372,22 +1554,22 @@ bool GismaSearchEngine::dfs_traverse_no_reuse(
                    (max_step_more + (int)tau_ui < (int)overall_lb) ? "YES (prune)" : "NO (continue)");
 #endif
             
-            // Pruning condition: even if each subsequent step is optimal edit (reducing by 1),
-            // the final GED is at least overall_lb - max_step_more
-            // if this value > tau, no qualifying solution can be found
+            // 剪枝条件：即使接下来每步都是最优编辑（减少1），
+            // 最终GED也至少是 overall_lb - max_step_more
+            // 如果这个值 > tau，则无法找到满足条件的解
             if (max_step_more + (int)tau_ui < (int)overall_lb) {
 #ifdef DEBUG_PRUNING
                 printf("[SUBTREE_PRUNE] Node %zu (level=%d): max_steps=%d, tau=%u, overall_lb=%u, overall_ub=%u, is_leaf=%s -> PRUNED\n",
-                       node_index, node.level, max_step_more, tau_ui, overall_lb, app.get_overall_ub(),
+                       node_index, node.level, max_step_more, tau_ui, overall_lb, overall_ub_val,
                        node.children_indices.empty() ? "yes" : "no");
 #endif
 
-                // Count subtree pruning effectiveness
+                // 统计subtree pruning效果
                 stats.subtree_pruning_decisions++;
-                size_t avoided_nodes = calculate_subtree_size(ept, node_index) - 1; // minus current node itself
+                size_t avoided_nodes = calculate_subtree_size(ept, node_index) - 1; // 减去当前节点本身
                 stats.subtree_pruning_avoided_nodes += avoided_nodes;
 
-                // statistics:how many triggered by leaf nodes
+                // 统计：有多少是叶子节点触发的
                 if (node.children_indices.empty()) {
                     stats.subtree_pruning_on_leaf_nodes++;
                 }
@@ -2409,24 +1591,20 @@ bool GismaSearchEngine::dfs_traverse_no_reuse(
     }
 #ifdef USE_ESTIMATE_LB_OPTIMIZATION
     else {
-        // Skipped App_test computation (possibly due to estimate_lb or filter), but still check if prunable
+        // 跳过了App_test计算（可能是因为estimate_lb或filter），但仍然要检查是否可以剪枝
 #if USE_SUBTREE_PRUNING
-        // Subtree Pruning: Leaf nodeskip (no child nodes to prune)
+        // Subtree Pruning: 叶子节点跳过（没有子节点可以剪枝）
         if (!node.children_indices.empty() && new_estimate_lb > 0 && new_estimate_lb < 10000) {
             int max_step_more;
             
-#ifdef USE_DYNAMIC_DEPTH_PROBE
-            max_step_more = probe_max_depth(node_index);
-#else
-            max_step_more = MAX_EPT_DEPTH - node.level;
-#endif
+            max_step_more = node.max_subtree_depth - node.level;
             
             if (max_step_more + (int)tau_ui < (int)new_estimate_lb) {
-                // Pruning: do not recurseProcess child nodes
+                // 剪枝：不递归处理子节点
 
-                // Count subtree pruning effectiveness（estimate_lb branch）
+                // 统计subtree pruning效果（estimate_lb分支）
                 stats.subtree_pruning_decisions++;
-                size_t avoided_nodes = calculate_subtree_size(ept, node_index) - 1; // minus current node itself
+                size_t avoided_nodes = calculate_subtree_size(ept, node_index) - 1; // 减去当前节点本身
                 stats.subtree_pruning_avoided_nodes += avoided_nodes;
 
                 return found_here;
@@ -2437,19 +1615,19 @@ bool GismaSearchEngine::dfs_traverse_no_reuse(
 #endif
 
 
-    // RecursivelyProcess child nodes
+    // 递归处理子节点
     bool found_child = false;
     for (size_t ch : node.children_indices) {
         if (ch >= ept.tree_nodes.size()) {
             continue;
         }
         
-        // Compute child node's estimate_lb
+        // 计算子节点的estimate_lb
         const TreeNode &child_node = ept.tree_nodes[ch];
         int level_diff = child_node.level - node.level;
         ui child_estimate_lb = (level_diff >= (int)new_estimate_lb) ? 0 : new_estimate_lb - level_diff;
 
-        // Count times estimate_lb is propagated to child nodes
+        // 统计传递estimate_lb到子节点的次数
         stats.lb_propagation_count++;
 
         if (dfs_traverse_no_reuse(ch, ept, query_node,
@@ -2459,12 +1637,12 @@ bool GismaSearchEngine::dfs_traverse_no_reuse(
         }
     }
 
-    // Return whether current node or subtree found an answer
+    // 返回当前节点或其子树是否找到答案
     return found_here || found_child;
 }
 
-// Pure DFS traversal - using App_baseline, no LB propagation, no lookahead pruning
-// This is the simplest traversal, for baseline comparison
+// 纯DFS遍历 - 使用App_baseline，无LB传递，无lookahead剪枝
+// 这是最简单的遍历方式，用于基线对比
 bool GismaSearchEngine::dfs_traverse_only_dfs(
     size_t                node_index,
     const EditPathTree   &ept,
@@ -2483,26 +1661,26 @@ bool GismaSearchEngine::dfs_traverse_only_dfs(
 
     ui tau_ui = (ui)tau;
 
-    // NDC counting flag: ensure each node counted only once during actual computation
+    // NDC计数标志：确保每个节点只在实际做计算时计数一次
     bool ndc_counted = false;
 
-    // Node type statistics
+    // 节点类型统计
     if (node.children_indices.empty()) {
         stats.EPT_leaf_nodes_processed++;
     } else {
         stats.EPT_internal_nodes_processed++;
     }
 
-    // Check if node is associated with a database graph (not intermediate graph)
-    // root node is anchor itself (db graph), or nodes with completed_db_graph_ids are also db graphs
+    // 检查节点是否关联数据库图（非中间图）
+    // 根节点是anchor本身（db图），或者有completed_db_graph_ids的节点也是db图
     bool is_db_graph = (node_index == ept.root_index) || !node.completed_db_graph_ids.empty();
 
-    // Decide whether toNeed to computeGED
+    // 决定是否需要计算GED
     bool should_compute_ged = true;
 
-    // ========== Root node special handling: use GED value cached by NetDag ==========
+    // ========== 根节点特殊处理：使用NetDag缓存的GED值 ==========
     if (node_index == ept.root_index && anchor_netdag_ged >= 0 && anchor_netdag_ged < (int)INF) {
-        // Only use cache when netdag_ged is valid (not INF)
+        // 只有当 netdag_ged 是有效值时（不是 INF）才使用缓存
         if (anchor_netdag_ged <= (int)tau_ui) {
             int anchor_id = static_cast<int>(node.anchor_id);
 
@@ -2527,14 +1705,14 @@ bool GismaSearchEngine::dfs_traverse_only_dfs(
             found_here = true;
             stats.root_netdag_ged_reuse_count++;
         }
-        // Root node already used NetDag's GED, no further computation needed
+        // 根节点已经使用NetDag的GED，不需要再计算
         should_compute_ged = false;
     }
 
-    // ========== LB Filter (consistent with simple mode) ==========
+    // ========== LB Filter (与simple模式一致) ==========
     if (use_ept_filters && should_compute_ged) {
-        // NDC statistics：only count when actually computing LB
-        if (!ndc_counted && is_db_graph) {
+        // NDC统计：只在实际做LB计算时计数
+        if (!ndc_counted ) {
             stats.EPT_ndc_count++;
             ndc_counted = true;
         }
@@ -2549,7 +1727,7 @@ bool GismaSearchEngine::dfs_traverse_only_dfs(
         double lb_duration = std::chrono::duration<double>(lb_end - lb_start).count();
         stats.EPT_lb_time += lb_duration;
 
-        // Track filter time separately for db graphs and intermediate graphs
+        // 分开统计db图和中间图的filter时间
         if (is_db_graph) {
             stats.EPT_db_graph_lb_count++;
             stats.EPT_db_graph_lb_time += lb_duration;
@@ -2564,17 +1742,17 @@ bool GismaSearchEngine::dfs_traverse_only_dfs(
         }
     }
 
-    // ========== Check if GED computation is needed (controlled by use_ept_filters or only_compute_db_graph)==========
-    // If use_ept_filters or only_compute_db_graph is enabled, only compute GED for nodes with completed_db_graph_ids
-    // Root node even if completed_db_graph_ids is empty stillNeed to computeGED
+    // ========== 检查是否需要计算GED（use_ept_filters或only_compute_db_graph控制）==========
+    // 如果启用了use_ept_filters或only_compute_db_graph，则只对有completed_db_graph_ids的节点计算GED
+    // 根节点即使completed_db_graph_ids为空也需要计算GED
     if ((use_ept_filters || only_compute_db_graph) && should_compute_ged && node.completed_db_graph_ids.empty() && node_index != ept.root_index) {
         should_compute_ged = false;
     }
 
-    // ========== If GED computation needed, execute App_baseline ==========
+    // ========== 如果需要计算GED，执行App_baseline ==========
     if (should_compute_ged) {
-        // NDC statistics：If LB skipped but A* computed, still count
-        if (!ndc_counted && is_db_graph) {
+        // NDC统计：如果跳过LB但做A*计算，也要计数
+        if (!ndc_counted ) {
             stats.EPT_ndc_count++;
             ndc_counted = true;
         }
@@ -2582,9 +1760,10 @@ bool GismaSearchEngine::dfs_traverse_only_dfs(
 
         auto t0 = std::chrono::high_resolution_clock::now();
         Application app(tau_ui, "BMao", app_max_iter);
+        app.set_all_edge_labels_same(all_edge_labels_same);
         app.init(db_g, qry_g);
 
-        // Use App_baseline - the most basic computation method
+        // 使用App_baseline - 最基础的计算方法
         int ged = app.App_baseline(nullptr, nullptr);
         auto t1 = std::chrono::high_resolution_clock::now();
         double elapsed_time = std::chrono::duration<double>(t1 - t0).count();
@@ -2592,7 +1771,7 @@ bool GismaSearchEngine::dfs_traverse_only_dfs(
         stats.EPT_astar_count++;
         stats.EPT_astar_time += elapsed_time;
 
-        // Track verification time separately for db graphs and intermediate graphs
+        // 分开统计db图和中间图的verification时间
         if (is_db_graph) {
             stats.EPT_db_graph_astar_count++;
             stats.EPT_db_graph_astar_time += elapsed_time;
@@ -2601,7 +1780,7 @@ bool GismaSearchEngine::dfs_traverse_only_dfs(
             stats.EPT_intermediate_graph_astar_time += elapsed_time;
         }
 
-        // Process results
+        // 处理结果
         if (ged <= (int)tau_ui) {
             if (node_index == ept.root_index) {
                 int anchor_id = static_cast<int>(ept.anchor_id);
@@ -2623,10 +1802,10 @@ bool GismaSearchEngine::dfs_traverse_only_dfs(
                                           node.completed_db_graph_ids.end());
             found_here = true;
         }
-        // Note: no LB propagation, no lookahead pruning
+        // 注意：无LB传递，无lookahead剪枝
     }
 
-    // RecursivelyProcess child nodes（Pure DFS, do not propagate estimate_lb）
+    // 递归处理子节点（纯DFS，不传递estimate_lb）
     bool found_child = false;
     for (size_t ch : node.children_indices) {
         if (ch >= ept.tree_nodes.size()) {
@@ -2654,7 +1833,9 @@ bool GismaSearchEngine::dfs_traverse(
     int                             parent_db_vertex_count,
     ui                              estimate_lb,
     double                          anchor_netdag_lb,
-    int                             anchor_netdag_ged)
+    int                             anchor_netdag_ged,
+    int                             parent_no_snapshot_reason,
+    size_t                          parent_node_index)
 {
     const TreeNode &node = ept.tree_nodes[node_index];
     bool found_here = false;
@@ -2667,38 +1848,14 @@ bool GismaSearchEngine::dfs_traverse(
 
     
     std::shared_ptr<SearchSnapshot> current_snapshot = nullptr;
-    
-    // Dynamic depth probing function
-#if USE_SUBTREE_PRUNING && defined(USE_DYNAMIC_DEPTH_PROBE)
-    auto probe_max_depth = [&ept](size_t node_idx) -> int {
-        const TreeNode& current = ept.tree_nodes[node_idx];
-        int current_level = current.level;
+    enum NoSnapshotReason { SNAP_UNKNOWN=0, SNAP_LP_SKIPPED, SNAP_FILTER_SKIPPED, SNAP_REUSE_NO_CHAIN } no_snapshot_reason = SNAP_UNKNOWN;
 
-        std::function<int(size_t)> find_max_level = [&](size_t idx) -> int {
-            if (idx >= ept.tree_nodes.size()) {
-                return current_level;
-            }
+    // 动态深度探测函数
 
-            const TreeNode& n = ept.tree_nodes[idx];
-            int max_level = n.level;
-
-            for (size_t ch : n.children_indices) {
-                int child_max = find_max_level(ch);
-                max_level = std::max(max_level, child_max);
-            }
-
-            return max_level;
-        };
-
-        int max_level_in_subtree = find_max_level(node_idx);
-        return max_level_in_subtree - current_level;
-    };
-#endif
-
-    // NDC counting flag: ensure each node counted only once during actual computation
+    // NDC计数标志：确保每个节点只在实际做计算时计数一次
     bool ndc_counted = false;
 
-    // Node type statistics
+    // 节点类型统计
     if (node.children_indices.empty()) {
         stats.EPT_leaf_nodes_processed++;
     } else {
@@ -2713,49 +1870,31 @@ bool GismaSearchEngine::dfs_traverse(
         stats.EPT_op_type_count[node.op.type]++;
     }
 
-    // Determine if it is a db graph (root node or node with completed_db_graph_ids)
+    // 判断是否是db图（根节点或有completed_db_graph_ids的节点）
     bool is_db_graph = (node_index == ept.root_index) || !node.completed_db_graph_ids.empty();
 
-    // ========== Priority check dummy-only fast path ==========
-    bool used_dummy_fast_path = false;
-    int dummy_fast_path_ged = -1;
-
-    // Check if dummy-only fast path can be used (prioritized over LB check)
-    if (parent_snapshot && parent_snapshot->v.size() == 1 &&
-        (parent_snapshot->v[0].level < 0 || parent_snapshot->v[0].image < 0)) {
-        // This is a dummy-only snapshot
-        int ged_gap = (node.parent_index < ept.tree_nodes.size()) ?
-                     (node.level - ept.tree_nodes[node.parent_index].level) : 1;
-
-        if (ged_gap > 0 && ged_gap <= parent_snapshot->margin) {
-            // Can use fast path: GED is certainly > tau
-            used_dummy_fast_path = true;
-            dummy_fast_path_ged = tau_ui + 1;
-            stats.EPT_reuse_attempt++;
-            stats.EPT_reuse_count++;
-            stats.EPT_reuse_fail_parent_snapshot_size_one++;
-            stats.EPT_reuse_fail_parent_snapshot_size_one_dummy++;
-        }
-    }
-
-    // Lower Bound check (only executed for non-fast path)
-    bool should_compute_ged = !used_dummy_fast_path;
+    bool should_compute_ged = true;
 
 #ifdef USE_ESTIMATE_LB_OPTIMIZATION
-    // LB Propagation: if estimate_lb > tau, skip computation
-    if (!used_dummy_fast_path && estimate_lb > tau_ui) {
+    // LB Propagation: 如果estimate_lb > tau则跳过计算
+    if (estimate_lb > tau_ui) {
         should_compute_ged = false;
-        stats.lb_pruning_count++;  // Count App_test computations skipped due to estimate_lb > tau（unified version）
-#ifdef DEBUG_PRUNING
-        printf("[STATS] LB propagation skip (unified): count=%zu, estimate_lb=%u, tau=%u\n",
-               stats.lb_pruning_count, estimate_lb, tau_ui);
-#endif
+        stats.lb_pruning_count++;
+        no_snapshot_reason = SNAP_LP_SKIPPED;
+        // 交叉统计：这个被 LP 跳过的 node，结构上本来是否 reuse-able？
+        // (mode-independent: 非root + 父子vertex数相同 + accumulated_ops<=max_ged_gap)
+        bool structurally_reuseable =
+            (node_index != ept.root_index) &&
+            (parent_db_vertex_count >= 0 && (int)db_g->n == parent_db_vertex_count) &&
+            (node.accumulated_ops.size() <= (size_t)max_ged_gap);
+        if (structurally_reuseable) stats.lp_skip_reuseable++;
+        else                        stats.lp_skip_not_reuseable++;
     }
 #endif
 
     if (use_ept_filters && should_compute_ged) {
-        // NDC statistics：only count when actually computing LB
-        if (!ndc_counted && is_db_graph) {
+        // NDC统计：只在实际做LB计算时计数
+        if (!ndc_counted ) {
             stats.EPT_ndc_count++;
             ndc_counted = true;
         }
@@ -2766,7 +1905,8 @@ bool GismaSearchEngine::dfs_traverse(
         ui lb = qry_g->ged_lower_bound_filter(db_g, tau_ui, vM.size(), eM.size(), max_n);
         if (lb > tau_ui) {
             should_compute_ged = false;
-            // Even if GED computation skipped, use LB to update estimate_lb for child nodes
+            no_snapshot_reason = SNAP_FILTER_SKIPPED;
+            // 即使跳过GED计算，也用LB更新estimate_lb供子节点使用
             new_estimate_lb = std::max(new_estimate_lb, lb);
         }
 
@@ -2774,7 +1914,7 @@ bool GismaSearchEngine::dfs_traverse(
         double lb_duration = std::chrono::duration<double>(lb_end - lb_start).count();
         stats.EPT_lb_time += lb_duration;
 
-        // Track filter time separately for db graphs and intermediate graphs
+        // 分开统计db图和中间图的filter时间
         if (is_db_graph) {
             stats.EPT_db_graph_lb_count++;
             stats.EPT_db_graph_lb_time += lb_duration;
@@ -2784,31 +1924,36 @@ bool GismaSearchEngine::dfs_traverse(
         }
     }
 
-    // If EPT filters or only_compute_db_graph is enabled, only compute GED for nodes with completed_db_graph_idsnodes compute GED
-    // Root node (anchor itself) even if completed_db_graph_ids is empty stillNeed to computeGED，because anchor itself may be a result
+    // 如果启用了EPT filters或only_compute_db_graph，则只对有completed_db_graph_ids的节点计算GED
+    // 根节点（anchor本身）即使completed_db_graph_ids为空也需要计算GED，因为anchor本身可能就是一个结果
     if ((use_ept_filters || only_compute_db_graph) && should_compute_ged && node.completed_db_graph_ids.empty() && node_index != ept.root_index) {
         should_compute_ged = false;
     }
 
-    // ========== Root node optimization: use GED cached by NetDag,to avoid duplicateA* computation ==========
-    // GS_search phase already computed exact GED for anchor; if no snapshot needed for children, A* can be skipped
+    // ========== 根节点优化：利用NetDag缓存的GED，避免重复A*计算 ==========
+    // GS_search阶段已经对anchor计算过exact GED，若无需为子节点生成snapshot则可跳过A*
     bool root_used_netdag_cache = false;
     if (node_index == ept.root_index && anchor_netdag_ged >= 0 && anchor_netdag_ged < (int)INF && should_compute_ged) {
-        // Check if close child nodes need snapshot
+        // 检查是否有近距离子节点需要snapshot
         bool needs_snapshot = false;
 #if USE_BASELINE_FOR_DISTANT_CHILDREN
         for (size_t ch : node.children_indices) {
             if (ch >= ept.tree_nodes.size()) continue;
-            int distance = ept.tree_nodes[ch].level - node.level;
-            if (distance > 0 && distance <= MAX_GED_GAP) {
-                needs_snapshot = true;
-                break;
+            const TreeNode &c_node = ept.tree_nodes[ch];
+            int distance = c_node.level - node.level;
+            if (distance <= 0 || distance > max_ged_gap) continue;
+            // 只有 net_n == 0 的 child 會用 reuse (新政策：父子 n 不同走 baseline)。
+            int net_n = 0;
+            for (const auto& op : c_node.accumulated_ops) {
+                if (op.type == EditOperation::NODE_INSERTION) net_n++;
+                else if (op.type == EditOperation::NODE_DELETION) net_n--;
             }
+            if (net_n == 0) { needs_snapshot = true; break; }
         }
 #endif
 
         if (!needs_snapshot) {
-            // No snapshot needed, directly use GED cached by NetDag
+            // 无需snapshot，直接使用NetDag缓存的GED
             if (anchor_netdag_ged <= (int)tau_ui) {
                 int anchor_id_local = static_cast<int>(ept.anchor_id);
                 bool anchor_in_completed = std::find(node.completed_db_graph_ids.begin(),
@@ -2829,59 +1974,62 @@ bool GismaSearchEngine::dfs_traverse(
             root_used_netdag_cache = true;
             stats.root_netdag_ged_reuse_count++;
         }
-        // else: Need snapshot for child node reuse, let subsequent A* run normally
+        // else: 需要snapshot供子节点复用，让后续A*正常运行
     }
 
-    // GED computation
+    // GED计算
     if (should_compute_ged) {
-        // NDC statistics：If LB skipped but A* computed, still count
-        if (!ndc_counted && is_db_graph) {
+        // NDC统计：如果跳过LB但做A*计算，也要计数
+        if (!ndc_counted ) {
             stats.EPT_ndc_count++;
             ndc_counted = true;
         }
         bool use_baseline = false;
         int optimal_margin = 0;
-        bool has_close_child = false;  // moved to outer scope for later reuse
+        bool has_close_child = false;  // 移到外层作用域，方便后面复用
         
 #if USE_BASELINE_FOR_DISTANT_CHILDREN
-        // Use level field instead of accumulated_ops.size()
+        // 使用level字段而不是accumulated_ops.size()
         int current_level = node.level;
 
-        // Compute optimal_margin and set has_close_child
+        // 计算optimal_margin 并设置 has_close_child
         for (size_t ch : node.children_indices) {
             if (ch >= ept.tree_nodes.size()) continue;
 
             const TreeNode &child_node = ept.tree_nodes[ch];
             int child_level = child_node.level;
             int distance = child_level - current_level;
-
-            // If a close child node found (distance must be >0 to count as real child)
-            if (distance > 0 && distance <= MAX_GED_GAP) {
-                has_close_child = true;
-                optimal_margin = std::max(optimal_margin, distance);
+            if (distance <= 0 || distance > max_ged_gap) continue;
+            // 只有 net_n == 0 的 child 會用 reuse (新政策：父子 n 不同走 baseline)。
+            int net_n = 0;
+            for (const auto& op : child_node.accumulated_ops) {
+                if (op.type == EditOperation::NODE_INSERTION) net_n++;
+                else if (op.type == EditOperation::NODE_DELETION) net_n--;
             }
+            if (net_n != 0) continue;
+            has_close_child = true;
+            optimal_margin = std::max(optimal_margin, distance);
         }
         
-        // Limit margin to not exceed MAX_MARGIN
-        optimal_margin = std::min(optimal_margin, MAX_MARGIN);
+        // 限制margin不超过max_margin
+        optimal_margin = std::min(optimal_margin, max_margin);
 
-        // If no close child nodes, use baseline (except for root node)
+        // 如果没有近距离的子节点，使用baseline（但根节点除外）
         if (!has_close_child && !node.children_indices.empty() && node_index != ept.root_index) {
             use_baseline = true;
-            optimal_margin = 0;  // baseline is equivalent to margin=0
+            optimal_margin = 0;  // baseline相当于margin=0
         }
 #endif
         
-        // Determine if reuse is possible
+        // 判断是否可以重用
         bool can_reuse = false;
         
         enum ReuseFailReason {
             NO_FAILURE = 0,
-            NO_PARENT_SNAPSHOT,           // Parent node did not compute GED with AStar (or AStar reuse)
-            PARENT_SNAPSHOT_EMPTY,        // Parent node computed but extract is empty (v.size()==0)
-            PARENT_SNAPSHOT_SIZE_ONE,     // Parent node computed but only 1 node (v.size()==1)
+            NO_PARENT_SNAPSHOT,           // 父节点没用AStar（或Astar reuse）计算GED
+            PARENT_SNAPSHOT_EMPTY,        // 父节点计算了但extract为空（v.size()==0）
+            PARENT_SNAPSHOT_SIZE_ONE,     // 父节点计算了但只有1个节点（v.size()==1）
             ROOT_NODE,
-            NO_OP,
             MULTI_OPS,
             VERTEX_COUNT_CHANGED,
             MO_INCOMPATIBLE,
@@ -2891,107 +2039,178 @@ bool GismaSearchEngine::dfs_traverse(
         if (use_baseline) {
             fail_reason = USE_BASELINE_DISTANT;
         } else {
-            // Modified reuse condition check: try reuse even if parent_snapshot is empty
             if (node_index == ept.root_index) {
                 stats.EPT_reuse_fail_root_node++;
                 fail_reason = ROOT_NODE;
-            } else if (node.op.type == EditOperation::NONE) {
-                stats.EPT_reuse_fail_no_op++;
-                fail_reason = NO_OP;
-            } else if (parent_snapshot == nullptr || parent_db_vertex_count < 0) {
-                // Truly no parent node (root node or parent node did not compute GED)
-                stats.EPT_reuse_fail_no_parent_snapshot++;
-                fail_reason = NO_PARENT_SNAPSHOT;
-            } else if (node.accumulated_ops.size() > MAX_GED_GAP) {
+            } else if (parent_db_vertex_count >= 0 &&
+                       (int)db_g->n != (int)parent_db_vertex_count) {
+                // 父子 vertex 數不同 → 直接 fallback baseline。
+                stats.EPT_reuse_fail_vertex_count_changed++;
+                fail_reason = VERTEX_COUNT_CHANGED;
+            } else if (node.accumulated_ops.size() > max_ged_gap) {
                 stats.EPT_reuse_fail_multi_ops++;
                 fail_reason = MULTI_OPS;
+            } else if (parent_snapshot == nullptr || parent_db_vertex_count < 0) {
+                stats.EPT_reuse_fail_no_parent_snapshot++;
+                switch (parent_no_snapshot_reason) {
+                    case SNAP_LP_SKIPPED:     stats.EPT_reuse_fail_no_parent_lp_skipped++; break;
+                    case SNAP_FILTER_SKIPPED: stats.EPT_reuse_fail_no_parent_filter_skipped++; break;
+                    case SNAP_REUSE_NO_CHAIN: stats.EPT_reuse_fail_no_parent_reuse_no_chain++; break;
+                    default:                  stats.EPT_reuse_fail_no_parent_other++; break;
+                }
+                fail_reason = NO_PARENT_SNAPSHOT;
             } else {
-                // Further check reuse conditions (relaxed parent_snapshot->v size restriction)
-                if (db_g->n != parent_db_vertex_count) {
-                    stats.EPT_reuse_fail_vertex_count_changed++;
-                    fail_reason = VERTEX_COUNT_CHANGED;
-                } else {
-                    // Check mo array compatibility
-                    size_t parent_mo_size = parent_snapshot->mo.size();
-                    size_t current_min_size = std::min(static_cast<size_t>(qry_g->n),
-                                                      static_cast<size_t>(db_g->n));
-                    size_t current_max_size = std::max(static_cast<size_t>(qry_g->n),
-                                                      static_cast<size_t>(db_g->n));
+                // 检查mo数组兼容性
+                size_t parent_mo_size = parent_snapshot->mo.size();
+                size_t current_min_size = std::min(static_cast<size_t>(qry_g->n),
+                                                  static_cast<size_t>(db_g->n));
+                size_t current_max_size = std::max(static_cast<size_t>(qry_g->n),
+                                                  static_cast<size_t>(db_g->n));
 
-                    bool mo_size_compatible = (parent_mo_size <= current_min_size);
-                    bool mo_content_valid = true;
+                bool mo_size_compatible = (parent_mo_size <= current_min_size);
+                bool mo_content_valid = true;
 
-                    if (mo_size_compatible && !parent_snapshot->mo.empty()) {
-                        for (size_t i = 0; i < parent_snapshot->mo.size(); ++i) {
-                            if (parent_snapshot->mo[i] != static_cast<size_t>(-1) &&
-                                parent_snapshot->mo[i] >= current_max_size) {
-                                mo_content_valid = false;
-                                break;
-                            }
+                if (mo_size_compatible && !parent_snapshot->mo.empty()) {
+                    for (size_t i = 0; i < parent_snapshot->mo.size(); ++i) {
+                        if (parent_snapshot->mo[i] != static_cast<size_t>(-1) &&
+                            parent_snapshot->mo[i] >= current_max_size) {
+                            mo_content_valid = false;
+                            break;
                         }
                     }
+                }
 
-                    if (!mo_size_compatible || !mo_content_valid) {
-                        stats.EPT_reuse_fail_mo_incompatible++;
-                        fail_reason = MO_INCOMPATIBLE;
-                    } else if (parent_snapshot->v.empty()) {
-                        stats.EPT_reuse_fail_parent_snapshot_empty++;
-                        fail_reason = PARENT_SNAPSHOT_EMPTY;
-                    } else if (parent_snapshot->v.size() == 1) {
-                        stats.EPT_reuse_fail_parent_snapshot_size_one++;
-                        // dummy-only already handled above, only process real nodes herenode
-                        if (!(parent_snapshot->v[0].level < 0 || parent_snapshot->v[0].image < 0)) {
-                            // Realnodecan reuse!
-                            stats.EPT_reuse_fail_parent_snapshot_size_one_real++;
-                            can_reuse = true;
-                            stats.EPT_reuse_attempt++;
-                            fail_reason = NO_FAILURE;
-                        } else {
-                            // Dummynode（already checked above, should not satisfy fast path condition）
-                            stats.EPT_reuse_fail_parent_snapshot_size_one_dummy++;
-                            fail_reason = PARENT_SNAPSHOT_SIZE_ONE;
-                        }
-                    } else {  // v.size() >= 2
-                        can_reuse = true;
-                        stats.EPT_reuse_attempt++;
-                        fail_reason = NO_FAILURE;
-                    }
+                if (!mo_size_compatible || !mo_content_valid) {
+                    fail_reason = MO_INCOMPATIBLE;
+                } else if (parent_snapshot->v.empty()) {
+                    fail_reason = PARENT_SNAPSHOT_EMPTY;
+                } else if (parent_snapshot->v.size() >= 1) {
+                    // size=1 (dummy or real) and size>=2 all go to reuse
+                    can_reuse = true;
+                    stats.EPT_reuse_attempt++;
+                    fail_reason = NO_FAILURE;
                 }
             }
         }
         
-        Application app(tau_ui, "BMao", app_max_iter);
+        // E8 gisma-lsa: 默认 reuse 路径，但把验证器下界从 BMao 换成 LSa。
+        //   其余（reuse / snapshot / App_test / App）逻辑完全不变。
+        //   ged_algorithm=="App"（真正的默认）仍然用 BMao，主结果字节级不变。
+        const char* default_path_lb = (ged_algorithm == "gisma-lsa" || ged_algorithm == "app-lsa") ? "LSa" : "BMao";
+        if (ged_algorithm == "app-lsa") can_reuse = false;  // E8 app-lsa: App()+LSa, no reuse
+        Application app(tau_ui, default_path_lb, app_max_iter);
+        app.set_all_edge_labels_same(all_edge_labels_same);
         app.init(db_g, qry_g);
         app.set_disable_reuse_lsa(disable_reuse_lsa);
+        app.set_exact_value_mode(exact_value_mode);
+        app.set_early_stop_at_tau(early_stop_at_tau);
+        app.set_skip_intersection_in_reuse(early_stop_at_tau);
 
         int ged = -1;
         bool used_reuse = false;
         double elapsed_time = 0.0;
 
-        if (can_reuse) {
-            // When chain_reuse=false, reuse nodes do not save snapshot, so margin is not needed
-            if (chain_reuse) {
-                app.set_margin(optimal_margin);  // chain reuse needs to save snapshot for subsequent use
+        // E8: 非默认 verifier（"AStar"=精确A*=Gisma-AStar）→ 绕过 reuse + App-BMao，直接精确验证。
+        //     默认 ged_algorithm=="App" 时 alt_verifier=false，原 reuse/App 逻辑完全不变。
+        //     gisma-lsa 走默认 reuse 路径（只换 LB），因此 NOT alt_verifier。
+        bool alt_verifier = (ged_algorithm == "AStar" || ged_algorithm == "LSa");
+        if (alt_verifier) {
+            auto t0 = std::chrono::high_resolution_clock::now();
+            // E8 备用精确验证器（Gisma-AStar / Gisma-LSa）。
+            // 必须用 AppForComputation（精确）：它会正确设置 overall_lb，供下方
+            // LB Propagation（new_estimate_lb = app.get_overall_lb()）与 Subtree Pruning 使用。
+            // 旧实现调用 AStar_baseline，但 AStar_baseline 从不写 overall_lb，导致
+            // get_overall_lb() 返回初始值 INF → 子节点 estimate_lb≈INF > tau → should_compute_ged=false，
+            // 子树里的所有 db 图被静默跳过（不计算 GED）。这同时解释了 recall 暴跌且更快。
+            // AppForComputation 跑到最优（exact_max_iter=1e6），upper_bound=tau+1 时
+            // GED<=tau 返回精确值、GED>tau 返回 tau+1，作为 verifier 判定完全正确。
+            //
+            // ged_algorithm=="AStar" → BMao 下界的精确 A*（用上面的 app，lb=BMao）。
+            // ged_algorithm=="LSa"   → LSa 下界的精确 A*（"Gisma-LSa"）：另建一个 lb=LSa 的
+            //                          Application，同样跑 AppForComputation 取精确 GED。
+            if (ged_algorithm == "LSa") {
+                Application app_lsa(tau_ui, "LSa", app_max_iter);
+                app_lsa.set_all_edge_labels_same(all_edge_labels_same);
+                app_lsa.init(db_g, qry_g);
+                ged = (int)app_lsa.AppForComputation(nullptr, nullptr);
+                // overall_lb 来自 LSa A*，传给下方 LB Propagation（仍是合法下界）。
+                app.set_overall_lb_for_propagation(app_lsa.get_overall_lb());
+            } else if (ged_algorithm == "app-lsa") {
+                // E8 app-lsa: 近似 App（受 app_max_iter 限制）+ LSa 下界，无 reuse。
+                //   与 LSa 分支同样另建 lb=LSa 的 Application，但用受迭代上限约束的近似搜索
+                //   而非 AppForComputation()（精确）。这里用 App_test()（_test A* 机制：
+                //   generate_best_extension_test + construct_sibling_test + compute_best_extension_LSa_baseline），
+                //   它与 AppForComputation 共享同一套 LSa 实现，因此对 lb_method==LSa 稳定可靠；
+                //   而 App()（非 _test）走 compute_best_extension_LSa，那条 LSa 路径未实现/不稳定。
+                //   App_test() 同样受 app_max_iter 约束并在结束时写好 overall_lb（活跃/终止前沿）。
+                Application app_applsa(tau_ui, "LSa", app_max_iter);
+                app_applsa.set_all_edge_labels_same(all_edge_labels_same);
+                app_applsa.init(db_g, qry_g);
+                ged = (int)app_applsa.App_test(nullptr, nullptr);  // 近似 App（capped, _test LSa），无 reuse
+                app.set_overall_lb_for_propagation(app_applsa.get_overall_lb());
             } else {
-                app.set_margin(0);  // No need to save snapshot for subsequent use, use margin=0 to reduce computation
+                ged = (int)app.AppForComputation(nullptr, nullptr);  // 精确 A* 验证器（BMao, exact）
             }
-            // Normal reuse path (dummy-only already handled above)
+            auto t1 = std::chrono::high_resolution_clock::now();
+            elapsed_time = std::chrono::duration<double>(t1 - t0).count();
+            stats.EPT_astar_count++;
+        }
+
+        if (!alt_verifier && can_reuse) {
+            // chain_reuse=false时，使用reuse的节点不会保存snapshot，因此不需要margin
+            if (chain_reuse) {
+                app.set_margin(optimal_margin);  // 链式复用时需要为后续保存snapshot
+            } else {
+                app.set_margin(0);  // 不需要为后续保存snapshot，使用margin=0减少计算
+            }
+            // 正常reuse路径（dummy-only已在前面处理）
             auto t0 = std::chrono::high_resolution_clock::now();
             ged = app.app_reuse(*parent_snapshot, tau_ui, node.accumulated_ops.size());
             auto t1 = std::chrono::high_resolution_clock::now();
             elapsed_time = std::chrono::duration<double>(t1 - t0).count();
             used_reuse = (ged >= 0);
+            if (used_reuse) {
+                stats.EPT_astar_count++;
+                if (!chain_reuse) {
+                    no_snapshot_reason = SNAP_REUSE_NO_CHAIN;
+                }
+            }
         }
 
-        if (!used_reuse) {
-            // AStar needs to set margin based on children distance (may need to save snapshot)
+        if (!alt_verifier && !used_reuse) {
+            // AStar需要根据children距离设置margin（可能需要保存snapshot）
             app.set_margin(optimal_margin);
             app.set_disable_lsa_pruning(disable_lsa_pruning);
             stats.EPT_astar_count++;
             auto t0 = std::chrono::high_resolution_clock::now();
-            ged = app.App();  // using already set optimal_margin
+            // E8 gisma-lsa (Phase 2): lb=LSa 现在与默认 BMao 路径走同一套 margin 逻辑。
+            //   App()+LSa 的越界崩溃已修复：compute_best_extension_LSa_baseline 现在设置
+            //   siblings_total_n = siblings_n（见 Application.cpp step-14），使 App() 的
+            //   construct_sibling intersection 索引正确。App() 因此正常产出 boundary_nodes
+            //   snapshot，gisma-lsa 获得真正的 search-tree reuse（上方 app_reuse），只有 LB 不同。
+            //   optimal_margin==0 时用 App_test 省去 snapshot 开销（无 close child，不会 reuse）。
+            //   ged_algorithm=="App"（默认 BMao）行为字节级不变。
+            ged = (ged_algorithm == "app-lsa") ? (int)app.App()
+                : ((optimal_margin == 0) ? (int)app.App_test() : (int)app.App());
             auto t1 = std::chrono::high_resolution_clock::now();
             elapsed_time = std::chrono::duration<double>(t1 - t0).count();
+
+            // Verify margin overhead: compare App(margin) vs App_baseline(no margin)
+            if (verify_reuse && optimal_margin > 0) {
+                Application app_no_margin(tau_ui, "BMao", app_max_iter);
+                app_no_margin.init(db_g, qry_g);
+                auto t_nm_start = std::chrono::high_resolution_clock::now();
+                int ged_no_margin = app_no_margin.App_baseline(nullptr, nullptr);
+                auto t_nm_end = std::chrono::high_resolution_clock::now();
+                double no_margin_time = std::chrono::duration<double>(t_nm_end - t_nm_start).count();
+                stats.margin_overhead_count++;
+                stats.margin_overhead_with_margin_time += elapsed_time;
+                stats.margin_overhead_without_margin_time += no_margin_time;
+                bool margin_correct = ((ged > (int)tau_ui && ged_no_margin > (int)tau_ui) ||
+                                      (ged <= (int)tau_ui && ged_no_margin <= (int)tau_ui));
+                if (margin_correct) stats.margin_overhead_correct++;
+                else stats.margin_overhead_incorrect++;
+            }
         }
 
         if (used_reuse) {
@@ -3000,26 +2219,26 @@ bool GismaSearchEngine::dfs_traverse(
                 stats.EPT_reuse_by_op_type[node.op.type]++;
             }
             
-            // verify reuse effectiveness (controlled by command line parameter)
-            if (verify_reuse_baseline) {
-                // Use AppForComputation as baseline (with same tau upper bound)
+            // 验证reuse效果（通过命令行参数控制）
+            if (verify_reuse) {
+                // 使用 App_baseline 作为 baseline（verification版本，与App-BMao一致）
                 Application app_verify(tau_ui, "BMao", app_max_iter);
                 app_verify.init(db_g, qry_g);
 
                 auto t_verify_start = std::chrono::high_resolution_clock::now();
-                int ged_standard = app_verify.AppForComputation(nullptr, nullptr);
+                int ged_standard = app_verify.App_baseline(nullptr, nullptr);
                 auto t_verify_end = std::chrono::high_resolution_clock::now();
 
                 double verify_time = std::chrono::duration<double>(t_verify_end - t_verify_start).count();
                 stats.EPT_verification_astar_time += verify_time;
                 stats.EPT_reuse_verifications++;
 
-                // AppForComputation baseline statistics
+                // App_baseline 统计
                 stats.EPT_baseline_app_count++;
                 stats.EPT_baseline_app_time += verify_time;
-                stats.EPT_baseline_reuse_time += elapsed_time;  // record corresponding reuse time
+                stats.EPT_baseline_reuse_time += elapsed_time;  // 记录对应的 reuse 时间
 
-                // Collectsample pairs (up to MAX_BASELINE_SAMPLES )
+                // 收集样本对 (最多 MAX_BASELINE_SAMPLES 个)
                 if (stats.baseline_samples.size() < SearchStats::MAX_BASELINE_SAMPLES) {
                     double reuse_ms = elapsed_time * 1000.0;
                     double baseline_ms = verify_time * 1000.0;
@@ -3041,12 +2260,68 @@ bool GismaSearchEngine::dfs_traverse(
                 } else {
                     stats.EPT_reuse_incorrect++;
                 }
+
+                // Speedup distribution
+                double sp = (elapsed_time > 0) ? verify_time / elapsed_time : 0.0;
+                int sp_bucket;
+                if (sp > 3.0) { stats.reuse_speedup_gt3x++; sp_bucket = 0; }
+                else if (sp > 2.0) { stats.reuse_speedup_2x_3x++; sp_bucket = 1; }
+                else if (sp > 1.0) { stats.reuse_speedup_1x_2x++; sp_bucket = 2; }
+                else if (sp > 0.5) { stats.reuse_speedup_05x_1x++; sp_bucket = 3; }
+                else { stats.reuse_speedup_lt05x++; sp_bucket = 4; }
+
+                // Snapshot size
+                int size_bucket = -1;
+                if (parent_snapshot) {
+                    size_t sz = parent_snapshot->v.size();
+                    if (sz <= 1) { stats.reuse_snapshot_size_1++; size_bucket = 0; }
+                    else if (sz <= 10) { stats.reuse_snapshot_size_2_10++; size_bucket = 1; }
+                    else { stats.reuse_snapshot_size_gt10++; size_bucket = 2; }
+                }
+
+                // Cross-tab [size][speedup]
+                if (size_bucket >= 0) {
+                    stats.reuse_xtab[size_bucket][sp_bucket]++;
+                    stats.reuse_xtime[size_bucket] += elapsed_time;
+                    stats.baseline_xtime[size_bucket] += verify_time;
+                }
+
+                // Chain depth statistics: depth = parent_snapshot->chain_depth
+                int chain_d = parent_snapshot ? parent_snapshot->chain_depth : 0;
+                if (chain_d < 0) chain_d = 0;
+                if (chain_d >= SearchStats::MAX_CHAIN_DEPTH) chain_d = SearchStats::MAX_CHAIN_DEPTH - 1;
+                stats.chain_depth_count[chain_d]++;
+                stats.chain_depth_reuse_time[chain_d]    += elapsed_time;
+                stats.chain_depth_baseline_time[chain_d] += verify_time;
+                if (reuse_correct) stats.chain_depth_correct[chain_d]++;
+                if (ged_standard <= (int)tau_ui) {
+                    stats.chain_depth_pos[chain_d]++;
+                    if (ged <= (int)tau_ui) stats.chain_depth_tp[chain_d]++;
+                }
+
+                // Per-reuse log
+                if (g_reuse_log) {
+                    std::lock_guard<std::mutex> _lk(g_reuse_log_mutex);
+                    fprintf(g_reuse_log,
+                            "%d,%u,%zu,%zu,%zu,%d,%.3f,%.3f,%d,%d,%d\n",
+                            query_node->node_id,
+                            ept.anchor_id,
+                            parent_node_index,
+                            node_index,
+                            parent_snapshot ? parent_snapshot->v.size() : (size_t)0,
+                            (int)node.accumulated_ops.size(),
+                            elapsed_time * 1e6,
+                            verify_time * 1e6,
+                            ged,
+                            ged_standard,
+                            (int)tau_ui);
+                }
             }
         }
-        
+
         stats.EPT_astar_time += elapsed_time;
 
-        // Track verification time separately for db graphs and intermediate graphs
+        // 分开统计db图和中间图的verification时间
         if (is_db_graph) {
             stats.EPT_db_graph_astar_count++;
             stats.EPT_db_graph_astar_time += elapsed_time;
@@ -3064,9 +2339,6 @@ bool GismaSearchEngine::dfs_traverse(
                     break;
                 case ROOT_NODE:
                     stats.EPT_astar_time_root_node += elapsed_time;
-                    break;
-                case NO_OP:
-                    stats.EPT_astar_time_no_op += elapsed_time;
                     break;
                 case MULTI_OPS:
                     stats.EPT_astar_time_multi_ops += elapsed_time;
@@ -3091,9 +2363,9 @@ bool GismaSearchEngine::dfs_traverse(
         }
         
 #ifdef USE_ESTIMATE_LB_OPTIMIZATION
-        // LB Propagation: Update estimate_lb
+        // LB Propagation: 更新estimate_lb
         new_estimate_lb = app.get_overall_lb();
-        // Root node: combine NetDag's lb, take tighter value for child propagation
+        // 根节点：结合NetDag的lb，取更紧的值用于子节点传播
         if (node_index == ept.root_index && anchor_netdag_lb >= 0) {
             new_estimate_lb = std::max(new_estimate_lb, static_cast<ui>(anchor_netdag_lb));
         }
@@ -3101,25 +2373,21 @@ bool GismaSearchEngine::dfs_traverse(
 
 #if USE_SUBTREE_PRUNING
         ui overall_lb = app.get_overall_lb();
-        // Root node: combine NetDag's lb, take tighter value for Subtree Pruning
+        // 根节点：结合NetDag的lb，取更紧的值用于Subtree Pruning
         if (node_index == ept.root_index && anchor_netdag_lb >= 0) {
             overall_lb = std::max(overall_lb, static_cast<ui>(anchor_netdag_lb));
         }
 
-        // Subtree Pruning: Leaf nodeskip (no child nodes to prune)
+        // Subtree Pruning: 叶子节点跳过（没有子节点可以剪枝）
         if (!node.children_indices.empty() && overall_lb > 0 && overall_lb < 10000) {
             int max_step_more;
 
-#ifdef USE_DYNAMIC_DEPTH_PROBE
-            max_step_more = probe_max_depth(node_index);
-#else
-            max_step_more = MAX_EPT_DEPTH - node.level;
-#endif
+            max_step_more = node.max_subtree_depth - node.level;
 
             if (max_step_more + (int)tau_ui < (int)overall_lb) {
-                // Count subtree pruning effectiveness（unified version）
+                // 统计subtree pruning效果（unified版本）
                 stats.subtree_pruning_decisions++;
-                size_t avoided_nodes = calculate_subtree_size(ept, node_index) - 1; // minus current node itself
+                size_t avoided_nodes = calculate_subtree_size(ept, node_index) - 1; // 减去当前节点本身
                 stats.subtree_pruning_avoided_nodes += avoided_nodes;
 
                 return found_here;
@@ -3128,7 +2396,7 @@ bool GismaSearchEngine::dfs_traverse(
 #endif
 
         if (ged <= (int)tau_ui) {
-            // For root node, ensure anchor itself is added to results (old EPT files may not include anchor_id)
+            // 对于根节点，确保anchor本身被添加到结果中（旧EPT文件可能不包含anchor_id）
             if (node_index == ept.root_index) {
                 int anchor_id_local = static_cast<int>(ept.anchor_id);
                 bool anchor_in_completed = std::find(node.completed_db_graph_ids.begin(),
@@ -3144,7 +2412,7 @@ bool GismaSearchEngine::dfs_traverse(
                 }
             }
 
-            // Add all graphs from completed_db_graph_ids
+            // 添加completed_db_graph_ids中的所有图
             size_t num_results = node.completed_db_graph_ids.size();
             if (used_reuse) {
                 stats.EPT_results_from_reuse += num_results;
@@ -3155,15 +2423,19 @@ bool GismaSearchEngine::dfs_traverse(
             exact_results_within_tau.insert(exact_results_within_tau.end(),
                                           node.completed_db_graph_ids.begin(),
                                           node.completed_db_graph_ids.end());
+            if (e7_stats) { stats.e7_answer_depth_sum += (long long)node.level * (long long)num_results; stats.e7_answer_count += (long long)num_results; }
             found_here = true;
         } else {
             // GED > tau, rejected
         }
         
-        // ========== Extract snapshot (for child node reuse)==========
-        // Only generate snapshot when close children exist
-        // When chain_reuse=true, reuse nodes also save snapshot for subsequent node reuse
-        bool should_save_snapshot = (ged >= 0 && ged < INT_MAX && has_close_child);
+        // ========== 提取 snapshot（供子节点复用）==========
+        // 只有当有近距离children时才生成snapshot
+        // chain_reuse=true时，使用reuse的节点也保存snapshot供后续节点复用
+        // E8 alt_verifier（AStar/LSa/app-lsa）：ged 来自独立的 app_lsa/app_applsa 对象，
+        //   默认 app 从未运行过 A*，其内部 open_heap/boundary_nodes 为空，
+        //   extract_snapshot(app) 会读到未初始化状态而崩溃。这些验证器不复用 snapshot，直接跳过。
+        bool should_save_snapshot = (!alt_verifier && ged >= 0 && ged < INT_MAX && has_close_child);
         if (!chain_reuse) {
             should_save_snapshot = should_save_snapshot && !used_reuse;
         }
@@ -3173,7 +2445,11 @@ bool GismaSearchEngine::dfs_traverse(
             try {
                 app.extract_snapshot(*current_snapshot);
                 current_snapshot->ub = ged;
-                current_snapshot->margin = optimal_margin;  // save margin info
+                current_snapshot->margin = optimal_margin;  // 保存margin信息
+                // chain_depth: 0 if this node used fresh A*, parent_snapshot->chain_depth + 1 if it used reuse
+                current_snapshot->chain_depth = used_reuse
+                    ? ((parent_snapshot ? parent_snapshot->chain_depth : 0) + 1)
+                    : 0;
 
                 if (current_snapshot->v.empty()) {
                     current_snapshot = nullptr;
@@ -3184,31 +2460,19 @@ bool GismaSearchEngine::dfs_traverse(
         }
     }
 #ifdef USE_ESTIMATE_LB_OPTIMIZATION
-    else if (used_dummy_fast_path) {
-        // Used dummy-only fast path, directly use results
-        // dummy fast path GED is always > tau, so there are no results
-        // Note: this is not true search tree reuse, does notNeed to computebaseline
-
-        // No snapshot needed, since fast path was used
-        current_snapshot = nullptr;
-    }
     else {
-        // Computation skipped (LB Propagation etc.), but still check if prunable
+        // 跳过了计算（LB Propagation等），但仍要检查是否可以剪枝
 #if USE_SUBTREE_PRUNING
-        // Subtree Pruning: Leaf nodeskip (no child nodes to prune)
+        // Subtree Pruning: 叶子节点跳过（没有子节点可以剪枝）
         if (!node.children_indices.empty() && new_estimate_lb > 0 && new_estimate_lb < 10000) {
             int max_step_more;
 
-#ifdef USE_DYNAMIC_DEPTH_PROBE
-            max_step_more = probe_max_depth(node_index);
-#else
-            max_step_more = MAX_EPT_DEPTH - node.level;
-#endif
+            max_step_more = node.max_subtree_depth - node.level;
 
             if (max_step_more + (int)tau_ui < (int)new_estimate_lb) {
-                // Count subtree pruning effectiveness（unified version，estimate_lb branch）
+                // 统计subtree pruning效果（unified版本，estimate_lb分支）
                 stats.subtree_pruning_decisions++;
-                size_t avoided_nodes = calculate_subtree_size(ept, node_index) - 1; // minus current node itself
+                size_t avoided_nodes = calculate_subtree_size(ept, node_index) - 1; // 减去当前节点本身
                 stats.subtree_pruning_avoided_nodes += avoided_nodes;
 
                 return found_here;
@@ -3218,7 +2482,7 @@ bool GismaSearchEngine::dfs_traverse(
     }
 #endif
     
-    // RecursivelyProcess child nodes
+    // 递归处理子节点
     bool found_child = false;
     for (size_t ch : node.children_indices) {
         if (ch >= ept.tree_nodes.size()) {
@@ -3230,7 +2494,7 @@ bool GismaSearchEngine::dfs_traverse(
         ui child_estimate_lb = (level_diff >= (int)new_estimate_lb) ?
                               0 : new_estimate_lb - level_diff;
 
-        // Count times estimate_lb is propagated to child nodes
+        // 统计传递estimate_lb到子节点的次数
         stats.lb_propagation_count++;
 
         if (dfs_traverse(ch, ept, query_node,
@@ -3239,7 +2503,9 @@ bool GismaSearchEngine::dfs_traverse(
                                 db_g->n,
                                 child_estimate_lb,
                                 anchor_netdag_lb,
-                                anchor_netdag_ged)) {
+                                anchor_netdag_ged,
+                                (current_snapshot == nullptr) ? no_snapshot_reason : 0,
+                                node_index)) {
             found_child = true;
         }
     }
@@ -3247,8 +2513,8 @@ bool GismaSearchEngine::dfs_traverse(
     return found_here || found_child;
 }
 
-// ========== dfs_traverse_no_SP: Same as unified but with Subtree Pruning disabled ==========
-// Keep Reuse + Distance Propagation, but do not use Subtree Pruning
+// ========== dfs_traverse_no_SP: 与 unified 相同但禁用 Subtree Pruning ==========
+// 保留 Reuse + Distance Propagation，但不使用 Subtree Pruning
 bool GismaSearchEngine::dfs_traverse_no_SP(
     size_t                          node_index,
     const EditPathTree&             ept,
@@ -3260,7 +2526,9 @@ bool GismaSearchEngine::dfs_traverse_no_SP(
     int                             parent_db_vertex_count,
     ui                              estimate_lb,
     double                          anchor_netdag_lb,
-    int                             anchor_netdag_ged)
+    int                             anchor_netdag_ged,
+    int                             parent_no_snapshot_reason,
+    size_t                          parent_node_index)
 {
     const TreeNode &node = ept.tree_nodes[node_index];
     bool found_here = false;
@@ -3272,11 +2540,12 @@ bool GismaSearchEngine::dfs_traverse_no_SP(
     ui new_estimate_lb = estimate_lb;
 
     std::shared_ptr<SearchSnapshot> current_snapshot = nullptr;
+    enum NoSnapshotReason { SNAP_UNKNOWN=0, SNAP_LP_SKIPPED, SNAP_FILTER_SKIPPED, SNAP_REUSE_NO_CHAIN } no_snapshot_reason = SNAP_UNKNOWN;
 
-    // NDC counting flag: ensure each node counted only once during actual computation
+    // NDC计数标志：确保每个节点只在实际做计算时计数一次
     bool ndc_counted = false;
 
-    // Node type statistics
+    // 节点类型统计
     if (node.children_indices.empty()) {
         stats.EPT_leaf_nodes_processed++;
     } else {
@@ -3293,38 +2562,19 @@ bool GismaSearchEngine::dfs_traverse_no_SP(
 
     bool is_db_graph = (node_index == ept.root_index) || !node.completed_db_graph_ids.empty();
 
-    // dummy-only fast path
-    bool used_dummy_fast_path = false;
-    int dummy_fast_path_ged = -1;
-
-    if (parent_snapshot && parent_snapshot->v.size() == 1 &&
-        (parent_snapshot->v[0].level < 0 || parent_snapshot->v[0].image < 0)) {
-        int ged_gap = (node.parent_index < ept.tree_nodes.size()) ?
-                     (node.level - ept.tree_nodes[node.parent_index].level) : 1;
-
-        if (ged_gap > 0 && ged_gap <= parent_snapshot->margin) {
-            used_dummy_fast_path = true;
-            dummy_fast_path_ged = tau_ui + 1;
-            stats.EPT_reuse_attempt++;
-            stats.EPT_reuse_count++;
-            stats.EPT_reuse_fail_parent_snapshot_size_one++;
-            stats.EPT_reuse_fail_parent_snapshot_size_one_dummy++;
-        }
-    }
-
-    bool should_compute_ged = !used_dummy_fast_path;
+    bool should_compute_ged = true;
 
 #ifdef USE_ESTIMATE_LB_OPTIMIZATION
-    // LB Propagation: if estimate_lb > tau, skip computation
-    if (!used_dummy_fast_path && estimate_lb > tau_ui) {
+    if (estimate_lb > tau_ui) {
         should_compute_ged = false;
         stats.lb_pruning_count++;
+        no_snapshot_reason = SNAP_LP_SKIPPED;
     }
 #endif
 
     if (use_ept_filters && should_compute_ged) {
-        // NDC statistics：only count when actually computing LB
-        if (!ndc_counted && is_db_graph) {
+        // NDC统计：只在实际做LB计算时计数
+        if (!ndc_counted ) {
             stats.EPT_ndc_count++;
             ndc_counted = true;
         }
@@ -3335,6 +2585,7 @@ bool GismaSearchEngine::dfs_traverse_no_SP(
         ui lb = qry_g->ged_lower_bound_filter(db_g, tau_ui, vM.size(), eM.size(), max_n);
         if (lb > tau_ui) {
             should_compute_ged = false;
+            no_snapshot_reason = SNAP_FILTER_SKIPPED;
             new_estimate_lb = std::max(new_estimate_lb, lb);
         }
 
@@ -3355,18 +2606,23 @@ bool GismaSearchEngine::dfs_traverse_no_SP(
         should_compute_ged = false;
     }
 
-    // ========== Root node optimization: use GED cached by NetDag,to avoid duplicateA* computation ==========
+    // ========== 根节点优化：利用NetDag缓存的GED，避免重复A*计算 ==========
     bool root_used_netdag_cache = false;
     if (node_index == ept.root_index && anchor_netdag_ged >= 0 && anchor_netdag_ged < (int)INF && should_compute_ged) {
         bool needs_snapshot = false;
 #if USE_BASELINE_FOR_DISTANT_CHILDREN
         for (size_t ch : node.children_indices) {
             if (ch >= ept.tree_nodes.size()) continue;
-            int distance = ept.tree_nodes[ch].level - node.level;
-            if (distance > 0 && distance <= MAX_GED_GAP) {
-                needs_snapshot = true;
-                break;
+            const TreeNode &c_node = ept.tree_nodes[ch];
+            int distance = c_node.level - node.level;
+            if (distance <= 0 || distance > max_ged_gap) continue;
+            // 只有 net_n == 0 的 child 會用 reuse (新政策：父子 n 不同走 baseline)。
+            int net_n = 0;
+            for (const auto& op : c_node.accumulated_ops) {
+                if (op.type == EditOperation::NODE_INSERTION) net_n++;
+                else if (op.type == EditOperation::NODE_DELETION) net_n--;
             }
+            if (net_n == 0) { needs_snapshot = true; break; }
         }
 #endif
         if (!needs_snapshot) {
@@ -3392,10 +2648,10 @@ bool GismaSearchEngine::dfs_traverse_no_SP(
         }
     }
 
-    // GED computation (Same as unified, but without Subtree Pruning)
+    // GED计算 (与unified相同，但无Subtree Pruning)
     if (should_compute_ged) {
-        // NDC statistics：If LB skipped but A* computed, still count
-        if (!ndc_counted && is_db_graph) {
+        // NDC统计：如果跳过LB但做A*计算，也要计数
+        if (!ndc_counted ) {
             stats.EPT_ndc_count++;
             ndc_counted = true;
         }
@@ -3410,12 +2666,18 @@ bool GismaSearchEngine::dfs_traverse_no_SP(
             const TreeNode &child_node = ept.tree_nodes[ch];
             int child_level = child_node.level;
             int distance = child_level - current_level;
-            if (distance > 0 && distance <= MAX_GED_GAP) {
-                has_close_child = true;
-                optimal_margin = std::max(optimal_margin, distance);
+            if (distance <= 0 || distance > max_ged_gap) continue;
+            // 只有 net_n == 0 的 child 會用 reuse (新政策：父子 n 不同走 baseline)。
+            int net_n = 0;
+            for (const auto& op : child_node.accumulated_ops) {
+                if (op.type == EditOperation::NODE_INSERTION) net_n++;
+                else if (op.type == EditOperation::NODE_DELETION) net_n--;
             }
+            if (net_n != 0) continue;
+            has_close_child = true;
+            optimal_margin = std::max(optimal_margin, distance);
         }
-        optimal_margin = std::min(optimal_margin, MAX_MARGIN);
+        optimal_margin = std::min(optimal_margin, max_margin);
         if (!has_close_child && !node.children_indices.empty() && node_index != ept.root_index) {
             use_baseline = true;
             optimal_margin = 0;
@@ -3427,71 +2689,74 @@ bool GismaSearchEngine::dfs_traverse_no_SP(
         if (!use_baseline) {
             if (node_index == ept.root_index) {
                 stats.EPT_reuse_fail_root_node++;
-            } else if (node.op.type == EditOperation::NONE) {
-                stats.EPT_reuse_fail_no_op++;
+            } else if (parent_db_vertex_count >= 0 &&
+                       (int)db_g->n != (int)parent_db_vertex_count) {
+                // 父子 vertex 數不同 → 直接 fallback baseline。
+                stats.EPT_reuse_fail_vertex_count_changed++;
+            } else if (node.accumulated_ops.size() > max_ged_gap) {
+                stats.EPT_reuse_fail_multi_ops++;
             } else if (parent_snapshot == nullptr || parent_db_vertex_count < 0) {
                 stats.EPT_reuse_fail_no_parent_snapshot++;
-            } else if (node.accumulated_ops.size() > MAX_GED_GAP) {
-                stats.EPT_reuse_fail_multi_ops++;
+                switch (parent_no_snapshot_reason) {
+                    case SNAP_LP_SKIPPED:     stats.EPT_reuse_fail_no_parent_lp_skipped++; break;
+                    case SNAP_FILTER_SKIPPED: stats.EPT_reuse_fail_no_parent_filter_skipped++; break;
+                    case SNAP_REUSE_NO_CHAIN: stats.EPT_reuse_fail_no_parent_reuse_no_chain++; break;
+                    default:                  stats.EPT_reuse_fail_no_parent_other++; break;
+                }
             } else {
-                if (db_g->n != parent_db_vertex_count) {
-                    stats.EPT_reuse_fail_vertex_count_changed++;
-                } else {
-                    size_t parent_mo_size = parent_snapshot->mo.size();
-                    size_t current_min_size = std::min(static_cast<size_t>(qry_g->n), static_cast<size_t>(db_g->n));
-                    size_t current_max_size = std::max(static_cast<size_t>(qry_g->n), static_cast<size_t>(db_g->n));
-                    bool mo_size_compatible = (parent_mo_size <= current_min_size);
-                    bool mo_content_valid = true;
-                    if (mo_size_compatible && !parent_snapshot->mo.empty()) {
-                        for (size_t i = 0; i < parent_snapshot->mo.size(); ++i) {
-                            if (parent_snapshot->mo[i] != static_cast<size_t>(-1) &&
-                                parent_snapshot->mo[i] >= current_max_size) {
-                                mo_content_valid = false;
-                                break;
-                            }
+                size_t parent_mo_size = parent_snapshot->mo.size();
+                size_t current_min_size = std::min(static_cast<size_t>(qry_g->n), static_cast<size_t>(db_g->n));
+                size_t current_max_size = std::max(static_cast<size_t>(qry_g->n), static_cast<size_t>(db_g->n));
+                bool mo_size_compatible = (parent_mo_size <= current_min_size);
+                bool mo_content_valid = true;
+                if (mo_size_compatible && !parent_snapshot->mo.empty()) {
+                    for (size_t i = 0; i < parent_snapshot->mo.size(); ++i) {
+                        if (parent_snapshot->mo[i] != static_cast<size_t>(-1) &&
+                            parent_snapshot->mo[i] >= current_max_size) {
+                            mo_content_valid = false;
+                            break;
                         }
                     }
-                    if (!mo_size_compatible || !mo_content_valid) {
-                        stats.EPT_reuse_fail_mo_incompatible++;
-                    } else if (parent_snapshot->v.empty()) {
-                        stats.EPT_reuse_fail_parent_snapshot_empty++;
-                    } else if (parent_snapshot->v.size() == 1) {
-                        stats.EPT_reuse_fail_parent_snapshot_size_one++;
-                        if (!(parent_snapshot->v[0].level < 0 || parent_snapshot->v[0].image < 0)) {
-                            stats.EPT_reuse_fail_parent_snapshot_size_one_real++;
-                            can_reuse = true;
-                            stats.EPT_reuse_attempt++;
-                        } else {
-                            stats.EPT_reuse_fail_parent_snapshot_size_one_dummy++;
-                        }
-                    } else {
-                        can_reuse = true;
-                        stats.EPT_reuse_attempt++;
-                    }
+                }
+                if (!mo_size_compatible || !mo_content_valid) {
+                } else if (parent_snapshot->v.empty()) {
+                } else if (parent_snapshot->v.size() >= 1) {
+                    can_reuse = true;
+                    stats.EPT_reuse_attempt++;
                 }
             }
         }
 
         Application app(tau_ui, "BMao", app_max_iter);
+        app.set_all_edge_labels_same(all_edge_labels_same);
         app.init(db_g, qry_g);
         app.set_disable_reuse_lsa(disable_reuse_lsa);
+        app.set_exact_value_mode(exact_value_mode);
+        app.set_early_stop_at_tau(early_stop_at_tau);
+        app.set_skip_intersection_in_reuse(early_stop_at_tau);
 
         int ged = -1;
         bool used_reuse = false;
         double elapsed_time = 0.0;
 
         if (can_reuse) {
-            // When chain_reuse=false, reuse nodes do not save snapshot, so margin is not needed
+            // chain_reuse=false时，使用reuse的节点不会保存snapshot，因此不需要margin
             if (chain_reuse) {
-                app.set_margin(optimal_margin);  // chain reuse needs to save snapshot for subsequent use
+                app.set_margin(optimal_margin);  // 链式复用时需要为后续保存snapshot
             } else {
-                app.set_margin(0);  // No need to save snapshot for subsequent use, use margin=0 to reduce computation
+                app.set_margin(0);  // 不需要为后续保存snapshot，使用margin=0减少计算
             }
             auto t0 = std::chrono::high_resolution_clock::now();
             ged = app.app_reuse(*parent_snapshot, tau_ui, node.accumulated_ops.size());
             auto t1 = std::chrono::high_resolution_clock::now();
             elapsed_time = std::chrono::duration<double>(t1 - t0).count();
             used_reuse = (ged >= 0);
+            if (used_reuse) {
+                stats.EPT_astar_count++;
+                if (!chain_reuse) {
+                    no_snapshot_reason = SNAP_REUSE_NO_CHAIN;
+                }
+            }
         }
 
         if (!used_reuse) {
@@ -3499,9 +2764,26 @@ bool GismaSearchEngine::dfs_traverse_no_SP(
             app.set_disable_lsa_pruning(disable_lsa_pruning);
             stats.EPT_astar_count++;
             auto t0 = std::chrono::high_resolution_clock::now();
-            ged = app.App();
+            // optimal_margin==0: 不会产出有用 snapshot, 用 App_test 省掉 boundary_nodes + protect_ancestor_chain 开销
+            ged = (optimal_margin == 0) ? app.App_test() : app.App();
             auto t1 = std::chrono::high_resolution_clock::now();
             elapsed_time = std::chrono::duration<double>(t1 - t0).count();
+
+            if (verify_reuse && optimal_margin > 0) {
+                Application app_no_margin(tau_ui, "BMao", app_max_iter);
+                app_no_margin.init(db_g, qry_g);
+                auto t_nm_start = std::chrono::high_resolution_clock::now();
+                int ged_no_margin = app_no_margin.App_baseline(nullptr, nullptr);
+                auto t_nm_end = std::chrono::high_resolution_clock::now();
+                double no_margin_time = std::chrono::duration<double>(t_nm_end - t_nm_start).count();
+                stats.margin_overhead_count++;
+                stats.margin_overhead_with_margin_time += elapsed_time;
+                stats.margin_overhead_without_margin_time += no_margin_time;
+                bool margin_correct = ((ged > (int)tau_ui && ged_no_margin > (int)tau_ui) ||
+                                      (ged <= (int)tau_ui && ged_no_margin <= (int)tau_ui));
+                if (margin_correct) stats.margin_overhead_correct++;
+                else stats.margin_overhead_incorrect++;
+            }
         }
 
         if (used_reuse) {
@@ -3509,9 +2791,88 @@ bool GismaSearchEngine::dfs_traverse_no_SP(
             if (node.op.type != EditOperation::NONE) {
                 stats.EPT_reuse_by_op_type[node.op.type]++;
             }
+            if (verify_reuse) {
+                Application app_verify(tau_ui, "BMao", app_max_iter);
+                app_verify.init(db_g, qry_g);
+                auto t_verify_start = std::chrono::high_resolution_clock::now();
+                int ged_standard = app_verify.App_baseline(nullptr, nullptr);
+                auto t_verify_end = std::chrono::high_resolution_clock::now();
+                double verify_time = std::chrono::duration<double>(t_verify_end - t_verify_start).count();
+                stats.EPT_verification_astar_time += verify_time;
+                stats.EPT_reuse_verifications++;
+                stats.EPT_baseline_app_count++;
+                stats.EPT_baseline_app_time += verify_time;
+                stats.EPT_baseline_reuse_time += elapsed_time;
+                if (stats.baseline_samples.size() < SearchStats::MAX_BASELINE_SAMPLES) {
+                    stats.baseline_samples.push_back({elapsed_time * 1000.0, verify_time * 1000.0});
+                }
+                bool reuse_correct = ((ged > (int)tau_ui && ged_standard > (int)tau_ui) ||
+                                     (ged <= (int)tau_ui && ged_standard <= (int)tau_ui));
+                if (reuse_correct) stats.EPT_reuse_correct++;
+                else stats.EPT_reuse_incorrect++;
+
+                // Speedup distribution
+                double sp = (elapsed_time > 0) ? verify_time / elapsed_time : 0.0;
+                int sp_bucket;
+                if (sp > 3.0) { stats.reuse_speedup_gt3x++; sp_bucket = 0; }
+                else if (sp > 2.0) { stats.reuse_speedup_2x_3x++; sp_bucket = 1; }
+                else if (sp > 1.0) { stats.reuse_speedup_1x_2x++; sp_bucket = 2; }
+                else if (sp > 0.5) { stats.reuse_speedup_05x_1x++; sp_bucket = 3; }
+                else { stats.reuse_speedup_lt05x++; sp_bucket = 4; }
+
+                // Snapshot size
+                int size_bucket = -1;
+                if (parent_snapshot) {
+                    size_t sz = parent_snapshot->v.size();
+                    if (sz <= 1) { stats.reuse_snapshot_size_1++; size_bucket = 0; }
+                    else if (sz <= 10) { stats.reuse_snapshot_size_2_10++; size_bucket = 1; }
+                    else { stats.reuse_snapshot_size_gt10++; size_bucket = 2; }
+                }
+
+                // Cross-tab [size][speedup]
+                if (size_bucket >= 0) {
+                    stats.reuse_xtab[size_bucket][sp_bucket]++;
+                    stats.reuse_xtime[size_bucket] += elapsed_time;
+                    stats.baseline_xtime[size_bucket] += verify_time;
+                }
+
+                // Chain depth statistics: depth = parent_snapshot->chain_depth
+                int chain_d = parent_snapshot ? parent_snapshot->chain_depth : 0;
+                if (chain_d < 0) chain_d = 0;
+                if (chain_d >= SearchStats::MAX_CHAIN_DEPTH) chain_d = SearchStats::MAX_CHAIN_DEPTH - 1;
+                stats.chain_depth_count[chain_d]++;
+                stats.chain_depth_reuse_time[chain_d]    += elapsed_time;
+                stats.chain_depth_baseline_time[chain_d] += verify_time;
+                if (reuse_correct) stats.chain_depth_correct[chain_d]++;
+                if (ged_standard <= (int)tau_ui) {
+                    stats.chain_depth_pos[chain_d]++;
+                    if (ged <= (int)tau_ui) stats.chain_depth_tp[chain_d]++;
+                }
+
+                // Per-reuse log
+                if (g_reuse_log) {
+                    std::lock_guard<std::mutex> _lk(g_reuse_log_mutex);
+                    fprintf(g_reuse_log,
+                            "%d,%u,%zu,%zu,%zu,%d,%.3f,%.3f,%d,%d,%d\n",
+                            query_node->node_id,
+                            ept.anchor_id,
+                            parent_node_index,
+                            node_index,
+                            parent_snapshot ? parent_snapshot->v.size() : (size_t)0,
+                            (int)node.accumulated_ops.size(),
+                            elapsed_time * 1e6,
+                            verify_time * 1e6,
+                            ged,
+                            ged_standard,
+                            (int)tau_ui);
+                }
+            }
         }
 
         stats.EPT_astar_time += elapsed_time;
+        if (used_reuse) {
+            stats.EPT_reuse_success_time += elapsed_time;
+        }
 
         if (is_db_graph) {
             stats.EPT_db_graph_astar_count++;
@@ -3522,11 +2883,11 @@ bool GismaSearchEngine::dfs_traverse_no_SP(
         }
 
 #ifdef USE_ESTIMATE_LB_OPTIMIZATION
-        // LB Propagation: Update estimate_lb
+        // LB Propagation: 更新estimate_lb
         new_estimate_lb = app.get_overall_lb();
 #endif
 
-        // Note: intentionally skipping Subtree Pruning check here
+        // 注意：这里故意跳过 Subtree Pruning 检查
 
         if (ged <= (int)tau_ui) {
             if (node_index == ept.root_index) {
@@ -3557,8 +2918,8 @@ bool GismaSearchEngine::dfs_traverse_no_SP(
             found_here = true;
         }
 
-        // Extract snapshot (for child node reuse)
-        // When chain_reuse=true, reuse nodes also save snapshot for subsequent node reuse
+        // 提取 snapshot（供子节点复用）
+        // chain_reuse=true时，使用reuse的节点也保存snapshot供后续节点复用
         bool should_save_snapshot = (ged >= 0 && ged < INT_MAX && has_close_child);
         if (!chain_reuse) {
             should_save_snapshot = should_save_snapshot && !used_reuse;
@@ -3569,6 +2930,9 @@ bool GismaSearchEngine::dfs_traverse_no_SP(
                 app.extract_snapshot(*current_snapshot);
                 current_snapshot->ub = ged;
                 current_snapshot->margin = optimal_margin;
+                current_snapshot->chain_depth = used_reuse
+                    ? ((parent_snapshot ? parent_snapshot->chain_depth : 0) + 1)
+                    : 0;
                 if (current_snapshot->v.empty()) {
                     current_snapshot = nullptr;
                 }
@@ -3578,13 +2942,10 @@ bool GismaSearchEngine::dfs_traverse_no_SP(
         }
     }
 #ifdef USE_ESTIMATE_LB_OPTIMIZATION
-    else if (used_dummy_fast_path) {
-        current_snapshot = nullptr;
-    }
-    // Note: also skip Subtree Pruning check here (else branch)
+    // 注意：这里也跳过 Subtree Pruning 检查（else分支）
 #endif
 
-    // RecursivelyProcess child nodes
+    // 递归处理子节点
     bool found_child = false;
     for (size_t ch : node.children_indices) {
         if (ch >= ept.tree_nodes.size()) {
@@ -3601,7 +2962,9 @@ bool GismaSearchEngine::dfs_traverse_no_SP(
         if (dfs_traverse_no_SP(ch, ept, query_node,
                               exact_results_within_tau, tau, stats,
                               current_snapshot, db_g->n, child_estimate_lb,
-                              anchor_netdag_lb, anchor_netdag_ged)) {
+                              anchor_netdag_lb, anchor_netdag_ged,
+                              (current_snapshot == nullptr) ? no_snapshot_reason : 0,
+                              node_index)) {
             found_child = true;
         }
     }
@@ -3609,8 +2972,8 @@ bool GismaSearchEngine::dfs_traverse_no_SP(
     return found_here || found_child;
 }
 
-// ========== dfs_traverse_no_LP: Same as unified but with Distance Propagation disabled ==========
-// Keep Reuse + Subtree Pruning, but do not use Distance Propagation (LB Propagation)
+// ========== dfs_traverse_no_LP: 与 unified 相同但禁用 Distance Propagation ==========
+// 保留 Reuse + Subtree Pruning，但不使用 Distance Propagation (LB Propagation)
 bool GismaSearchEngine::dfs_traverse_no_LP(
     size_t                          node_index,
     const EditPathTree&             ept,
@@ -3622,7 +2985,9 @@ bool GismaSearchEngine::dfs_traverse_no_LP(
     int                             parent_db_vertex_count,
     ui                              estimate_lb,
     double                          anchor_netdag_lb,
-    int                             anchor_netdag_ged)
+    int                             anchor_netdag_ged,
+    int                             parent_no_snapshot_reason,
+    size_t                          parent_node_index)
 {
     const TreeNode &node = ept.tree_nodes[node_index];
     bool found_here = false;
@@ -3631,38 +2996,16 @@ bool GismaSearchEngine::dfs_traverse_no_LP(
     Graph *qry_g = query_node->graph.get();
 
     ui tau_ui = (ui)tau;
-    ui new_estimate_lb = estimate_lb;  // will not be updated (DP disabled)
+    ui new_estimate_lb = estimate_lb;  // 不会被更新（禁用DP）
 
     std::shared_ptr<SearchSnapshot> current_snapshot = nullptr;
+    enum NoSnapshotReason { SNAP_UNKNOWN=0, SNAP_LP_SKIPPED, SNAP_FILTER_SKIPPED, SNAP_REUSE_NO_CHAIN } no_snapshot_reason = SNAP_UNKNOWN;
 
-#ifdef USE_DYNAMIC_DEPTH_PROBE
-    // Subtree Pruning needs dynamic depth probing
-    auto probe_max_depth = [&ept](size_t node_idx) -> int {
-        const TreeNode& current = ept.tree_nodes[node_idx];
-        int current_level = current.level;
 
-        std::function<int(size_t)> find_max_level = [&](size_t idx) -> int {
-            if (idx >= ept.tree_nodes.size()) {
-                return current_level;
-            }
-            const TreeNode& n = ept.tree_nodes[idx];
-            int max_level = n.level;
-            for (size_t ch : n.children_indices) {
-                int child_max = find_max_level(ch);
-                max_level = std::max(max_level, child_max);
-            }
-            return max_level;
-        };
-
-        int max_level_in_subtree = find_max_level(node_idx);
-        return max_level_in_subtree - current_level;
-    };
-#endif
-
-    // NDC counting flag: ensure each node counted only once during actual computation
+    // NDC计数标志：确保每个节点只在实际做计算时计数一次
     bool ndc_counted = false;
 
-    // Node type statistics
+    // 节点类型统计
     if (node.children_indices.empty()) {
         stats.EPT_leaf_nodes_processed++;
     } else {
@@ -3679,34 +3022,15 @@ bool GismaSearchEngine::dfs_traverse_no_LP(
 
     bool is_db_graph = (node_index == ept.root_index) || !node.completed_db_graph_ids.empty();
 
-    // dummy-only fast path
-    bool used_dummy_fast_path = false;
-    int dummy_fast_path_ged = -1;
+    bool should_compute_ged = true;
 
-    if (parent_snapshot && parent_snapshot->v.size() == 1 &&
-        (parent_snapshot->v[0].level < 0 || parent_snapshot->v[0].image < 0)) {
-        int ged_gap = (node.parent_index < ept.tree_nodes.size()) ?
-                     (node.level - ept.tree_nodes[node.parent_index].level) : 1;
+    // 注意：这里故意跳过 LB Propagation 的 estimate_lb > tau 检查
 
-        if (ged_gap > 0 && ged_gap <= parent_snapshot->margin) {
-            used_dummy_fast_path = true;
-            dummy_fast_path_ged = tau_ui + 1;
-            stats.EPT_reuse_attempt++;
-            stats.EPT_reuse_count++;
-            stats.EPT_reuse_fail_parent_snapshot_size_one++;
-            stats.EPT_reuse_fail_parent_snapshot_size_one_dummy++;
-        }
-    }
-
-    bool should_compute_ged = !used_dummy_fast_path;
-
-    // Note: intentionally skipping LB Propagation estimate_lb > tau check
-
-    ui ept_filter_lb = 0;  // Save EPT filter lb for current node SP use (do not pass to child nodes)
+    ui ept_filter_lb = 0;  // 保存EPT filter的lb，供当前节点SP使用（不传给子节点）
 
     if (use_ept_filters && should_compute_ged) {
-        // NDC statistics：only count when actually computing LB
-        if (!ndc_counted && is_db_graph) {
+        // NDC统计：只在实际做LB计算时计数
+        if (!ndc_counted ) {
             stats.EPT_ndc_count++;
             ndc_counted = true;
         }
@@ -3715,9 +3039,10 @@ bool GismaSearchEngine::dfs_traverse_no_LP(
 
         stats.EPT_lb_count++;
         ui lb = qry_g->ged_lower_bound_filter(db_g, tau_ui, vM.size(), eM.size(), max_n);
-        ept_filter_lb = lb;  // save lb for SP use
+        ept_filter_lb = lb;  // 保存lb供SP使用
         if (lb > tau_ui) {
             should_compute_ged = false;
+            no_snapshot_reason = SNAP_FILTER_SKIPPED;
         }
 
         auto lb_end = std::chrono::high_resolution_clock::now();
@@ -3737,18 +3062,23 @@ bool GismaSearchEngine::dfs_traverse_no_LP(
         should_compute_ged = false;
     }
 
-    // ========== Root node optimization: use GED cached by NetDag,to avoid duplicateA* computation ==========
+    // ========== 根节点优化：利用NetDag缓存的GED，避免重复A*计算 ==========
     bool root_used_netdag_cache = false;
     if (node_index == ept.root_index && anchor_netdag_ged >= 0 && anchor_netdag_ged < (int)INF && should_compute_ged) {
         bool needs_snapshot = false;
 #if USE_BASELINE_FOR_DISTANT_CHILDREN
         for (size_t ch : node.children_indices) {
             if (ch >= ept.tree_nodes.size()) continue;
-            int distance = ept.tree_nodes[ch].level - node.level;
-            if (distance > 0 && distance <= MAX_GED_GAP) {
-                needs_snapshot = true;
-                break;
+            const TreeNode &c_node = ept.tree_nodes[ch];
+            int distance = c_node.level - node.level;
+            if (distance <= 0 || distance > max_ged_gap) continue;
+            // 只有 net_n == 0 的 child 會用 reuse (新政策：父子 n 不同走 baseline)。
+            int net_n = 0;
+            for (const auto& op : c_node.accumulated_ops) {
+                if (op.type == EditOperation::NODE_INSERTION) net_n++;
+                else if (op.type == EditOperation::NODE_DELETION) net_n--;
             }
+            if (net_n == 0) { needs_snapshot = true; break; }
         }
 #endif
         if (!needs_snapshot) {
@@ -3767,17 +3097,17 @@ bool GismaSearchEngine::dfs_traverse_no_LP(
                 stats.EPT_results_from_astar += node.completed_db_graph_ids.size();
                 found_here = true;
             }
-            // Note: intentionally not updating new_estimate_lb (LP disabled)
+            // 注意：这里故意不更新 new_estimate_lb（禁用LP）
             should_compute_ged = false;
             root_used_netdag_cache = true;
             stats.root_netdag_ged_reuse_count++;
         }
     }
 
-    // GED computation (Same as unified, but without LB Propagation update)
+    // GED计算 (与unified相同，但无LB Propagation更新)
     if (should_compute_ged) {
-        // NDC statistics：If LB skipped but A* computed, still count
-        if (!ndc_counted && is_db_graph) {
+        // NDC统计：如果跳过LB但做A*计算，也要计数
+        if (!ndc_counted ) {
             stats.EPT_ndc_count++;
             ndc_counted = true;
         }
@@ -3792,12 +3122,18 @@ bool GismaSearchEngine::dfs_traverse_no_LP(
             const TreeNode &child_node = ept.tree_nodes[ch];
             int child_level = child_node.level;
             int distance = child_level - current_level;
-            if (distance > 0 && distance <= MAX_GED_GAP) {
-                has_close_child = true;
-                optimal_margin = std::max(optimal_margin, distance);
+            if (distance <= 0 || distance > max_ged_gap) continue;
+            // 只有 net_n == 0 的 child 會用 reuse (新政策：父子 n 不同走 baseline)。
+            int net_n = 0;
+            for (const auto& op : child_node.accumulated_ops) {
+                if (op.type == EditOperation::NODE_INSERTION) net_n++;
+                else if (op.type == EditOperation::NODE_DELETION) net_n--;
             }
+            if (net_n != 0) continue;
+            has_close_child = true;
+            optimal_margin = std::max(optimal_margin, distance);
         }
-        optimal_margin = std::min(optimal_margin, MAX_MARGIN);
+        optimal_margin = std::min(optimal_margin, max_margin);
         if (!has_close_child && !node.children_indices.empty() && node_index != ept.root_index) {
             use_baseline = true;
             optimal_margin = 0;
@@ -3809,71 +3145,74 @@ bool GismaSearchEngine::dfs_traverse_no_LP(
         if (!use_baseline) {
             if (node_index == ept.root_index) {
                 stats.EPT_reuse_fail_root_node++;
-            } else if (node.op.type == EditOperation::NONE) {
-                stats.EPT_reuse_fail_no_op++;
+            } else if (parent_db_vertex_count >= 0 &&
+                       (int)db_g->n != (int)parent_db_vertex_count) {
+                // 父子 vertex 數不同 → 直接 fallback baseline。
+                stats.EPT_reuse_fail_vertex_count_changed++;
+            } else if (node.accumulated_ops.size() > max_ged_gap) {
+                stats.EPT_reuse_fail_multi_ops++;
             } else if (parent_snapshot == nullptr || parent_db_vertex_count < 0) {
                 stats.EPT_reuse_fail_no_parent_snapshot++;
-            } else if (node.accumulated_ops.size() > MAX_GED_GAP) {
-                stats.EPT_reuse_fail_multi_ops++;
+                switch (parent_no_snapshot_reason) {
+                    case SNAP_LP_SKIPPED:     stats.EPT_reuse_fail_no_parent_lp_skipped++; break;
+                    case SNAP_FILTER_SKIPPED: stats.EPT_reuse_fail_no_parent_filter_skipped++; break;
+                    case SNAP_REUSE_NO_CHAIN: stats.EPT_reuse_fail_no_parent_reuse_no_chain++; break;
+                    default:                  stats.EPT_reuse_fail_no_parent_other++; break;
+                }
             } else {
-                if (db_g->n != parent_db_vertex_count) {
-                    stats.EPT_reuse_fail_vertex_count_changed++;
-                } else {
-                    size_t parent_mo_size = parent_snapshot->mo.size();
-                    size_t current_min_size = std::min(static_cast<size_t>(qry_g->n), static_cast<size_t>(db_g->n));
-                    size_t current_max_size = std::max(static_cast<size_t>(qry_g->n), static_cast<size_t>(db_g->n));
-                    bool mo_size_compatible = (parent_mo_size <= current_min_size);
-                    bool mo_content_valid = true;
-                    if (mo_size_compatible && !parent_snapshot->mo.empty()) {
-                        for (size_t i = 0; i < parent_snapshot->mo.size(); ++i) {
-                            if (parent_snapshot->mo[i] != static_cast<size_t>(-1) &&
-                                parent_snapshot->mo[i] >= current_max_size) {
-                                mo_content_valid = false;
-                                break;
-                            }
+                size_t parent_mo_size = parent_snapshot->mo.size();
+                size_t current_min_size = std::min(static_cast<size_t>(qry_g->n), static_cast<size_t>(db_g->n));
+                size_t current_max_size = std::max(static_cast<size_t>(qry_g->n), static_cast<size_t>(db_g->n));
+                bool mo_size_compatible = (parent_mo_size <= current_min_size);
+                bool mo_content_valid = true;
+                if (mo_size_compatible && !parent_snapshot->mo.empty()) {
+                    for (size_t i = 0; i < parent_snapshot->mo.size(); ++i) {
+                        if (parent_snapshot->mo[i] != static_cast<size_t>(-1) &&
+                            parent_snapshot->mo[i] >= current_max_size) {
+                            mo_content_valid = false;
+                            break;
                         }
                     }
-                    if (!mo_size_compatible || !mo_content_valid) {
-                        stats.EPT_reuse_fail_mo_incompatible++;
-                    } else if (parent_snapshot->v.empty()) {
-                        stats.EPT_reuse_fail_parent_snapshot_empty++;
-                    } else if (parent_snapshot->v.size() == 1) {
-                        stats.EPT_reuse_fail_parent_snapshot_size_one++;
-                        if (!(parent_snapshot->v[0].level < 0 || parent_snapshot->v[0].image < 0)) {
-                            stats.EPT_reuse_fail_parent_snapshot_size_one_real++;
-                            can_reuse = true;
-                            stats.EPT_reuse_attempt++;
-                        } else {
-                            stats.EPT_reuse_fail_parent_snapshot_size_one_dummy++;
-                        }
-                    } else {
-                        can_reuse = true;
-                        stats.EPT_reuse_attempt++;
-                    }
+                }
+                if (!mo_size_compatible || !mo_content_valid) {
+                } else if (parent_snapshot->v.empty()) {
+                } else if (parent_snapshot->v.size() >= 1) {
+                    can_reuse = true;
+                    stats.EPT_reuse_attempt++;
                 }
             }
         }
 
         Application app(tau_ui, "BMao", app_max_iter);
+        app.set_all_edge_labels_same(all_edge_labels_same);
         app.init(db_g, qry_g);
         app.set_disable_reuse_lsa(disable_reuse_lsa);
+        app.set_exact_value_mode(exact_value_mode);
+        app.set_early_stop_at_tau(early_stop_at_tau);
+        app.set_skip_intersection_in_reuse(early_stop_at_tau);
 
         int ged = -1;
         bool used_reuse = false;
         double elapsed_time = 0.0;
 
         if (can_reuse) {
-            // When chain_reuse=false, reuse nodes do not save snapshot, so margin is not needed
+            // chain_reuse=false时，使用reuse的节点不会保存snapshot，因此不需要margin
             if (chain_reuse) {
-                app.set_margin(optimal_margin);  // chain reuse needs to save snapshot for subsequent use
+                app.set_margin(optimal_margin);  // 链式复用时需要为后续保存snapshot
             } else {
-                app.set_margin(0);  // No need to save snapshot for subsequent use, use margin=0 to reduce computation
+                app.set_margin(0);  // 不需要为后续保存snapshot，使用margin=0减少计算
             }
             auto t0 = std::chrono::high_resolution_clock::now();
             ged = app.app_reuse(*parent_snapshot, tau_ui, node.accumulated_ops.size());
             auto t1 = std::chrono::high_resolution_clock::now();
             elapsed_time = std::chrono::duration<double>(t1 - t0).count();
             used_reuse = (ged >= 0);
+            if (used_reuse) {
+                stats.EPT_astar_count++;
+                if (!chain_reuse) {
+                    no_snapshot_reason = SNAP_REUSE_NO_CHAIN;
+                }
+            }
         }
 
         if (!used_reuse) {
@@ -3881,9 +3220,26 @@ bool GismaSearchEngine::dfs_traverse_no_LP(
             app.set_disable_lsa_pruning(disable_lsa_pruning);
             stats.EPT_astar_count++;
             auto t0 = std::chrono::high_resolution_clock::now();
-            ged = app.App();
+            // optimal_margin==0: 不会产出有用 snapshot, 用 App_test 省掉 boundary_nodes + protect_ancestor_chain 开销
+            ged = (optimal_margin == 0) ? app.App_test() : app.App();
             auto t1 = std::chrono::high_resolution_clock::now();
             elapsed_time = std::chrono::duration<double>(t1 - t0).count();
+
+            if (verify_reuse && optimal_margin > 0) {
+                Application app_no_margin(tau_ui, "BMao", app_max_iter);
+                app_no_margin.init(db_g, qry_g);
+                auto t_nm_start = std::chrono::high_resolution_clock::now();
+                int ged_no_margin = app_no_margin.App_baseline(nullptr, nullptr);
+                auto t_nm_end = std::chrono::high_resolution_clock::now();
+                double no_margin_time = std::chrono::duration<double>(t_nm_end - t_nm_start).count();
+                stats.margin_overhead_count++;
+                stats.margin_overhead_with_margin_time += elapsed_time;
+                stats.margin_overhead_without_margin_time += no_margin_time;
+                bool margin_correct = ((ged > (int)tau_ui && ged_no_margin > (int)tau_ui) ||
+                                      (ged <= (int)tau_ui && ged_no_margin <= (int)tau_ui));
+                if (margin_correct) stats.margin_overhead_correct++;
+                else stats.margin_overhead_incorrect++;
+            }
         }
 
         if (used_reuse) {
@@ -3891,9 +3247,88 @@ bool GismaSearchEngine::dfs_traverse_no_LP(
             if (node.op.type != EditOperation::NONE) {
                 stats.EPT_reuse_by_op_type[node.op.type]++;
             }
+            if (verify_reuse) {
+                Application app_verify(tau_ui, "BMao", app_max_iter);
+                app_verify.init(db_g, qry_g);
+                auto t_verify_start = std::chrono::high_resolution_clock::now();
+                int ged_standard = app_verify.App_baseline(nullptr, nullptr);
+                auto t_verify_end = std::chrono::high_resolution_clock::now();
+                double verify_time = std::chrono::duration<double>(t_verify_end - t_verify_start).count();
+                stats.EPT_verification_astar_time += verify_time;
+                stats.EPT_reuse_verifications++;
+                stats.EPT_baseline_app_count++;
+                stats.EPT_baseline_app_time += verify_time;
+                stats.EPT_baseline_reuse_time += elapsed_time;
+                if (stats.baseline_samples.size() < SearchStats::MAX_BASELINE_SAMPLES) {
+                    stats.baseline_samples.push_back({elapsed_time * 1000.0, verify_time * 1000.0});
+                }
+                bool reuse_correct = ((ged > (int)tau_ui && ged_standard > (int)tau_ui) ||
+                                     (ged <= (int)tau_ui && ged_standard <= (int)tau_ui));
+                if (reuse_correct) stats.EPT_reuse_correct++;
+                else stats.EPT_reuse_incorrect++;
+
+                // Speedup distribution
+                double sp = (elapsed_time > 0) ? verify_time / elapsed_time : 0.0;
+                int sp_bucket;
+                if (sp > 3.0) { stats.reuse_speedup_gt3x++; sp_bucket = 0; }
+                else if (sp > 2.0) { stats.reuse_speedup_2x_3x++; sp_bucket = 1; }
+                else if (sp > 1.0) { stats.reuse_speedup_1x_2x++; sp_bucket = 2; }
+                else if (sp > 0.5) { stats.reuse_speedup_05x_1x++; sp_bucket = 3; }
+                else { stats.reuse_speedup_lt05x++; sp_bucket = 4; }
+
+                // Snapshot size
+                int size_bucket = -1;
+                if (parent_snapshot) {
+                    size_t sz = parent_snapshot->v.size();
+                    if (sz <= 1) { stats.reuse_snapshot_size_1++; size_bucket = 0; }
+                    else if (sz <= 10) { stats.reuse_snapshot_size_2_10++; size_bucket = 1; }
+                    else { stats.reuse_snapshot_size_gt10++; size_bucket = 2; }
+                }
+
+                // Cross-tab [size][speedup]
+                if (size_bucket >= 0) {
+                    stats.reuse_xtab[size_bucket][sp_bucket]++;
+                    stats.reuse_xtime[size_bucket] += elapsed_time;
+                    stats.baseline_xtime[size_bucket] += verify_time;
+                }
+
+                // Chain depth statistics: depth = parent_snapshot->chain_depth
+                int chain_d = parent_snapshot ? parent_snapshot->chain_depth : 0;
+                if (chain_d < 0) chain_d = 0;
+                if (chain_d >= SearchStats::MAX_CHAIN_DEPTH) chain_d = SearchStats::MAX_CHAIN_DEPTH - 1;
+                stats.chain_depth_count[chain_d]++;
+                stats.chain_depth_reuse_time[chain_d]    += elapsed_time;
+                stats.chain_depth_baseline_time[chain_d] += verify_time;
+                if (reuse_correct) stats.chain_depth_correct[chain_d]++;
+                if (ged_standard <= (int)tau_ui) {
+                    stats.chain_depth_pos[chain_d]++;
+                    if (ged <= (int)tau_ui) stats.chain_depth_tp[chain_d]++;
+                }
+
+                // Per-reuse log
+                if (g_reuse_log) {
+                    std::lock_guard<std::mutex> _lk(g_reuse_log_mutex);
+                    fprintf(g_reuse_log,
+                            "%d,%u,%zu,%zu,%zu,%d,%.3f,%.3f,%d,%d,%d\n",
+                            query_node->node_id,
+                            ept.anchor_id,
+                            parent_node_index,
+                            node_index,
+                            parent_snapshot ? parent_snapshot->v.size() : (size_t)0,
+                            (int)node.accumulated_ops.size(),
+                            elapsed_time * 1e6,
+                            verify_time * 1e6,
+                            ged,
+                            ged_standard,
+                            (int)tau_ui);
+                }
+            }
         }
 
         stats.EPT_astar_time += elapsed_time;
+        if (used_reuse) {
+            stats.EPT_reuse_success_time += elapsed_time;
+        }
 
         if (is_db_graph) {
             stats.EPT_db_graph_astar_count++;
@@ -3903,20 +3338,16 @@ bool GismaSearchEngine::dfs_traverse_no_LP(
             stats.EPT_intermediate_graph_astar_time += elapsed_time;
         }
 
-        // Note: intentionally not updating new_estimate_lb (DP disabled)
+        // 注意：这里故意不更新 new_estimate_lb（禁用DP）
 
-        // Subtree Pruning check (retained)
+        // Subtree Pruning 检查（保留）
 #if USE_SUBTREE_PRUNING
         ui overall_lb = app.get_overall_lb();
 
         if (!node.children_indices.empty() && overall_lb > 0 && overall_lb < 10000) {
             int max_step_more;
 
-#ifdef USE_DYNAMIC_DEPTH_PROBE
-            max_step_more = probe_max_depth(node_index);
-#else
-            max_step_more = MAX_EPT_DEPTH - node.level;
-#endif
+            max_step_more = node.max_subtree_depth - node.level;
 
             if (max_step_more + (int)tau_ui < (int)overall_lb) {
                 stats.subtree_pruning_decisions++;
@@ -3956,8 +3387,8 @@ bool GismaSearchEngine::dfs_traverse_no_LP(
             found_here = true;
         }
 
-        // Extract snapshot (for child node reuse)
-        // When chain_reuse=true, reuse nodes also save snapshot for subsequent node reuse
+        // 提取 snapshot（供子节点复用）
+        // chain_reuse=true时，使用reuse的节点也保存snapshot供后续节点复用
         bool should_save_snapshot = (ged >= 0 && ged < INT_MAX && has_close_child);
         if (!chain_reuse) {
             should_save_snapshot = should_save_snapshot && !used_reuse;
@@ -3968,6 +3399,9 @@ bool GismaSearchEngine::dfs_traverse_no_LP(
                 app.extract_snapshot(*current_snapshot);
                 current_snapshot->ub = ged;
                 current_snapshot->margin = optimal_margin;
+                current_snapshot->chain_depth = used_reuse
+                    ? ((parent_snapshot ? parent_snapshot->chain_depth : 0) + 1)
+                    : 0;
                 if (current_snapshot->v.empty()) {
                     current_snapshot = nullptr;
                 }
@@ -3976,21 +3410,14 @@ bool GismaSearchEngine::dfs_traverse_no_LP(
             }
         }
     }
-    else if (used_dummy_fast_path) {
-        current_snapshot = nullptr;
-    }
     else {
-        // Computation skipped, but still check Subtree Pruning (retained)
-        // Use current node's EPT filter computed lb (not propagated from parent node's estimate_lb)
+        // 跳过了计算，但仍要检查Subtree Pruning（保留）
+        // 使用当前节点EPT filter算出的lb（不是从父节点传播的estimate_lb）
 #if USE_SUBTREE_PRUNING
         if (!node.children_indices.empty() && ept_filter_lb > 0 && ept_filter_lb < 10000) {
             int max_step_more;
 
-#ifdef USE_DYNAMIC_DEPTH_PROBE
-            max_step_more = probe_max_depth(node_index);
-#else
-            max_step_more = MAX_EPT_DEPTH - node.level;
-#endif
+            max_step_more = node.max_subtree_depth - node.level;
 
             if (max_step_more + (int)tau_ui < (int)ept_filter_lb) {
                 stats.subtree_pruning_decisions++;
@@ -4002,7 +3429,7 @@ bool GismaSearchEngine::dfs_traverse_no_LP(
 #endif
     }
 
-    // RecursivelyProcess child nodes
+    // 递归处理子节点
     bool found_child = false;
     for (size_t ch : node.children_indices) {
         if (ch >= ept.tree_nodes.size()) {
@@ -4011,7 +3438,7 @@ bool GismaSearchEngine::dfs_traverse_no_LP(
 
         const TreeNode &child_node = ept.tree_nodes[ch];
         int level_diff = child_node.level - node.level;
-        // Note: since DP is disabled, new_estimate_lb will not be updated, passing 0 here
+        // 注意：因为禁用DP，new_estimate_lb不会被更新，这里传0
         ui child_estimate_lb = 0;
 
         stats.lb_propagation_count++;
@@ -4019,7 +3446,9 @@ bool GismaSearchEngine::dfs_traverse_no_LP(
         if (dfs_traverse_no_LP(ch, ept, query_node,
                               exact_results_within_tau, tau, stats,
                               current_snapshot, db_g->n, child_estimate_lb,
-                              anchor_netdag_lb, anchor_netdag_ged)) {
+                              anchor_netdag_lb, anchor_netdag_ged,
+                              (current_snapshot == nullptr) ? no_snapshot_reason : 0,
+                              node_index)) {
             found_child = true;
         }
     }
@@ -4045,38 +3474,38 @@ void GismaSearchEngine::traverse_ept_and_search(
         return;
     }
 
-    // Use override parameter (if any), otherwise use member variable, avoid data race in parallel mode
+    // 使用override参数（如有），否则使用成员变量，避免并行模式下的数据竞争
     const std::string &effective_dfs_mode = dfs_mode_override.empty() ? this->dfs_mode : dfs_mode_override;
 
-    // Select DFS traversal method based on dfs_mode parameter (default: dfs_traverse with all optimizations)
+    // 根据dfs_mode参数选择DFS遍历方式（默认使用dfs_traverse，包含所有优化）
     if (effective_dfs_mode == "no_reuse") {
-        // Use no_reuse version (SP + DP optimizations, but no search tree reuse)
+        // 使用no_reuse版本（SP + DP优化，但无搜索树复用）
         ui initial_estimate_lb = 0;
 
         dfs_traverse_no_reuse(ept.root_index, ept, query_node,
                            exact_results_within_tau, tau, stats,
                            initial_estimate_lb, anchor_netdag_lb, anchor_netdag_ged);
     } else if (effective_dfs_mode == "only_dfs") {
-        // Use pure DFS traversal (App_baseline, no optimizations)
+        // 使用纯DFS遍历（App_baseline，无优化）
         dfs_traverse_only_dfs(ept.root_index, ept, query_node,
                              exact_results_within_tau, tau, stats,
                              anchor_netdag_lb, anchor_netdag_ged);
     } else if (effective_dfs_mode == "no_SP") {
-        // Use no_SP version (reuse + DP optimizations, but no Subtree Pruning)
+        // 使用no_SP版本（reuse + DP优化，但无Subtree Pruning）
         ui initial_estimate_lb = 0;
         dfs_traverse_no_SP(ept.root_index, ept, query_node,
                           exact_results_within_tau, tau, stats,
                           nullptr, -1, initial_estimate_lb,
                           anchor_netdag_lb, anchor_netdag_ged);
     } else if (effective_dfs_mode == "no_LP") {
-        // Use no_LP version (reuse + SP optimizations, but no Distance Propagation)
+        // 使用no_LP版本（reuse + SP优化，但无Distance Propagation）
         ui initial_estimate_lb = 0;
         dfs_traverse_no_LP(ept.root_index, ept, query_node,
                           exact_results_within_tau, tau, stats,
                           nullptr, -1, initial_estimate_lb,
                           anchor_netdag_lb, anchor_netdag_ged);
     } else {
-        // Default: use dfs_traverse (all optimizations: Reuse + SP + LP)
+        // 默认：使用dfs_traverse（包含所有优化：Reuse + SP + LP）
         ui initial_estimate_lb = 0;
         dfs_traverse(ept.root_index, ept, query_node,
                             exact_results_within_tau, tau, stats,
@@ -4086,124 +3515,6 @@ void GismaSearchEngine::traverse_ept_and_search(
 }
 
 
-std::vector<int> GismaSearchEngine::EPT_forbidden_cluster_search(std::shared_ptr<Node> query_node,
-                                                            int anchor_id,
-                                                            double tau,
-                                                            SearchStats &stats)
-{
-    std::vector<int> results;
-
-    // 1) Get corresponding Anchor
-    auto anchor_ptr = std::dynamic_pointer_cast<Anchor>(net_dag->nodes[anchor_id]);
-    if (!anchor_ptr)
-    {
-        // If not obtainable or not Anchor, returnempty
-        return results;
-    }
-
-    Graph *query_graph = query_node->graph.get();
-    if (!query_graph)
-    {
-        return results;
-    }
-
-    // Record time
-    double extra_astar_time = 0.0;
-    double extra_lb_time = 0.0;
-
-    // ========== A) First compute LB between anchor->graph and query_graph ==========
-    stats.EPT_ndc_count++;  // NDC: checking anchor itself
-    auto anchor_lb_start = std::chrono::high_resolution_clock::now();
-    stats.EPT_lb_count++;
-
-    ui anchor_lb = query_graph->ged_lower_bound_filter(
-        anchor_ptr->graph.get(), static_cast<ui>(tau), vM.size(), eM.size(), max_n);
-
-    auto anchor_lb_end = std::chrono::high_resolution_clock::now();
-    extra_lb_time += std::chrono::duration<double>(anchor_lb_end - anchor_lb_start).count();
-
-    if (anchor_lb <= tau)
-    {
-        // LB passed, call A* for exact GED
-        auto astar_start = std::chrono::high_resolution_clock::now();
-        stats.EPT_astar_count++;
-
-        Application app(static_cast<ui>(tau), "BMao", app_max_iter);
-        app.init(anchor_ptr->graph.get(), query_graph);
-        int ged_res = app.AppForComputation(nullptr, nullptr);
-
-        auto astar_end = std::chrono::high_resolution_clock::now();
-        extra_astar_time += std::chrono::duration<double>(astar_end - astar_start).count();
-
-        // If A* result <= tau => add to results
-        if (ged_res <= (int)tau)
-        {
-            results.push_back(anchor_id);
-        }
-    }
-
-    // ========== B) Iterate anchor_ptr->nodes_in_exact_cluster_vec with triangle inequality check + lower bound check + A* ==========
-
-    const auto &clusterCopy = anchor_ptr->nodes_in_exact_cluster_vec;
-
-    
-
-    for (auto &pair_item : clusterCopy)
-    {
-        double dist_anchor_to_node = pair_item.first;
-        int cluster_node_id = pair_item.second;
-
-        // (B.1) simple triangle inequality filtering:
-        // std::cout << "anchorDist: " << anchorDist << ", dist_anchor_to_node: " << dist_anchor_to_node << std::endl;
-
-        // if (anchorDist - dist_anchor_to_node > tau)
-        // {
-        //     // means (node->query) is at least > tau, can skip
-        //     continue;
-        // }
-
-        // ========== LB computation ==========
-        stats.EPT_ndc_count++;  // NDC: clusternode check
-        auto lb_start = std::chrono::high_resolution_clock::now();
-        stats.EPT_lb_count++;
-
-        ui lb = query_graph->ged_lower_bound_filter(
-            db[cluster_node_id], static_cast<ui>(tau), vM.size(), eM.size(), max_n);
-
-        auto lb_end = std::chrono::high_resolution_clock::now();
-        extra_lb_time += std::chrono::duration<double>(lb_end - lb_start).count();
-
-        if (lb > tau)
-        {
-            continue;
-        }
-
-        // ========== A* ==========
-        auto astar_start = std::chrono::high_resolution_clock::now();
-        stats.EPT_astar_count++;
-
-        Application app(static_cast<ui>(tau), "BMao", app_max_iter);
-        app.init(db[cluster_node_id], query_graph);
-        app.set_disable_lsa_pruning(disable_lsa_pruning);
-        int ged_res = app.App();
-
-        auto astar_end = std::chrono::high_resolution_clock::now();
-        extra_astar_time += std::chrono::duration<double>(astar_end - astar_start).count();
-
-        // ========== 7) If A* result <= tau => add to results ==========
-        if (ged_res <= (int)tau)
-        {
-            results.push_back(cluster_node_id);
-        }
-    }
-
-    // Collect timing - using precisely accumulated time
-    stats.EPT_lb_time += extra_lb_time;
-    stats.EPT_astar_time += extra_astar_time;
-
-    return results;
-}
-
 std::vector<int> GismaSearchEngine::extra_cluster_search(std::shared_ptr<Node> query_node,
                                                     int anchor_id,
                                                     double tau,
@@ -4211,11 +3522,11 @@ std::vector<int> GismaSearchEngine::extra_cluster_search(std::shared_ptr<Node> q
 {
     std::vector<int> results;
 
-    // Get Anchor object by anchor_id
+    // 根据 anchor_id 获取对应 Anchor 对象
     auto anchor_ptr = std::dynamic_pointer_cast<Anchor>(net_dag->nodes[anchor_id]);
     if (!anchor_ptr)
     {
-        // If not obtainable or not Anchor, returnemptyResults
+        // 若拿不到或不是 Anchor，返回空结果
         return results;
     }
 
@@ -4225,31 +3536,29 @@ std::vector<int> GismaSearchEngine::extra_cluster_search(std::shared_ptr<Node> q
         return results;
     }
 
-    // 1) Directly use anchor_ptr->nodes_in_cluster_vec
+    // 1) 直接用 anchor_ptr->nodes_in_cluster_vec
     const auto &clusterCopy = anchor_ptr->nodes_in_cluster_vec;
 
-    // 2) Iterate clusterCopy
+    // 2) 遍历 clusterCopy
     for (auto &pair_item : clusterCopy)
     {
         double dist = pair_item.first;
         int cluster_node_id = pair_item.second;
 
-        // ========== LB computation ==========
-        stats.EPT_ndc_count++;  // NDC: clusternode check
+        // ========== LB ==========
+        stats.extra_ndc_count++;
+        stats.EPT_ndc_count++;
         auto lb_start = std::chrono::high_resolution_clock::now();
         stats.EPT_lb_count++;
+        stats.extra_lb_count++;
 
-        // Use same comprehensive filter as Base+GS (fix recall issue)
         ui lb = query_graph->ged_lower_bound_filter(
             db[cluster_node_id], static_cast<ui>(tau), vM.size(), eM.size(), max_n);
 
         auto lb_end = std::chrono::high_resolution_clock::now();
         double lb_duration = std::chrono::duration<double>(lb_end - lb_start).count();
         stats.EPT_lb_time += lb_duration;
-
-        // graphs in extra_cluster are all db graphs
-        stats.EPT_db_graph_lb_count++;
-        stats.EPT_db_graph_lb_time += lb_duration;
+        stats.extra_lb_time += lb_duration;
 
         if (lb > tau)
         {
@@ -4259,19 +3568,28 @@ std::vector<int> GismaSearchEngine::extra_cluster_search(std::shared_ptr<Node> q
         // ========== A* ==========
         auto astar_start = std::chrono::high_resolution_clock::now();
         stats.EPT_astar_count++;
+        stats.extra_astar_count++;
 
-        Application app((ui)tau, "BMao", app_max_iter);
-        app.init(db[cluster_node_id], query_graph);
-        app.set_disable_lsa_pruning(disable_lsa_pruning);
-        int ged_res = app.App();
+        // E8 fix extra_cluster LSa: gisma-lsa / app-lsa 的 cluster 成员验证也须用 LSa（原硬编码 BMao）。
+        const char* c_lb = (ged_algorithm == "gisma-lsa" || ged_algorithm == "app-lsa") ? "LSa" : "BMao";
+        int ged_res;
+        if (use_orig_verifier) {
+            origbmao::Application oapp((ui)tau, c_lb, (long long)app_max_iter);
+            oapp.init(db[cluster_node_id], query_graph);
+            ged_res = (int)oapp.AStar();
+        } else {
+            Application app((ui)tau, c_lb, app_max_iter);
+            app.set_all_edge_labels_same(all_edge_labels_same);
+            app.init(db[cluster_node_id], query_graph);
+            app.set_disable_lsa_pruning(disable_lsa_pruning);
+            // LSa 走 App_test（_test 机制对 lb_method==LSa 稳定；App() 的 LSa 路径不稳）。
+            ged_res = (c_lb[0] == 'L') ? (int)app.App_test(nullptr, nullptr) : (int)app.App();
+        }
 
         auto astar_end = std::chrono::high_resolution_clock::now();
         double astar_duration = std::chrono::duration<double>(astar_end - astar_start).count();
         stats.EPT_astar_time += astar_duration;
-
-        // graphs in extra_cluster are all db graphs
-        stats.EPT_db_graph_astar_count++;
-        stats.EPT_db_graph_astar_time += astar_duration;
+        stats.extra_astar_time += astar_duration;
 
         if (ged_res <= (int)tau)
         {
@@ -4286,7 +3604,7 @@ std::vector<int> GismaSearchEngine::Gisma_search(std::shared_ptr<Node> query_nod
 {
     int query_id = query_node->node_id;
 
-    // 1) GS => obtain anchor IDs with NetDag LB distances
+    // 1) GS => 得到 anchor IDs with NetDag LB distances
     auto nd_start = std::chrono::high_resolution_clock::now();
     std::vector<std::tuple<int, double, int>> candidate_anchors_with_results = GS_search(query_node, tau, stats);
 
@@ -4297,79 +3615,74 @@ std::vector<int> GismaSearchEngine::Gisma_search(std::shared_ptr<Node> query_nod
         // stats.ND_total_time += std::chrono::duration<double>(nd_end - nd_start).count();
         return {};
     }
-    // ND_total_time is now computed as ND_lb_time + ND_astar_time in print_summary()
-    // auto nd_end = std::chrono::high_resolution_clock::now();
-    // stats.ND_total_time += std::chrono::duration<double>(nd_end - nd_start).count();
-
-    // 2) Perform SS_search for each anchor ID
     auto EPT_start = std::chrono::high_resolution_clock::now();
 
-    // For summarizing all SS_search durations and corresponding anchor_ids
+    // 用于汇总所有 SS_search 的耗时，以及对应的 anchor_id
     std::vector<std::pair<int, double>> ss_time_records;
     ss_time_records.reserve(candidate_anchors_with_results.size());
 
     std::vector<int> results;
-    std::vector<int> ept_results_all;      // DEBUG: Collect all EPTResults
-    std::vector<int> extra_results_all;    // DEBUG: Collect all extra_clusterResults
-    std::unordered_set<int> ept_coverage;    // DEBUG: all graph IDs covered by EPT
-    std::unordered_set<int> extra_coverage;  // DEBUG: all graph IDs covered by extra cluster
+    std::vector<int> ept_results_all;      // DEBUG: 收集所有EPT结果
+    std::vector<int> extra_results_all;    // DEBUG: 收集所有extra_cluster结果
+    std::unordered_set<int> ept_coverage;    // DEBUG: EPT覆盖的所有图ID
+    std::unordered_set<int> extra_coverage;  // DEBUG: Extra cluster覆盖的所有图ID
 
     for (const auto& [anchor_id, netdag_lb, netdag_ged] : candidate_anchors_with_results)
     {
-        // DEBUG: Collect EPT and Extra coverage
+        // DEBUG: 收集EPT和Extra的覆盖范围
         auto anchor_ptr = std::dynamic_pointer_cast<Anchor>(net_dag->nodes[anchor_id]);
         if (anchor_ptr) {
-            // EPT coverage: get all graph IDs from EPT tree itself
-            // EPT results only come from: ept.anchor_id and node.completed_db_graph_ids
+            // EPT覆盖：从EPT树本身获取所有图ID
+            // EPT结果只来自: ept.anchor_id 和 node.completed_db_graph_ids
             EditPathTree *ept = ept_manager->get_ept_no_lock(anchor_id);
             if (ept) {
-                ept_coverage.insert(ept->anchor_id);  // anchor itself
+                ept_coverage.insert(ept->anchor_id);  // anchor本身
                 for (const auto& tree_node : ept->tree_nodes) {
                     for (int id : tree_node.completed_db_graph_ids) {
                         ept_coverage.insert(id);
                     }
                 }
             }
-            // Extra coverage: nodes_in_cluster
+            // Extra覆盖：nodes_in_cluster
             for (const auto& p : anchor_ptr->nodes_in_cluster_vec) {
                 extra_coverage.insert(p.second);
             }
         }
 
-        // （a）SS_search statistics
+        // （a）统计 SS_search
         auto ss_start = std::chrono::high_resolution_clock::now();
         auto anchor_results = SS_search(query_node, anchor_id, netdag_lb, netdag_ged, tau, stats, dfs_mode_override);
         auto ss_end = std::chrono::high_resolution_clock::now();
 
         double ss_duration = std::chrono::duration<double>(ss_end - ss_start).count();
-        // Record (anchor_id, SS_search duration)
+        // 记录 (anchor_id, SS_search 耗时)
         ss_time_records.emplace_back(anchor_id, ss_duration);
 
-        // （b）MergeResults
+        // （b）合并结果
         results.insert(results.end(), anchor_results.begin(), anchor_results.end());
         ept_results_all.insert(ept_results_all.end(), anchor_results.begin(), anchor_results.end());  // DEBUG
 
-        // ========== (optional) Supplementary search: BMao-scan-like on anchor->nodes_in_cluster ==========
+        // ========== (可选) 补充搜索: 对 anchor->nodes_in_cluster 做 BMao-scan-like ==========
         auto cluster_results = extra_cluster_search(query_node, anchor_id, tau, stats);
         results.insert(results.end(), cluster_results.begin(), cluster_results.end());
         extra_results_all.insert(extra_results_all.end(), cluster_results.begin(), cluster_results.end());  // DEBUG
     }
 
-    // ========== DEBUG: Accumulated EPT and extra_cluster recall statistics ==========
-#if 0  // set to 0 to disable debug output
+    // ========== DEBUG: 累积EPT和extra_cluster各自的recall统计 ==========
+#if 0  // 设为0可关闭调试输出
     {
-        // Static variables for accumulated statistics
+        // 静态变量用于累积统计
         static std::mutex debug_mutex;
         static int debug_query_count = 0;
         static long long debug_total_gt = 0;
-        static long long debug_total_ept_gt = 0;      // GT count within EPT coverage
-        static long long debug_total_extra_gt = 0;    // GT count within extra coverage
+        static long long debug_total_ept_gt = 0;      // EPT覆盖范围内的GT数
+        static long long debug_total_extra_gt = 0;    // Extra覆盖范围内的GT数
         static long long debug_total_ept_hit = 0;
         static long long debug_total_extra_hit = 0;
         static long long debug_total_all_hit = 0;
         static bool registered_atexit = false;
 
-        // Register atexit callback, output summary at program end
+        // 注册atexit回调，程序结束时输出汇总
         if (!registered_atexit) {
             registered_atexit = true;
             std::atexit([]() {
@@ -4390,7 +3703,7 @@ std::vector<int> GismaSearchEngine::Gisma_search(std::shared_ptr<Node> query_nod
         std::lock_guard<std::mutex> lock(ground_truth_mutex);
         auto it = ground_truth.find(query_id);
         if (it != ground_truth.end()) {
-            // Collect all ground truth with ged <= tau (consistent with compute_recall)
+            // 收集所有 ged <= tau 的ground truth（和compute_recall一致）
             std::vector<int> gt_ids;
             for (const auto& distance_pair : it->second) {
                 double ged = distance_pair.first;
@@ -4403,17 +3716,17 @@ std::vector<int> GismaSearchEngine::Gisma_search(std::shared_ptr<Node> query_nod
                 std::unordered_set<int> gt_set(gt_ids.begin(), gt_ids.end());
                 int gt_size = static_cast<int>(gt_set.size());
 
-                // dedup
+                // 去重
                 std::unordered_set<int> ept_set(ept_results_all.begin(), ept_results_all.end());
                 std::unordered_set<int> extra_set(extra_results_all.begin(), extra_results_all.end());
                 std::unordered_set<int> all_set(results.begin(), results.end());
 
-                // Compute GT count within each coverage range and hit count
-                // Use global coverage sets (entire database coverage), not query-visited coverage
+                // 计算GT在各覆盖范围内的数量，以及命中数
+                // 使用全局覆盖集合（整个数据库的覆盖），而不是查询访问到的覆盖
                 int ept_gt = 0, extra_gt = 0;
                 int ept_hit = 0, extra_hit = 0, all_hit = 0;
 
-                // DEBUG: Collect anchor set visited by current query
+                // DEBUG: 收集当前查询访问到的anchor集合
                 std::unordered_set<int> visited_anchor_set;
                 for (const auto& [anchor_id, lb, ged] : candidate_anchors_with_results) {
                     visited_anchor_set.insert(anchor_id);
@@ -4430,20 +3743,20 @@ std::vector<int> GismaSearchEngine::Gisma_search(std::shared_ptr<Node> query_nod
                     if (extra_set.count(id)) extra_hit++;
                     if (all_set.count(id)) all_hit++;
 
-                    // DEBUG: If GT in EPT coverage but not found, output reason
+                    // DEBUG: 如果GT在EPT覆盖范围但没被找到，输出原因
                     if (in_ept && !ept_set.count(id)) {
-                        // Find which anchor this GT belongs to
+                        // 找出这个GT属于哪个anchor
                         int owner_anchor = -1;
                         bool anchor_was_visited = false;
 
                         for (const auto& anchor : net_dag->anchors) {
                             if (!anchor) continue;
-                            // Check if it is anchor itself
+                            // 检查是否是anchor本身
                             if (anchor->node_id == id) {
                                 owner_anchor = anchor->node_id;
                                 break;
                             }
-                            // Check if in anchor's EPT
+                            // 检查是否在anchor的EPT中
                             EditPathTree* ept_check = ept_manager->get_ept_no_lock(anchor->node_id);
                             if (ept_check) {
                                 for (const auto& tn : ept_check->tree_nodes) {
@@ -4468,7 +3781,7 @@ std::vector<int> GismaSearchEngine::Gisma_search(std::shared_ptr<Node> query_nod
                     }
                 }
 
-                // Accumulated statistics
+                // 累积统计
                 {
                     std::lock_guard<std::mutex> dlock(debug_mutex);
                     debug_query_count++;
@@ -4484,83 +3797,36 @@ std::vector<int> GismaSearchEngine::Gisma_search(std::shared_ptr<Node> query_nod
     }
 #endif
 
-    // EPT_total_time is now computed as EPT_lb_time + EPT_astar_time in print_summary()
+
+
     return results;
 }
 
-// Gisma with reuse disabled (using no_reuse mode)
+// Gisma但禁用reuse（使用no_reuse模式）
 std::vector<int> GismaSearchEngine::Gisma_no_reuse_search(std::shared_ptr<Node> query_node, double tau, SearchStats &stats)
 {
     return Gisma_search(query_node, tau, stats, "no_reuse");
 }
 
-// Gisma pure DFS traversal (using App_baseline, no optimizations)
+// Gisma纯DFS遍历（使用App_baseline，无优化）
 std::vector<int> GismaSearchEngine::Gisma_only_dfs_search(std::shared_ptr<Node> query_node, double tau, SearchStats &stats)
 {
     return Gisma_search(query_node, tau, stats, "only_dfs");
 }
 
-// Gisma with Subtree Pruning disabled (ablation experiment)
+// Gisma禁用Subtree Pruning（消融实验）
 std::vector<int> GismaSearchEngine::Gisma_no_SP_search(std::shared_ptr<Node> query_node, double tau, SearchStats &stats)
 {
     return Gisma_search(query_node, tau, stats, "no_SP");
 }
 
-// Gisma with Distance Propagation/LB Propagation disabled (ablation experiment)
+// Gisma禁用Distance Propagation/LB Propagation（消融实验）
 std::vector<int> GismaSearchEngine::Gisma_no_LP_search(std::shared_ptr<Node> query_node, double tau, SearchStats &stats)
 {
     return Gisma_search(query_node, tau, stats, "no_LP");
 }
 
 
-std::tuple<bool, double, int, int> GismaSearchEngine::compute_recall(int query_id, const std::vector<int> &exact_results_within_tau, double tau)
-{
-    std::lock_guard<std::mutex> lock(ground_truth_mutex);
-    auto it = ground_truth.find(query_id);
-    if (it != ground_truth.end())
-    {
-        const std::map<double, std::vector<int>> &distances = it->second;
-        std::vector<int> ids_within_tau;
-
-        for (const auto &distance_pair : distances)
-        {
-            double ged = distance_pair.first;
-            const std::vector<int> &graph_ids = distance_pair.second;
-            if (ged <= tau)
-            {
-                ids_within_tau.insert(ids_within_tau.end(), graph_ids.begin(), graph_ids.end());
-            }
-        }
-
-        int ground_truth_size = ids_within_tau.size();
-
-        if (ground_truth_size > 0)
-        {
-            std::unordered_set<int> exact_result_set(exact_results_within_tau.begin(), exact_results_within_tau.end());
-            std::unordered_set<int> ground_truth_set(ids_within_tau.begin(), ids_within_tau.end());
-
-            int intersection_count = 0;
-            for (const int &id : ground_truth_set)
-            {
-                if (exact_result_set.find(id) != exact_result_set.end())
-                {
-                    intersection_count++;
-                }
-            }
-
-            double recall = static_cast<double>(intersection_count) / ground_truth_size;
-            return std::make_tuple(true, recall, intersection_count, ground_truth_size);
-        }
-        else
-        {
-            return std::make_tuple(false, 0.0, 0, 0);
-        }
-    }
-    else
-    {
-        return std::make_tuple(false, 0.0, 0, 0);
-    }
-}
 
 std::tuple<bool, double, double, double, int, int> GismaSearchEngine::compute_recall_precision_IoU(int query_id, const std::vector<int> &exact_results_within_tau, double tau)
 {
@@ -4571,7 +3837,7 @@ std::tuple<bool, double, double, double, int, int> GismaSearchEngine::compute_re
         const std::map<double, std::vector<int>> &distances = it->second;
         std::vector<int> ids_within_tau;
 
-        // 1) Find all nodes in ground truth with actual ged <= tau
+        // 1) 找到 ground truth 中实际 ged <= tau 的所有节点
         for (const auto &distance_pair : distances)
         {
             double ged = distance_pair.first;
@@ -4585,7 +3851,7 @@ std::tuple<bool, double, double, double, int, int> GismaSearchEngine::compute_re
         int ground_truth_size = static_cast<int>(ids_within_tau.size());
         if (ground_truth_size > 0)
         {
-            // 2) build set for intersection
+            // 2) 构造 set 方便求交
             std::unordered_set<int> exact_result_set(exact_results_within_tau.begin(), exact_results_within_tau.end());
             std::unordered_set<int> ground_truth_set(ids_within_tau.begin(), ids_within_tau.end());
 
@@ -4598,10 +3864,10 @@ std::tuple<bool, double, double, double, int, int> GismaSearchEngine::compute_re
                 }
             }
 
-            // 3) compute recall, precision, iou
+            // 3) 计算 recall, precision, iou
             double recall = static_cast<double>(intersection_count) / ground_truth_size;
 
-            int exact_size = static_cast<int>(exact_result_set.size());  // using deduplicated size
+            int exact_size = static_cast<int>(exact_result_set.size());  // 用去重后的大小
             double precision = 0.0;
             if (exact_size > 0)
             {
@@ -4619,14 +3885,14 @@ std::tuple<bool, double, double, double, int, int> GismaSearchEngine::compute_re
         }
         else
         {
-            // ground_truth_size == 0 => indicates no matches for this tau
-            // still return false
+            // ground_truth_size == 0 => 表示 tau 下无任何匹配
+            // 仍返回 false
             return std::make_tuple(false, 0.0, 0.0, 0.0, 0, 0);
         }
     }
     else
     {
-        // no ground_truth found
+        // 查无 ground_truth
         return std::make_tuple(false, 0.0, 0.0, 0.0, 0, 0);
     }
 }
@@ -4634,7 +3900,7 @@ std::tuple<bool, double, double, double, int, int> GismaSearchEngine::compute_re
 
 void GismaSearchEngine::perform_search(double tau)
 {
-    // ========== 0) Global statistics variables (Recall/Precision/IoU related) ==========
+    // ========== 0) 全局统计变量 (Recall/Precision/IoU 相关) ==========
     int total_queries_processed = 0;
     int total_results_found = 0;
     int queries_with_non_empty_results = 0;
@@ -4648,20 +3914,20 @@ void GismaSearchEngine::perform_search(double tau)
     int total_intersection_count = 0;
     int total_ground_truth_count = 0;
 
-    // ========== 1) Global statistics (ND/EPT) ==========
+    // ========== 1) 全局统计 (ND/EPT) ==========
     SearchStats global_stats;
 
-    // ========== 2) Record each query's duration ==========
+    // ========== 2) 记录每个 query 的耗时 ==========
     std::vector<double> all_query_times;
     all_query_times.reserve(query_node_list.size());
 
-    // New: record detailed info for each query
+    // 新增：记录每个query的详细信息
     std::vector<QueryDetails> query_details_list;
     query_details_list.reserve(query_node_list.size());
 
     size_t total_queries = q_end - q_start + 1;
 
-    // ========== 3) Iterate query nodes  ==========
+    // ========== 3) 遍历查询节点  ==========
     for (size_t idx = 0; idx <= q_end - q_start; ++idx)
     {
         const auto &query_node = query_node_list[idx];
@@ -4671,8 +3937,8 @@ void GismaSearchEngine::perform_search(double tau)
         SearchStats local_stats;
         std::vector<int> results;
 
-        // (a) Call corresponding search method
-        if (this->search_method == "Gisma")
+        // (a) 调用对应搜索方法
+        if (this->search_method == "Gisma" || this->search_method == "Gisma-default")
         {
             results = this->Gisma_search(query_node, tau, local_stats);
         }
@@ -4715,20 +3981,20 @@ void GismaSearchEngine::perform_search(double tau)
             results = this->Gisma_search(query_node, tau, local_stats);
         }
 
-        // (b) Accumulate local_stats to global
+        // (b) 累加 local_stats 到全局
         global_stats.add(local_stats);
 
         auto total_query_end = std::chrono::high_resolution_clock::now();
         double total_query_time = std::chrono::duration<double>(total_query_end - total_query_start).count();
 
-        // (c) Add to statistics
+        // (c) 加入统计
         total_query_time_sum += total_query_time;
         all_query_times.push_back(total_query_time);
 
-        // New: store (query_id, total_query_time)
+        // 新增：把 (query_id, total_query_time) 存起来
         int query_id = query_node->node_id;
 
-        // (d) Collect results statistics
+        // (d) 统计结果
         int num_results = static_cast<int>(results.size());
         total_results_found += num_results;
         if (num_results > 0)
@@ -4740,7 +4006,7 @@ void GismaSearchEngine::perform_search(double tau)
         auto [has_ground_truth, recall, precision, iou, intersection_count, ground_truth_size]
             = this->compute_recall_precision_IoU(query_id, results, tau);
 
-        // Save query details (including recall etc.)
+        // 保存query详情（包含recall等信息）
         query_details_list.emplace_back(query_id, total_query_time, recall, precision, iou, has_ground_truth);
 
         if (has_ground_truth)
@@ -4756,7 +4022,7 @@ void GismaSearchEngine::perform_search(double tau)
 
         total_queries_processed++;
 
-        // Display progress bar
+        // 显示进度条
         if (total_queries_processed % (std::max(total_queries / 10, size_t(1))) == 0 ||
             total_queries_processed == total_queries) {
 
@@ -4778,11 +4044,11 @@ void GismaSearchEngine::perform_search(double tau)
     }
     std::cout << "\nCompleted!\n";
     
-    // ========== 4) Call unified output function ==========
-    // Compute total time (for non-parallel version, use sum of query times)
+    // ========== 4) 调用统一的输出函数 ==========
+    // 计算总时间（对于非并行版本，使用查询时间总和）
     double total_time = total_query_time_sum;
     
-    // For compatibility, generate query_time_pairs from query_details_list
+    // 为了兼容性，从query_details_list生成query_time_pairs
     std::vector<std::pair<int, double>> query_time_pairs;
     for (const auto& qd : query_details_list) {
         query_time_pairs.emplace_back(qd.query_id, qd.time);
@@ -4805,7 +4071,7 @@ void GismaSearchEngine::perform_search(double tau)
         false  // is_parallel = false
     );
 
-    // Save experiment results to file (only when save_logs is enabled)
+    // 保存实验结果到文件（仅在启用save_logs时）
     if (save_logs) {
         save_experiment_results(
             dataset_name,
@@ -4832,7 +4098,7 @@ void GismaSearchEngine::perform_search(double tau)
 
 void GismaSearchEngine::perform_search_parallel(double tau)
 {
-    // ========== 0) Define parallel statistics variables ==========
+    // ========== 0) 定义并行统计变量 ==========
     std::atomic<int> total_queries_processed(0);
     std::atomic<int> total_results_found(0);
     std::atomic<int> queries_with_non_empty_results(0);
@@ -4848,35 +4114,35 @@ void GismaSearchEngine::perform_search_parallel(double tau)
     std::atomic<int> total_intersection_count(0);
     std::atomic<int> total_ground_truth_count(0);
 
-    std::mutex recall_mutex;  // protect total_recall, total_precision, total_iou
+    std::mutex recall_mutex;  // 保护 total_recall, total_precision, total_iou
 
-    // ========== 1) Global statistics (ND/EPT) ==========
+    // ========== 1) 全局统计 (ND/EPT) ==========
     SearchStats global_stats;
 
-    // ========== 2) Record each query's duration ==========
+    // ========== 2) 记录每个 query 的耗时 ==========
     std::vector<double> all_query_times;
     all_query_times.reserve(query_node_list.size());
 
-    // New: record detailed info for each query
+    // 新增：记录每个query的详细信息
     std::vector<QueryDetails> query_details_list;
     query_details_list.reserve(query_node_list.size());
 
-    // Mutex for protecting float or multi-field simultaneous update operations
+    // 互斥锁，用于保护对"浮点"或"多字段同时更新"的操作
     std::mutex stats_mutex;
 
-    // ========== 3) Start parallel timing ==========
+    // ========== 3) 并行开始计时 ==========
     auto total_start = std::chrono::high_resolution_clock::now();
 
-    // ========== 4) Determine thread count & evenly distribute queries to threads ==========
+    // ========== 4) 确定线程数 & 平均分配查询给各线程 ==========
     unsigned int num_threads = std::thread::hardware_concurrency();
     if (num_threads == 0)
         num_threads = 1;
-    num_threads = (num_threads <= 200) ? num_threads : 200; // maximum 200 threads
+    num_threads = (num_threads <= 200) ? num_threads : 200; // 最多200线程
     std::cout << "[perform_search_parallel] Using " << num_threads << " threads.\n";
 
     size_t queries_per_thread = (query_node_list.size() + num_threads - 1) / num_threads;
 
-    // ========== 5) Create multi-threaded tasks (std::async) ==========
+    // ========== 5) 创建多线程任务 (std::async) ==========
     std::vector<std::future<void>> futures;
     futures.reserve(num_threads);
 
@@ -4885,7 +4151,7 @@ void GismaSearchEngine::perform_search_parallel(double tau)
         size_t start_index = i * queries_per_thread;
         size_t end_index = std::min(start_index + queries_per_thread, query_node_list.size());
 
-        // Capture all needed references/values
+        // 捕获所有我们需要的引用/值
         futures.emplace_back(std::async(std::launch::async,
             [=,
              &stats_mutex,
@@ -4905,21 +4171,21 @@ void GismaSearchEngine::perform_search_parallel(double tau)
              &all_query_times,
              &query_details_list]()
             {
-                // Process queries assigned to this thread [start_index, end_index)
+                // 处理本线程负责的查询 [start_index, end_index)
                 for (size_t idx = start_index; idx < end_index; ++idx)
                 {
 
                     auto &query_node = query_node_list[idx];
                     int query_id = query_node->node_id;
 
-                    // Entire query timing
+                    // 整个查询计时
                     auto total_query_start = std::chrono::high_resolution_clock::now();
 
-                    SearchStats local_stats; // Each query has local statistics
+                    SearchStats local_stats; // 每次查询都有局部统计
                     std::vector<int> results;
 
-                    // Call different functions based on search_method
-                    if (this->search_method == "Gisma")
+                    // 根据 search_method 调用不同函数
+                    if (this->search_method == "Gisma" || this->search_method == "Gisma-default")
                     {
                         results = this->Gisma_search(query_node, tau, local_stats);
                     }
@@ -4963,45 +4229,45 @@ void GismaSearchEngine::perform_search_parallel(double tau)
                     auto total_query_end = std::chrono::high_resolution_clock::now();
                     double total_query_time = std::chrono::duration<double>(total_query_end - total_query_start).count();
 
-                    // ========== Compute Recall/Precision/IoU ==========
+                    // ========== 计算 Recall/Precision/IoU ==========
                     auto [has_ground_truth, recall, precision, iou, intersection_count, ground_truth_size]
                         = this->compute_recall_precision_IoU(query_id, results, tau);
                     // printf("results.size() = %d, ground_truth_size = %d\n", results.size(), ground_truth_size);
 
-                    // ========== Create QueryDetails object ==========
+                    // ========== 创建QueryDetails对象 ==========
                     QueryDetails query_detail(query_id, total_query_time, recall, precision, iou, has_ground_truth);
                     query_detail.query_nodes = query_node->graph->n;
                     query_detail.query_edges = query_node->graph->m;
                     query_detail.result_count = (int)results.size();
                     query_detail.lb_time = local_stats.total_lb_time();
                     query_detail.astar_time = local_stats.total_astar_time();
-                    // EPT statistics need to be extracted from local_stats
+                    // EPT统计信息需要从local_stats中提取
                     query_detail.total_ept_nodes = local_stats.EPT_total_nodes_visited;
                     query_detail.nodes_computed = local_stats.EPT_nodes_computed;
                     query_detail.nodes_pruned = local_stats.EPT_filter_pruned_nodes;
                     query_detail.lb_pruning_count = local_stats.lb_pruning_count;
                     query_detail.subtree_pruned = local_stats.subtree_pruning_avoided_nodes;
 
-                    // ========== Real-time JSON save (outside lock, avoid blocking) ==========
+                    // ========== 实时保存JSON（在锁外，避免阻塞） ==========
                     if (save_logs && !experiment_base_dir.empty()) {
                         this->save_single_query_json(query_detail, tau, experiment_base_dir);
                     }
 
-                    // ========== Update statistics (lock required) ==========
+                    // ========== 更新统计信息 (需要加锁) ==========
                     {
                         std::lock_guard<std::mutex> lock(stats_mutex);
 
-                        // Add query duration
+                        // 添加 query 耗时
                         all_query_times.push_back(total_query_time);
                         query_details_list.push_back(query_detail);
 
-                        // Accumulate various times
+                        // 累加各种时间
                         total_query_time_sum += total_query_time;
 
-                        // Accumulate local_stats to global_stats
+                        // 累加 local_stats 到 global_stats
                         global_stats.add(local_stats);
 
-                        // If ground truth exists, accumulate recall/precision/IoU
+                        // 如果有 ground truth，累加 recall/precision/IoU
                         if (has_ground_truth)
                         {
                             {
@@ -5013,12 +4279,12 @@ void GismaSearchEngine::perform_search_parallel(double tau)
                             valid_query_count++;
                         }
 
-                        // Always accumulate intersection and ground_truth counts
+                        // 总是累加 intersection 和 ground_truth 计数
                         total_intersection_count += intersection_count;
                         total_ground_truth_count += ground_truth_size;
                     }
 
-                    // Atomic update counts
+                    // 原子更新计数
                     total_queries_processed++;
                     total_results_found += (int)results.size();
                     if (!results.empty())
@@ -5029,18 +4295,18 @@ void GismaSearchEngine::perform_search_parallel(double tau)
             }));
     }
 
-    // ========== 6) Wait for all threads to complete ==========
+    // ========== 6) 等待所有线程完成 ==========
     for (auto &f : futures)
     {
         f.get();
     }
 
-    // ========== 7) End parallel timing ==========
+    // ========== 7) 并行结束计时 ==========
     auto total_end = std::chrono::high_resolution_clock::now();
     double total_time = std::chrono::duration<double>(total_end - total_start).count();
 
-    // ========== 8) Call unified output function ==========
-    // For compatibility, generate query_time_pairs from query_details_list
+    // ========== 8) 调用统一的输出函数 ==========
+    // 为了兼容性，从query_details_list生成query_time_pairs
     std::vector<std::pair<int, double>> query_time_pairs;
     for (const auto& qd : query_details_list) {
         query_time_pairs.emplace_back(qd.query_id, qd.time);
@@ -5052,7 +4318,7 @@ void GismaSearchEngine::perform_search_parallel(double tau)
         total_results_found.load(),
         queries_with_non_empty_results.load(),
         total_query_time_sum,
-        total_time,  // Parallel version total time
+        total_time,  // 并行版本的总时间
         total_recall,
         total_precision,
         total_iou,
@@ -5063,7 +4329,7 @@ void GismaSearchEngine::perform_search_parallel(double tau)
         true  // is_parallel = true
     );
 
-    // Save experiment results to file (only when save_logs is enabled)
+    // 保存实验结果到文件（仅在启用save_logs时）
     if (save_logs) {
         save_experiment_results(
             dataset_name,
@@ -5094,7 +4360,7 @@ void GismaSearchEngine::print_search_statistics(
     int total_results_found,
     int queries_with_non_empty_results,
     double total_query_time_sum,
-    double total_time,  // Parallel version total time
+    double total_time,  // 并行版本的总时间
     double total_recall,
     double total_precision,
     double total_iou,
@@ -5105,22 +4371,387 @@ void GismaSearchEngine::print_search_statistics(
     bool is_parallel)
 {
     printf("\n=================== Search Results ===================\n");
+    if (is_parallel) {
+        printf("[Parallel Search Mode]\n");
+    }
+    
+    // ========== 1. 基本统计信息 ==========
     printf("Total queries processed: %d\n", total_queries_processed);
     printf("Total results found: %d / %d\n", total_results_found, total_ground_truth_count);
+    
+    // 结果来源分析（如果有）
+    if (global_stats.EPT_results_from_reuse + global_stats.EPT_results_from_astar > 0) {
+        printf("  - Results from reuse: %zu", global_stats.EPT_results_from_reuse);
+        if (total_results_found > 0) {
+            double reuse_percentage = 100.0 * global_stats.EPT_results_from_reuse / total_results_found;
+            printf(" (%.1f%%)", reuse_percentage);
+        }
+        printf("\n");
+        
+        printf("  - Results from AStar: %zu", global_stats.EPT_results_from_astar);
+        if (total_results_found > 0) {
+            double astar_percentage = 100.0 * global_stats.EPT_results_from_astar / total_results_found;
+            printf(" (%.1f%%)", astar_percentage);
+        }
+        printf("\n");
+    }
+    
     printf("Queries with non-empty results: %d\n", queries_with_non_empty_results);
-
+    
     double sum_of_query_times = global_stats.total_lb_time() + global_stats.total_astar_time();
     printf("Total query time: %f seconds.\n", sum_of_query_times);
-
+    
+    // ========== 2. 准确性指标 ==========
+    printf("\nPrecision Metrics:\n");
     int valid_q = valid_query_count;
-    if (valid_q > 0) {
-        double avg_recall = total_recall / valid_q;
-        printf("Average recall (over %d queries):    %f\n", valid_q, avg_recall);
-    }
-    double recall_overall = (total_ground_truth_count > 0) ?
-        (double)total_intersection_count / total_ground_truth_count : 0.0;
-    printf("Overall recall (all queries combined): %.6f\n", recall_overall);
 
+    double avg_recall = (valid_q > 0) ? (total_recall / valid_q) : 0.0;
+    double avg_precision = (valid_q > 0) ? (total_precision / valid_q) : 0.0;
+    double avg_iou = (valid_q > 0) ? (total_iou / valid_q) : 0.0;
+
+    printf("Average recall (over %d queries):    %f\n", valid_q, avg_recall);
+    printf("Average precision (over %d queries): %f\n", valid_q, avg_precision);
+    printf("Average IoU (over %d queries):      %f\n", valid_q, avg_iou);
+    
+    // 总体召回率
+    double recall_overall = (total_ground_truth_count > 0) ? 
+        ((double)total_intersection_count / total_ground_truth_count) : 0.0;
+    printf("Overall recall (all queries combined): %.6f\n", recall_overall);
+    
+    // ========== 3. 复用统计 ==========
+    if (global_stats.EPT_reuse_attempt > 0 || global_stats.EPT_astar_count > 0)
+    {
+        printf("\n========== Overall Reuse Statistics ==========\n");
+        size_t total_ept_nodes = global_stats.EPT_astar_count + global_stats.EPT_reuse_count;
+        printf("Total EPT nodes processed: %zu\n", total_ept_nodes);
+        printf("  - Standard AStar calls: %zu\n", global_stats.EPT_astar_count);
+        printf("  - Reuse attempts: %zu\n", global_stats.EPT_reuse_attempt);
+        printf("  - Successful reuses: %zu\n", global_stats.EPT_reuse_count);
+        
+        // 结果来源统计
+        printf("\nResults breakdown:\n");
+        printf("  - Total results found: %zu\n", (global_stats.EPT_results_from_reuse + global_stats.EPT_results_from_astar));
+        printf("    - From successful reuse: %zu", global_stats.EPT_results_from_reuse);
+        if (global_stats.EPT_results_from_reuse + global_stats.EPT_results_from_astar > 0) {
+            double reuse_result_pct = 100.0 * global_stats.EPT_results_from_reuse / 
+                                     (global_stats.EPT_results_from_reuse + global_stats.EPT_results_from_astar);
+            printf(" (%.1f%%)", reuse_result_pct);
+        }
+        printf("\n");
+        printf("    - From standard AStar: %zu", global_stats.EPT_results_from_astar);
+        if (global_stats.EPT_results_from_reuse + global_stats.EPT_results_from_astar > 0) {
+            double astar_result_pct = 100.0 * global_stats.EPT_results_from_astar / 
+                                     (global_stats.EPT_results_from_reuse + global_stats.EPT_results_from_astar);
+            printf(" (%.1f%%)", astar_result_pct);
+        }
+        printf("\n");
+        
+        if (global_stats.EPT_reuse_attempt > 0) {
+            double reuse_success_rate = 100.0 * global_stats.EPT_reuse_count / global_stats.EPT_reuse_attempt;
+            printf("  - Reuse success rate: %.1f%%\n", reuse_success_rate);
+            
+            double reuse_attempt_rate = 100.0 * global_stats.EPT_reuse_attempt / total_ept_nodes;
+            printf("  - Reuse attempt rate: %.1f%% (attempts / total nodes)\n", reuse_attempt_rate);
+        }
+        
+        if (total_ept_nodes > 0) {
+            double reuse_coverage = 100.0 * global_stats.EPT_reuse_count / total_ept_nodes;
+            printf("  - Reuse coverage: %.1f%% of all EPT GED computations\n", reuse_coverage);
+        }
+        
+        // ========== 4. 节点类型统计 ==========
+        printf("\n---------- Node Type Statistics ----------\n");
+        printf("  - Leaf nodes processed: %zu\n", global_stats.EPT_leaf_nodes_processed);
+        printf("  - Internal nodes processed: %zu\n", global_stats.EPT_internal_nodes_processed);
+        printf("  - Nodes with completed IDs: %zu\n", global_stats.EPT_nodes_with_completed_ids);
+        
+        size_t total_nodes_processed = global_stats.EPT_leaf_nodes_processed + 
+                                      global_stats.EPT_internal_nodes_processed;
+        if (total_nodes_processed > 0) {
+            double leaf_percentage = 100.0 * global_stats.EPT_leaf_nodes_processed / total_nodes_processed;
+            printf("  - Leaf node percentage: %.1f%%\n", leaf_percentage);
+        }
+        
+        // ========== 7. 操作类型统计 ==========
+        printf("\n---------- Operation Type Statistics ----------\n");
+        for (const auto& [op_type, count] : global_stats.EPT_op_type_count) {
+            std::string op_name;
+            switch(op_type) {
+                case EditOperation::NODE_SUBSTITUTION: op_name = "NODE_SUBSTITUTION"; break;
+                case EditOperation::NODE_DELETION: op_name = "NODE_DELETION"; break;
+                case EditOperation::NODE_INSERTION: op_name = "NODE_INSERTION"; break;
+                case EditOperation::EDGE_SUBSTITUTION: op_name = "EDGE_SUBSTITUTION"; break;
+                case EditOperation::EDGE_DELETION: op_name = "EDGE_DELETION"; break;
+                case EditOperation::EDGE_INSERTION: op_name = "EDGE_INSERTION"; break;
+                default: op_name = "UNKNOWN"; break;
+            }
+            
+            // 修复：使用 find() 而不是 [] 操作符来避免 const 限定符问题
+            size_t reused = 0;
+            auto reuse_it = global_stats.EPT_reuse_by_op_type.find(op_type);
+            if (reuse_it != global_stats.EPT_reuse_by_op_type.end()) {
+                reused = reuse_it->second;
+            }
+            
+            double reuse_rate = (count > 0) ? (100.0 * reused / count) : 0.0;
+            
+            printf("  - %s: %zu (reused: %zu, %.1f%%)\n", 
+                   op_name.c_str(), count, reused, reuse_rate);
+        }
+        
+        // ========== 8. 验证统计（如果启用了验证）==========
+        if (global_stats.EPT_reuse_verifications > 0) {
+            printf("\n---------- Reuse Correctness Verification ----------\n");
+            printf("Verifications performed: %zu\n", global_stats.EPT_reuse_verifications);
+            printf("  - Correct: %zu", global_stats.EPT_reuse_correct);
+            
+            double correct_rate = 100.0 * global_stats.EPT_reuse_correct / 
+                                 global_stats.EPT_reuse_verifications;
+            printf(" (%.2f%%)\n", correct_rate);
+            
+            printf("  - Incorrect: %zu", global_stats.EPT_reuse_incorrect);
+            printf(" (%.2f%%)\n", (100.0 - correct_rate));
+            
+            // ========== 新增：简化的GED<=tau统计 ==========
+            printf("\n---------- GED <= tau Statistics ----------\n");
+            printf("Reuse found GED <= tau: %zu times\n", global_stats.EPT_reuse_found_ged_le_tau);
+            printf("AStar found GED <= tau: %zu times\n", global_stats.EPT_astar_found_ged_le_tau);
+            
+            if (global_stats.EPT_astar_found_ged_le_tau > 0) {
+                double ratio = (double)global_stats.EPT_reuse_found_ged_le_tau / 
+                              global_stats.EPT_astar_found_ged_le_tau;
+                printf("Ratio (Reuse/AStar): %.4f (%.2f%%)\n", ratio, ratio * 100);
+                
+                if (ratio < 1.0) {
+                    printf("=> Reuse found %.1f%% fewer results than AStar\n", (1.0 - ratio) * 100);
+                } else if (ratio > 1.0) {
+                    printf("=> Reuse found %.1f%% more results than AStar\n", (ratio - 1.0) * 100);
+                } else {
+                    printf("=> Reuse found exactly the same number of results as AStar\n");
+                }
+            }
+            
+            // ========== 验证时间和加速比 ==========
+            printf("\n---------- Verification Time Analysis ----------\n");
+            printf("Total verification AStar time: %.3f seconds\n", global_stats.EPT_verification_astar_time);
+
+            if (global_stats.EPT_reuse_verifications > 0) {
+                double avg_verify_time = global_stats.EPT_verification_astar_time / global_stats.EPT_reuse_verifications;
+                printf("Average time per verification: %.3f ms\n", avg_verify_time * 1000);
+            }
+
+            // 计算总的复用时间与验证时间的比较
+            if (global_stats.EPT_reuse_success_time > 0 && global_stats.EPT_verification_astar_time > 0) {
+                double reuse_vs_verify_speedup = global_stats.EPT_verification_astar_time / global_stats.EPT_reuse_success_time;
+                printf("\n*** Reuse Speedup Comparison ***\n");
+                printf("Total reuse time: %.3f seconds\n", global_stats.EPT_reuse_success_time);
+                printf("Total verification time (standard AStar): %.3f seconds\n", global_stats.EPT_verification_astar_time);
+                printf("=> Reuse is %.2fx faster than standard AStar\n", reuse_vs_verify_speedup);
+
+                // 计算如果不使用复用，需要的总时间
+                double time_without_reuse = global_stats.EPT_astar_time - global_stats.EPT_reuse_success_time +
+                                          global_stats.EPT_verification_astar_time;
+                double total_speedup = time_without_reuse / global_stats.EPT_astar_time;
+                printf("\nTotal time with reuse: %.3f seconds\n", global_stats.EPT_astar_time);
+                printf("Total time without reuse (estimated): %.3f seconds\n", time_without_reuse);
+                printf("=> Overall speedup with reuse: %.2fx\n", total_speedup);
+            }
+
+            // ========== EXP-5: Search Tree Reuse Effectiveness (表格输出) ==========
+            if (global_stats.EPT_baseline_app_count > 0 && global_stats.EPT_reuse_count > 0) {
+                double avg_reuse_time_ms = (global_stats.EPT_reuse_success_time / global_stats.EPT_reuse_count) * 1000.0;
+                double avg_baseline_time_ms = (global_stats.EPT_baseline_app_time / global_stats.EPT_baseline_app_count) * 1000.0;
+                double speedup = avg_baseline_time_ms / avg_reuse_time_ms;
+
+                printf("\n");
+                printf("================================================================================\n");
+                printf("                    EXP-5: Search Tree Reuse Effectiveness                      \n");
+                printf("================================================================================\n");
+                printf("| %-20s | %-15s | %-15s | %-10s |\n", "Method", "Count", "Avg Time (ms)", "Speedup");
+                printf("|----------------------|-----------------|-----------------|------------|\n");
+                printf("| %-20s | %15zu | %15.4f | %10s |\n",
+                       "With Reuse", global_stats.EPT_reuse_count, avg_reuse_time_ms, "-");
+                printf("| %-20s | %15zu | %15.4f | %9.2fx |\n",
+                       "Baseline (AppForComp)", global_stats.EPT_baseline_app_count, avg_baseline_time_ms, speedup);
+                printf("================================================================================\n");
+                printf("=> Search tree reuse achieves %.2fx speedup\n", speedup);
+                printf("================================================================================\n");
+            }
+            
+            if (!global_stats.EPT_ged_diff_distribution.empty()) {
+                printf("\nGED difference distribution (reuse - standard):\n");
+                for (const auto& [diff, count] : global_stats.EPT_ged_diff_distribution) {
+                    printf("  - Diff %3d: %6zu times", diff, count);
+                    
+                    if (global_stats.EPT_reuse_incorrect > 0) {
+                        double percent = 100.0 * count / global_stats.EPT_reuse_incorrect;
+                        printf(" (%.1f%% of errors)", percent);
+                    }
+                    printf("\n");
+                }
+                
+                // 计算平均差异
+                if (global_stats.EPT_reuse_incorrect > 0) {
+                    double total_diff = 0;
+                    for (const auto& [diff, count] : global_stats.EPT_ged_diff_distribution) {
+                        total_diff += diff * count;
+                    }
+                    double avg_diff = total_diff / global_stats.EPT_reuse_incorrect;
+                    printf("\nAverage GED difference: %.3f\n", avg_diff);
+                }
+            }
+        }
+        
+        printf("=============================================\n");
+    }
+    
+    // ========== 9. LB和AStar时间分析 ==========
+    if (global_stats.total_lb_time() > 0 || global_stats.total_astar_time() > 0) {
+        printf("\n========== Time Breakdown (LB vs AStar) ==========\n");
+        
+        // 计算总的算法时间（LB + AStar）
+        double total_algorithm_time = global_stats.total_lb_time() + global_stats.total_astar_time();
+        
+        printf("Total algorithm time: %.3f seconds\n", total_algorithm_time);
+        
+        // LB时间统计
+        printf("\nLower Bound (LB) Time:\n");
+        printf("  - Total LB time: %.3f seconds", global_stats.total_lb_time());
+        if (total_algorithm_time > 0) {
+            double lb_percentage = 100.0 * global_stats.total_lb_time() / total_algorithm_time;
+            printf(" (%.1f%% of algorithm time)", lb_percentage);
+        }
+        printf("\n");
+        
+        if (global_stats.ND_lb_time > 0 || global_stats.EPT_lb_time > 0) {
+            printf("    - ND LB time:  %.3f seconds\n", global_stats.ND_lb_time);
+            printf("    - EPT LB time: %.3f seconds\n", global_stats.EPT_lb_time);
+        }
+        
+        // AStar时间统计
+        printf("\nAStar Time:\n");
+        printf("  - Total AStar time: %.3f seconds", global_stats.total_astar_time());
+        if (total_algorithm_time > 0) {
+            double astar_percentage = 100.0 * global_stats.total_astar_time() / total_algorithm_time;
+            printf(" (%.1f%% of algorithm time)", astar_percentage);
+        }
+        printf("\n");
+        
+        if (global_stats.ND_astar_time > 0 || global_stats.EPT_astar_time > 0) {
+            printf("    - ND AStar time:  %.3f seconds\n", global_stats.ND_astar_time);
+            printf("    - EPT AStar time: %.3f seconds\n", global_stats.EPT_astar_time);
+        }
+        
+        // 占总算法时间的比例
+        if (total_algorithm_time > 0) {
+            printf("\nAs percentage of total algorithm time:\n");
+            printf("  - LB time:    %.1f%% of total\n",
+                   (100.0 * global_stats.total_lb_time() / total_algorithm_time));
+            printf("  - AStar time: %.1f%% of total\n",
+                   (100.0 * global_stats.total_astar_time() / total_algorithm_time));
+        }
+        
+        // 平均每次调用的时间
+        if (global_stats.total_lb_count() > 0) {
+            double avg_lb_time = global_stats.total_lb_time() / global_stats.total_lb_count();
+            printf("\n  - Average time per LB call: %.3f ms\n", (avg_lb_time * 1000));
+        }
+        
+        if (global_stats.total_astar_count() > 0) {
+            double avg_astar_time = global_stats.total_astar_time() / global_stats.total_astar_count();
+            printf("  - Average time per AStar call: %.3f ms\n", (avg_astar_time * 1000));
+        }
+
+        // ========== 优化效果统计 ==========
+        printf("\n========== Optimization Effectiveness Statistics ==========\n");
+
+        // 与EPT总节点数对比（重点：避免了多少计算）
+        if (global_stats.EPT_total_nodes_in_used_epts > 0) {
+            size_t nodes_pruned = global_stats.subtree_pruning_avoided_nodes +
+                                  global_stats.lb_pruning_count;
+            size_t nodes_computed = global_stats.EPT_nodes_computed;
+
+            printf("\nComputation Reduction (vs EPT Total Nodes):\n");
+            printf("  - Total nodes in used EPTs: %zu\n", global_stats.EPT_total_nodes_in_used_epts);
+            printf("  - Nodes that did computation: %zu (%.1f%% of EPT total)  [includes filter + GED]\n",
+                   nodes_computed,
+                   100.0 * nodes_computed / global_stats.EPT_total_nodes_in_used_epts);
+            printf("    - Of which computed full GED: %zu (%.1f%% of computed, %.1f%% of EPT total)\n",
+                   global_stats.EPT_astar_count,
+                   nodes_computed > 0 ? 100.0 * global_stats.EPT_astar_count / nodes_computed : 0.0,
+                   100.0 * global_stats.EPT_astar_count / global_stats.EPT_total_nodes_in_used_epts);
+            printf("  - Nodes pruned (avoided computation): %zu (%.1f%% of EPT total)\n",
+                   nodes_pruned,
+                   100.0 * nodes_pruned / global_stats.EPT_total_nodes_in_used_epts);
+
+            printf("\n  Pruning Breakdown:\n");
+            printf("    - LB Propagation: %zu (%.1f%% of EPT total)\n",
+                   global_stats.lb_pruning_count,
+                   100.0 * global_stats.lb_pruning_count / global_stats.EPT_total_nodes_in_used_epts);
+            printf("    - Subtree pruned: %zu (%.1f%% of EPT total)\n",
+                   global_stats.subtree_pruning_avoided_nodes,
+                   100.0 * global_stats.subtree_pruning_avoided_nodes / global_stats.EPT_total_nodes_in_used_epts);
+        }
+
+        // Subtree pruning 统计
+        printf("\nSubtree Pruning:\n");
+        printf("  - Pruning decisions: %zu\n", global_stats.subtree_pruning_decisions);
+        printf("    - On leaf nodes: %zu (%.1f%% of decisions)\n",
+               global_stats.subtree_pruning_on_leaf_nodes,
+               global_stats.subtree_pruning_decisions > 0 ?
+               100.0 * global_stats.subtree_pruning_on_leaf_nodes / global_stats.subtree_pruning_decisions : 0.0);
+        printf("    - On internal nodes: %zu (%.1f%% of decisions)\n",
+               global_stats.subtree_pruning_decisions - global_stats.subtree_pruning_on_leaf_nodes,
+               global_stats.subtree_pruning_decisions > 0 ?
+               100.0 * (global_stats.subtree_pruning_decisions - global_stats.subtree_pruning_on_leaf_nodes) / global_stats.subtree_pruning_decisions : 0.0);
+        printf("  - Avoided descendant nodes: %zu\n", global_stats.subtree_pruning_avoided_nodes);
+        if (global_stats.subtree_pruning_decisions > 0) {
+            printf("  - Average descendants avoided per decision: %.1f nodes\n",
+                   (double)global_stats.subtree_pruning_avoided_nodes / global_stats.subtree_pruning_decisions);
+        }
+
+
+        // NetDag缓存复用统计
+        printf("\nNetDag GED Cache Reuse:\n");
+        printf("  - Root nodes reused NetDag GED: %zu\n", global_stats.root_netdag_ged_reuse_count);
+        if (global_stats.root_netdag_ged_reuse_count > 0 && global_stats.EPT_results_from_astar > 0) {
+            printf("  - Percentage of results from NetDag cache: %.1f%%\n",
+                   100.0 * global_stats.root_netdag_ged_reuse_count / (global_stats.EPT_results_from_astar + global_stats.root_netdag_ged_reuse_count));
+        }
+
+        // 总体优化效果
+        printf("\nTotal Optimization Impact:\n");
+        printf("  - Subtree pruning decisions: %zu\n", global_stats.subtree_pruning_decisions);
+        printf("  - Avoided descendant nodes: %zu\n", global_stats.subtree_pruning_avoided_nodes);
+        printf("  - App_test computations skipped by LB propagation: %zu\n", global_stats.lb_pruning_count);
+        printf("  - Root nodes reused NetDag GED: %zu\n", global_stats.root_netdag_ged_reuse_count);
+
+        if (global_stats.subtree_pruning_decisions > 0) {
+            printf("  - Average descendants avoided per decision: %.1f nodes\n",
+                   (double)global_stats.subtree_pruning_avoided_nodes / global_stats.subtree_pruning_decisions);
+        }
+
+        printf("==================================================\n");
+    }
+    
+    // ========== 10. NetDag & EPT 详细统计 ==========
+    printf("\n=== NetDag & EPT Detailed Stats ===\n");
+    global_stats.print_summary(std::cout);  // 这个需要保留cout，因为是调用其他函数
+    
+    // ========== 11. 最慢查询排序（可选）==========
+    if (!query_time_pairs.empty() && query_time_pairs.size() <= 100) {
+        // 创建副本进行排序，避免修改原始数据
+        std::vector<std::pair<int, double>> sorted_pairs = query_time_pairs;
+        std::sort(sorted_pairs.begin(), sorted_pairs.end(),
+                  [](const auto& a, const auto& b) { return a.second > b.second; });
+        
+        printf("\n=== Top 10 Slowest Queries ===\n");
+        for (size_t i = 0; i < std::min(size_t(10), sorted_pairs.size()); ++i) {
+            printf("Query %d: %f seconds\n", sorted_pairs[i].first, sorted_pairs[i].second);
+        }
+    }
+    
+    printf("\n=============================================\n");
 }
 
 void GismaSearchEngine::save_experiment_results(
@@ -5141,53 +4772,53 @@ void GismaSearchEngine::save_experiment_results(
     const std::vector<QueryDetails>& query_details,
     bool is_parallel)
 {
-    // Create results directory
+    // 创建结果目录
     std::string exp_dir;
     std::string exp_name;
     char timestamp[64] = "N/A";
 
-    // If experiment_base_dir is set, use it directly as output directory
+    // 如果设置了 experiment_base_dir，直接使用它作为输出目录
     if (!experiment_base_dir.empty()) {
         exp_dir = experiment_base_dir;
         std::filesystem::create_directories(exp_dir);
         printf("\n[Saving Results] Using experiment base directory: %s\n", exp_dir.c_str());
 
-        // Use directory name as experiment name
+        // 使用目录名作为实验名称
         exp_name = std::filesystem::path(exp_dir).filename().string();
 
-        // Generate timestamp
+        // 生成时间戳
         auto now = std::chrono::system_clock::now();
         auto time_t_now = std::chrono::system_clock::to_time_t(now);
         std::tm tm_now;
         LOCALTIME_SAFE(&tm_now, &time_t_now);
         std::strftime(timestamp, sizeof(timestamp), "%Y%m%d_%H%M%S", &tm_now);
     } else {
-        // Otherwise use default directory naming
+        // 否则使用默认的目录命名方式
         std::string base_dir = "./experiment_results";
         std::filesystem::create_directories(base_dir);
 
-        // Generate timestamp
+        // 生成时间戳
         auto now = std::chrono::system_clock::now();
         auto time_t_now = std::chrono::system_clock::to_time_t(now);
         std::tm tm_now;
         LOCALTIME_SAFE(&tm_now, &time_t_now);
         std::strftime(timestamp, sizeof(timestamp), "%Y%m%d_%H%M%S", &tm_now);
 
-        // Generate experiment name：dataset_method_tau_timestamp
+        // 生成实验名称：dataset_method_tau_timestamp
         std::ostringstream exp_name_stream;
         exp_name_stream << dataset_name << "_" << search_method
                         << "_tau" << static_cast<int>(tau)
                         << "_" << timestamp;
         exp_name = exp_name_stream.str();
 
-        // Create experiment-specific directory
+        // 创建实验专属目录
         exp_dir = base_dir + "/" + exp_name;
         std::filesystem::create_directories(exp_dir);
 
         printf("\n[Saving Results] Experiment directory: %s\n", exp_dir.c_str());
     }
 
-    // ========== 1. Save overall statistics (summary.txt) ==========
+    // ========== 1. 保存总体统计 (summary.txt) ==========
     std::string summary_path = exp_dir + "/summary.txt";
     std::ofstream summary_file(summary_path);
 
@@ -5217,12 +4848,12 @@ void GismaSearchEngine::save_experiment_results(
     summary_file << "Total Query Time: " << sum_of_query_times << " seconds\n";
     summary_file << "Average Query Time: " << (total_queries_processed > 0 ? sum_of_query_times / total_queries_processed : 0.0) << " seconds\n\n";
 
-    // Determine if two-layer index structure (Gisma) is used
-    bool uses_two_layer_index = (search_method == "Gisma" || search_method == "Gisma-no-reuse");
+    // 判断是否使用两层索引结构 (Gisma)
+    bool uses_two_layer_index = (search_method == "Gisma" || search_method == "Gisma-default" || search_method == "Gisma-no-reuse");
 
     summary_file << "--- Time Breakdown ---\n";
     if (uses_two_layer_index) {
-        // Gisma: show ND + EPT decomposition
+        // Gisma: 显示 ND + EPT 分解
         double nd_total = global_stats.ND_lb_time + global_stats.ND_astar_time;
         double ept_total = global_stats.EPT_lb_time + global_stats.EPT_astar_time;
         summary_file << "ND Total Time: " << nd_total << " seconds\n";
@@ -5232,7 +4863,7 @@ void GismaSearchEngine::save_experiment_results(
         summary_file << "  - EPT LB Time: " << global_stats.EPT_lb_time << " seconds\n";
         summary_file << "  - EPT AStar Time: " << global_stats.EPT_astar_time << " seconds\n\n";
     } else {
-        // App-BMao, AStar-BMao etc.: only show total LB + AStar
+        // App-BMao, AStar-BMao 等: 只显示总的 LB + AStar
         double lb_time = global_stats.ND_lb_time + global_stats.EPT_lb_time;
         double astar_time = global_stats.ND_astar_time + global_stats.EPT_astar_time;
         summary_file << "Total LB Time: " << lb_time << " seconds\n";
@@ -5257,7 +4888,7 @@ void GismaSearchEngine::save_experiment_results(
 
     summary_file << "--- LB & AStar Call Counts ---\n";
     if (uses_two_layer_index) {
-        // Gisma: show ND and EPT separately
+        // Gisma: 分别显示 ND 和 EPT
         summary_file << "ND LB Calls:\n";
         summary_file << "  - Size LB: " << global_stats.ND_size_lb_count << "\n";
         summary_file << "  - Vertex LB: " << global_stats.ND_vertex_lb_count << "\n";
@@ -5270,7 +4901,7 @@ void GismaSearchEngine::save_experiment_results(
         summary_file << "  - Edge LB: " << global_stats.EPT_edge_lb_degree_count << "\n";
         summary_file << "EPT AStar Calls: " << global_stats.EPT_astar_count << "\n\n";
     } else {
-        // App-BMao, AStar-BMao: show total
+        // App-BMao, AStar-BMao: 显示总计
         int total_size_lb = global_stats.ND_size_lb_count + global_stats.EPT_size_lb_count;
         int total_vertex_lb = global_stats.ND_vertex_lb_count + global_stats.EPT_vertex_lb_count;
         int total_edge_lb = global_stats.ND_edge_lb_degree_count + global_stats.EPT_edge_lb_degree_count;
@@ -5286,7 +4917,7 @@ void GismaSearchEngine::save_experiment_results(
     summary_file.close();
     printf("[Saved] %s\n", summary_path.c_str());
 
-    // ========== 2. Save detailed info for each query (query_details.csv) ==========
+    // ========== 2. 保存每个query的详细信息 (query_details.csv) ==========
     std::string details_path = exp_dir + "/query_details.csv";
     std::ofstream details_file(details_path);
 
@@ -5310,7 +4941,7 @@ void GismaSearchEngine::save_experiment_results(
     details_file.close();
     printf("[Saved] %s\n", details_path.c_str());
 
-    // ========== 3. Save configuration parameters (config.txt) ==========
+    // ========== 3. 保存配置参数 (config.txt) ==========
     std::string config_path = exp_dir + "/config.txt";
     std::ofstream config_file(config_path);
 
@@ -5334,18 +4965,18 @@ void GismaSearchEngine::save_experiment_results(
     printf("[Saving Complete] All results saved to: %s\n\n", exp_dir.c_str());
 }
 
-// Save single query JSON results (real-time save)
+// 保存单个query的JSON结果（实时保存）
 void GismaSearchEngine::save_single_query_json(
     const QueryDetails& query_detail,
     double tau,
     const std::string& output_dir
 ) {
-    // Generate filename：query_<id>.json
+    // 生成文件名：query_<id>.json
     std::ostringstream filename;
     filename << "query_" << query_detail.query_id << ".json";
     std::string filepath = output_dir + "/" + filename.str();
 
-    // Call QueryDetails save_to_json method
+    // 调用QueryDetails的save_to_json方法
     query_detail.save_to_json(filepath, tau);
 }
 
@@ -5394,39 +5025,4 @@ void QueryDetails::save_to_json(const std::string& filepath, double tau) const {
     json_file.close();
 }
 
-// Single query search implementation
-QueryDetails GismaSearchEngine::search_single_query(
-    int query_id,
-    std::shared_ptr<Node> query_node,
-    double tau_value,
-    SearchStats& local_stats
-) {
-    auto query_start = std::chrono::high_resolution_clock::now();
-
-    // Execute full Gisma search, directly passing tau parameter
-    std::vector<int> results = Gisma_search(query_node, tau_value, local_stats);
-
-    auto query_end = std::chrono::high_resolution_clock::now();
-    double total_query_time = std::chrono::duration<double>(query_end - query_start).count();
-
-    // Compute precision
-    auto [has_ground_truth, recall, precision, iou, intersection_count, ground_truth_size]
-        = compute_recall_precision_IoU(query_id, results, tau_value);
-
-    // Create QueryDetails
-    QueryDetails qd(query_id, total_query_time, recall, precision, iou, has_ground_truth);
-
-    // Fill in extra info
-    qd.query_nodes = query_node->graph->n;
-    qd.query_edges = query_node->graph->m;
-    qd.result_count = (int)results.size();
-    qd.lb_time = local_stats.total_lb_time();
-    qd.astar_time = local_stats.total_astar_time();
-    qd.total_ept_nodes = local_stats.EPT_total_nodes_in_used_epts;
-    qd.nodes_computed = local_stats.EPT_nodes_computed;
-    qd.nodes_pruned = local_stats.subtree_pruning_avoided_nodes + local_stats.lb_pruning_count;
-    qd.lb_pruning_count = local_stats.lb_pruning_count;
-    qd.subtree_pruned = local_stats.subtree_pruning_avoided_nodes;
-
-    return qd;
-}
+// 单个query搜索实现

@@ -4,8 +4,8 @@
 #include "Utility.h"
 #include "NetDag.h"
 #include "Graph.h"
-#include "Anchor.h"  // Ensure Anchor header is included
-#include "Node.h"    // Ensure Node header is included
+#include "Anchor.h"  // 确保包含 Anchor 头文件
+#include "Node.h"    // 确保包含 Node 头文件
 #include "EditPathTree.h"
 #include "Config.h"
 #include "NetDagConstructor.h"
@@ -32,7 +32,7 @@ public:
         int                                             // current phase
     )>;
 
-    // Constructor
+    // 构造函数
     GismaIndexBuilder(const std::string& index_name,
                 const std::vector<std::shared_ptr<Graph>>& graphs,
                 const std::vector<std::string>& nameList,
@@ -44,7 +44,7 @@ public:
                 bool use_parallel = false,
                 bool has_ged_matrix = false,
                 const std::vector<double>& ged_matrix = {},
-                int N = 0, // matrix size
+                int N = 0, // 矩阵大小
                 double max_exact_ged_for_EPT = 17.0,
                 const std::string& folder_name = "AIDS_divided",
                 const std::map<std::string, ui> &vM = {},
@@ -76,6 +76,7 @@ public:
     void get_nodes_in_cover_range();
     void make_friends(std::shared_ptr<Anchor> anchor1, std::shared_ptr<Anchor> anchor2, double distance);
     void add_edge(std::shared_ptr<Anchor> parent, std::shared_ptr<Node> child, int child_phase, double child_dist);
+    void add_edge(std::shared_ptr<Node> parent, std::shared_ptr<Node> child, int child_phase, double child_dist);
     
     // Delegated EPT construction methods
     void compute_edit_path_and_save_to_csv();
@@ -128,10 +129,14 @@ public:
     bool use_parallel;
     bool has_ged_matrix;
     std::vector<double> ged_matrix;
-    int N; // matrix size
+    int N; // 矩阵大小
     double max_exact_ged_for_EPT;
     std::string folder_name;
     int NDC;
+    // 建索引 GED 精确计算的迭代预算(原写死 1e6)。调大 => 更多 cluster 成员能判定 GED<=thr 进 EPT,
+    // 覆盖率上升、查询期 extra_cluster_search 负担下降; 代价是建索引更慢。construct mode 从 config 覆盖。
+    int epf_exact_iter = 1000000;
+    bool all_edge_labels_same = true;  // 默认开（Gisma GED 模型无边标签）：跳过边标签比较加速建索引 GED；construct mode 从 config 覆盖
     const std::map<std::string, ui>& vM;
     const std::map<std::string, ui>& eM;
     ui max_n;

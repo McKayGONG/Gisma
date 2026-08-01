@@ -24,27 +24,26 @@ public:
     // Use mutable to allow locking in const methods
     mutable std::shared_mutex children_mutex;
 
-    // Default constructor
+    // 默认构造函数
     NetDag();
 
-    // Parameterized constructor
+    // 带参数的构造函数
     NetDag(const std::string &file_signature,
            std::shared_ptr<Node> root,
            double alpha = 0.0,
            double tau = 0.0);
 
-    void add_node(const std::shared_ptr<Node> &node);
     void add_anchor(const std::shared_ptr<Anchor> &anchor);
 
-    // Function to print NetDag information
+    // 打印 NetDag 信息的函数
     void print_netdag_info();
 
-    // Save to file
+    // 保存到文件
     void save_to_file(const std::string& filename) const;
     static void load_from_file(NetDag& netdag, const std::string& filename);
 
-    // Minimal loading: only read anchor IDs + nodes_in_exact_cluster (skip Nodes section, graph data, children, hierarchy)
-    // Used for construct_EPF mode, avoiding loading the full 47GB NetDag
+    // 极简加载：只读取 anchor 的 ID + nodes_in_exact_cluster（跳过 Nodes 段、graph 数据、children、hierarchy）
+    // 用于 construct_EPF 模式，避免加载完整 47GB NetDag
     static void load_anchors_only(NetDag& netdag, const std::string& filename);
 };
 

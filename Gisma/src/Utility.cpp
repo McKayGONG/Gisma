@@ -16,11 +16,12 @@
 #include <iomanip>
 #include <fstream>
 #include <sstream>
+#include <filesystem>
 
 // Iteration count variables removed - now controlled via Application/GismaSearchEngine class members
 // set from --app_max_iter command-line parameter (default: 2300)
 
-// Implementation of the static file-open function
+// 实现打开文件的静态函数
 FILE* Utility::open_file(const char* file_name, const char* mode) {
     FILE* f = fopen(file_name, mode);
     if (f == nullptr) {
@@ -30,33 +31,10 @@ FILE* Utility::open_file(const char* file_name, const char* mode) {
     return f;
 }
 
-// Implementation of the static integer-to-string function
-std::string Utility::integer_to_string(long long number) {
-    std::vector<ui> sequence;
-    if (number == 0) {
-        sequence.pb(0);
-    }
-    while (number > 0) {
-        sequence.pb(number % 1000);
-        number /= 1000;
-    }
-
-    char buf[6]; // extra char for null terminator
-    std::string res;
-    for (ui i = sequence.size(); i > 0; i--) {
-        if (i == sequence.size()) {
-            sprintf(buf, "%u", sequence[i - 1]);
-        }
-        else {
-            sprintf(buf, ",%03u", sequence[i - 1]);
-        }
-        res += std::string(buf);
-    }
-    return res;
-}
+// 实现整数转字符串的静态函数
 
 
-// Implementation of the static function to load graph data from a txt file
+// 实现从txt文件中加载图数据的静态函数
 ui Utility::load_db(const char* file_name, std::vector<Graph*>& graphs, std::map<std::string, ui>& vM, std::map<std::string, ui>& eM) {
     FILE* fin = Utility::open_file(file_name, "r");
 
@@ -68,61 +46,45 @@ ui Utility::load_db(const char* file_name, std::vector<Graph*>& graphs, std::map
     }
 
     ui max_n = 0;
-    ui graph_id = 0;  // sequential numbering starting from 0
+    ui graph_id = 0;  // 用于从0开始为每个图编号
     ui max_vlabel = 0;
     ui max_elabel = 0;
-    while (line[0] == 'I' && line[1] == 'D') {  // check for "ID" prefix
-        line[0] = 'x';  // mark current line as processed
+    while (line[0] == 'I' && line[1] == 'D') {  // 检查"ID"开头
+        line[0] = 'x';  // 标记当前行已处理
 
         std::vector<std::pair<int, ui>> vertices;
         std::vector<std::pair<std::pair<int, int>, ui>> edges;
         while (fgets(line, MAX_LINE, fin) != NULL && !(line[0] == 'I' && line[1] == 'D')) {
-            // if (line[0] == 'v') {
-            //     int a;
-            //     char buf[128];
-            //     sscanf(line + 2, "%d%s", &a, buf);
-            //     vertices.pb(mp(a, label2int(buf, vM)));
-            //     ui lab_id = label2int_AIDS(buf, vM);
-            //     vertices.emplace_back(a, lab_id);
-                
-
-            // } else if (line[0] == 'e') {
-            //     int a, b;
-            //     char buf[128];
-            //     sscanf(line + 2, "%d%d%s", &a, &b, buf);
-            //     ui edge_label = label2int(buf, eM);
-            //     edges.pb(mp(mp(a, b), edge_label));
-            //     edges.pb(mp(mp(b, a), edge_label));
             if (line[0] == 'v') {
                 int a;
-                ui lab_id;  // ui type since labels are integers
-                sscanf(line + 2, "%d%d", &a, &lab_id);  // read vertex id and integer label
+                ui lab_id;  // 改为 ui 类型，因为你已经使用整数标签
+                sscanf(line + 2, "%d%d", &a, &lab_id);  // 读取节点id和整数标签
                 if (lab_id > max_vlabel) max_vlabel = lab_id;
                 // std::cout << "max_vlabel: " << max_vlabel << std::endl;
-                vertices.emplace_back(a, lab_id);  // add vertex and label to vertices
+                vertices.emplace_back(a, lab_id);  // 将节点和标签添加到 vertices
                 // std::cout << "Vertex: " << a << " Label: " << lab_id << std::endl;
             
             } else if (line[0] == 'e') {
                 int a, b;
-                ui edge_label;  // edge label is also an integer
-                sscanf(line + 2, "%d%d%d", &a, &b, &edge_label);  // read two vertices and edge label
+                ui edge_label;  // 边的标签也是整数
+                sscanf(line + 2, "%d%d%d", &a, &b, &edge_label);  // 读取两个节点和边标签
                 if (edge_label > max_elabel) max_elabel = edge_label;
-                edges.pb(mp(mp(a, b), edge_label));  // add edge with label
-                edges.pb(mp(mp(b, a), edge_label));  // add reverse edge
+                edges.pb(mp(mp(a, b), edge_label));  // 添加边和标签
+                edges.pb(mp(mp(b, a), edge_label));  // 添加反向边
             } else {
                 std::cerr << "!!! Unrecognized first letter in a line when loading DB!\n";
             }
-            line[0] = 'x';  // mark current line as processed
+            line[0] = 'x';  // 标记当前行已处理
         }
 
-        // Sort and validate vertices
+        // 排序并验证顶点
         std::sort(vertices.begin(), vertices.end());
         for (ui i = 0; i < vertices.size(); i++) {
             assert(vertices[i].first == static_cast<int>(i));
         }
         if (vertices.size() > max_n) max_n = vertices.size();
 
-        // Sort and validate edges
+        // 排序并验证边
         std::sort(edges.begin(), edges.end());
         for (ui i = 0; i < edges.size(); i++) {
             assert(edges[i].first.first >= 0 && edges[i].first.first < vertices.size());
@@ -133,11 +95,11 @@ ui Utility::load_db(const char* file_name, std::vector<Graph*>& graphs, std::map
             assert(edges[i].second < eM.size());
         }
 
-        // Use sequential graph_id starting from 0 instead of the id from the file
+        // 使用从0开始的graph_id代替从文件读取的id
         std::string id = std::to_string(graph_id);
-        graph_id++;  // increment to ensure the next graph's id is sequential
+        graph_id++;  // 自增，确保下一个图的id是递增的
 
-        // Create a new Graph object and add it to the graphs vector
+        // 创建新的Graph对象并添加到graphs向量中
         graphs.pb(new Graph(id, vertices, edges));
     }
     // std::cout << "max_vlabel: " << max_vlabel << " max_elabel: " << max_elabel << std::endl;
@@ -154,17 +116,17 @@ ui Utility::load_db(const char* file_name, std::vector<Graph*>& graphs, std::map
 
 
 
-// Implementation of the function to generate index_name with short_name and parameters, keeping one decimal place
+// 实现生成包含short_name和参数的index_name，并保留一位小数的函数
 std::string Utility::get_index_name(const std::string& dataset, double alpha, double tau, double error_tolerance_index, size_t graph_size) {
     ;
     
-    // Use std::ostringstream to keep one decimal place
+    // 使用 std::ostringstream 来保留一位小数
     std::ostringstream oss;
     oss << std::fixed << std::setprecision(1);
     oss << dataset << "_" << graph_size << "_"
         << alpha << "_" << tau << "_" << error_tolerance_index;
     
-    return oss.str();  // return the formatted index_name
+    return oss.str();  // 返回格式化后的 index_name
 }
 
 size_t Utility::get_upper_tri_index(int N, int i, int j) {
@@ -187,7 +149,7 @@ bool Utility::load_exact_ground_truth(const std::string& file_path,
         double distance;
         char bracket;
         
-        // Read query_id and distance
+        // 读取 query_id 和 distance
         if (!(iss >> query_id >> distance >> bracket) || bracket != '[') {
             std::cerr << "Error: Invalid line format: " << line << std::endl;
             continue;
@@ -196,10 +158,10 @@ bool Utility::load_exact_ground_truth(const std::string& file_path,
         std::vector<int> graph_ids;
         int graph_id;
 
-        // Read graph_ids
+        // 读取 graph_ids
         while (iss >> graph_id) {
             graph_ids.push_back(graph_id);
-            if (iss.peek() == ',') { // skip comma
+            if (iss.peek() == ',') { // 跳过逗号
                 iss.ignore();
             }
         }
@@ -211,24 +173,6 @@ bool Utility::load_exact_ground_truth(const std::string& file_path,
     return true;
 }
 
-std::vector<int> Utility::get_ids_within_range(const std::map<int, std::map<double, std::vector<int>>>& ground_truth, double range) {
-    std::vector<int> ids;
-
-    for (const auto& query : ground_truth) {
-        int query_id = query.first;
-        const auto& distances = query.second;
-
-        for (const auto& distance_entry : distances) {
-            double distance = distance_entry.first;
-            if (distance <= range) {
-                const auto& graph_ids = distance_entry.second;
-                ids.insert(ids.end(), graph_ids.begin(), graph_ids.end());
-            }
-        }
-    }
-
-    return ids;
-}
 
 // Vector distance calculation implementation
 double Utility::euclidean_distance(const std::vector<float>& v1, const std::vector<float>& v2) {
@@ -288,7 +232,18 @@ bool Utility::load_embeddings(const std::string& embedding_file, std::vector<std
     return true;
 }
 
-// Predict GED using embedding vectors with simple distance-based mapping
-double Utility::predict_ged_with_embeddings(const std::vector<float>& emb1, const std::vector<float>& emb2) {
-    return euclidean_distance(emb1, emb2);
+// E1: construction 计时输出文件路径（空=不统计，默认）。由 main() 从 --timing_log 设置。
+std::string Utility::e1_timing_path = "";
+
+// E1: append one structured timing record to e1_timing_path (raw numbers, not logs).
+// 默认 e1_timing_path 为空 → 直接返回，不创建任何文件（正常用户零影响）。
+void Utility::append_e1_timing(const std::string& record) {
+    if (e1_timing_path.empty()) return;
+    std::error_code ec;
+    std::filesystem::path p(e1_timing_path);
+    if (p.has_parent_path()) std::filesystem::create_directories(p.parent_path(), ec);
+    std::ofstream ofs(e1_timing_path, std::ios::app);
+    if (ofs.is_open()) ofs << record << "\n";
 }
+
+// Predict GED using embedding vectors with simple distance-based mapping

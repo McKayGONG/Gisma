@@ -11,7 +11,7 @@ NetDag::NetDag()
       root(nullptr),
       alpha(0.0),
       tau(0.0) {
-    // Initialize other member variables
+    // 初始化其他成员变量
     nodes.clear();
     anchors.clear();
     parent_by_phase_dict.clear();
@@ -27,15 +27,12 @@ NetDag::NetDag(const std::string& file_signature,
       tau(tau) {
     if (root) {
         if (root->node_id >= nodes.size()) {
-            nodes.resize(root->node_id + 1);  // resize
+            nodes.resize(root->node_id + 1);  // 重新调整大小
         }
-        nodes[root->node_id] = root;  // can now safely assign
+        nodes[root->node_id] = root;  // 现在可以安全地分配
     }
 }
 
-void NetDag::add_node(const std::shared_ptr<Node>& node) {
-    nodes[node->node_id] = node;
-}
 
 void NetDag::add_anchor(const std::shared_ptr<Anchor>& anchor) {
     anchors.push_back(anchor);
@@ -173,26 +170,26 @@ void NetDag::save_to_file(const std::string& filename) const {
 }
 
 
-// Required header files
+// 需要包含的头文件
 #include <omp.h>
 #include <thread>
 #include <atomic>
 #include <chrono>
 
 void NetDag::load_from_file(NetDag& netdag, const std::string& filename) {
-    // Use larger buffer for better I/O performance
+    // 使用更大的缓冲区提高I/O性能
     std::ifstream ifs(filename, std::ios::in);
     if (!ifs) {
         std::cerr << "Unable to open file for reading: " << filename << std::endl;
         return;
     }
     
-    // Set larger buffer
+    // 设置更大的缓冲区
     const size_t buffer_size = 1024 * 1024; // 1MB buffer
     std::vector<char> buffer(buffer_size);
     ifs.rdbuf()->pubsetbuf(buffer.data(), buffer_size);
 
-    // Handle Windows/Linux line endings: strip trailing \r after getline
+    // 兼容Windows/Linux换行符：getline后去掉尾部\r
     auto getline_trim = [&](std::ifstream& s, std::string& l) -> std::ifstream& {
         std::getline(s, l);
         if (!l.empty() && l.back() == '\r') l.pop_back();
@@ -200,7 +197,7 @@ void NetDag::load_from_file(NetDag& netdag, const std::string& filename) {
     };
     
     std::string line;
-    line.reserve(1024); // Pre-allocate space to reduce memory allocation
+    line.reserve(1024); // 预分配空间减少内存分配
 
     // Read basic NetDag information
     getline_trim(ifs, line); // NetDag File Signature
@@ -219,12 +216,12 @@ void NetDag::load_from_file(NetDag& netdag, const std::string& filename) {
     getline_trim(ifs, line); // Number of Anchors
     int num_anchors = std::stoi(line.substr(line.find(":") + 2));
 
-    // Pre-allocate space
+    // 预分配空间
     netdag.nodes.clear();
     netdag.nodes.resize(actual_node_count);
     netdag.anchors.reserve(num_anchors);
 
-    // For storing nodes needing parallel initialization
+    // 用于存储需要并行初始化的节点
     std::vector<std::shared_ptr<Node>> nodes_to_initialize;
     nodes_to_initialize.reserve(actual_node_count);
 
@@ -235,7 +232,7 @@ void NetDag::load_from_file(NetDag& netdag, const std::string& filename) {
     printf("[NetDag::load_from_file] Loading %d nodes...\n", actual_node_count);
     fflush(stdout);
 
-    // Phase 1: serial read of all node data (with deferred Graph initialization)
+    // Phase 1: 串行读取所有节点数据（但延迟Graph初始化）
     for (int i = 0; i < actual_node_count; ) {
         if (i % 100000 == 0) {
             printf("[NetDag::load_from_file] Progress: %d/%d nodes (%.1f%%)\n",
@@ -271,7 +268,7 @@ void NetDag::load_from_file(NetDag& netdag, const std::string& filename) {
                     node->graph = std::make_shared<Graph>();
                     node->graph->load_from_stream(ifs);
                     has_graph_data = true;
-                    // Note: no initialization here, deferred to parallel phase
+                    // 注意：这里不进行初始化，延迟到并行阶段
                 } else {
                     node->graph = nullptr;
                 }
@@ -282,7 +279,7 @@ void NetDag::load_from_file(NetDag& netdag, const std::string& filename) {
 
         netdag.nodes[node->node_id] = node;
 
-        // Record nodes needing initialization
+        // 记录需要初始化的节点
         if (has_graph_data) {
             nodes_to_initialize.push_back(node);
         }
@@ -300,7 +297,7 @@ void NetDag::load_from_file(NetDag& netdag, const std::string& filename) {
     printf("[NetDag::load_from_file] Loading %d anchors...\n", num_anchors);
     fflush(stdout);
 
-    // Read anchor information (also with deferred GraphInitialization)
+    // Read anchor information (同样延迟Graph初始化)
     for (int i = 0; i < num_anchors; i++) {
         if (i % 1000 == 0) {
             printf("[NetDag::load_from_file] Anchor progress: %d/%d (%.1f%%)\n",
@@ -331,7 +328,7 @@ void NetDag::load_from_file(NetDag& netdag, const std::string& filename) {
                     anchor->graph = std::make_shared<Graph>();
                     anchor->graph->load_from_stream(ifs);
                     has_graph_data = true;
-                    // Deferred initialization
+                    // 延迟初始化
                 } else {
                     anchor->graph = nullptr;
                 }
@@ -426,14 +423,14 @@ void NetDag::load_from_file(NetDag& netdag, const std::string& filename) {
     printf("[NetDag::load_from_file] Finished loading %d anchors\n", num_anchors);
     fflush(stdout);
 
-    // Read remaining data (parent_by_phase_dict etc.)
-    // Check if file has reached end
+    // 读取剩余的数据（parent_by_phase_dict等）
+    // 检查文件是否已到达末尾
     if (!ifs.eof() && ifs.good()) {
         getline_trim(ifs, line); // Empty line
 
-        // Check if read succeeded and not EOF
+        // 检查是否成功读取且不是EOF
         if (!ifs.eof() && ifs.good() && getline_trim(ifs, line)) {
-            // Check if this is ParentByPhaseDict section
+            // 检查是否是ParentByPhaseDict部分
             if (line.find("# ParentByPhaseDict") != std::string::npos) {
                 printf("[NetDag::load_from_file] Loading parent_by_phase_dict...\n");
                 fflush(stdout);
@@ -476,7 +473,7 @@ void NetDag::load_from_file(NetDag& netdag, const std::string& filename) {
                     }
                 }
 
-                // Read RootNodeID
+                // 读取RootNodeID
                 while (getline_trim(ifs, line) && line.empty());
 
                 if (line.find("RootNodeID:") == 0) {
@@ -503,7 +500,7 @@ void NetDag::load_from_file(NetDag& netdag, const std::string& filename) {
     printf("[NetDag::load_from_file] File reading completed. Nodes to initialize: %zu\n", nodes_to_initialize.size());
     fflush(stdout);
 
-    // Phase 2: parallel initialization of all Graphs
+    // Phase 2: 并行初始化所有Graph
     const int num_threads = std::min(static_cast<int>(std::thread::hardware_concurrency()),
                                     static_cast<int>(nodes_to_initialize.size()));
 
@@ -511,7 +508,7 @@ void NetDag::load_from_file(NetDag& netdag, const std::string& filename) {
     fflush(stdout);
     
     if (num_threads > 1 && nodes_to_initialize.size() > 100) {
-        // Using OpenMP parallel processing
+        // 使用OpenMP并行处理
         #pragma omp parallel for num_threads(num_threads) schedule(dynamic, 10)
         for (size_t i = 0; i < nodes_to_initialize.size(); i++) {
             auto& node = nodes_to_initialize[i];
@@ -521,7 +518,7 @@ void NetDag::load_from_file(NetDag& netdag, const std::string& filename) {
             // }
         }
     } else {
-        // Too few nodes, use serial processing
+        // 节点太少，使用串行处理
         for (size_t i = 0; i < nodes_to_initialize.size(); i++) {
             auto& node = nodes_to_initialize[i];
             if (node && node->graph) {
@@ -536,9 +533,9 @@ void NetDag::load_from_file(NetDag& netdag, const std::string& filename) {
 }
 
 
-// Minimal loading: only read anchor ID + nodes_in_exact_cluster
-// Skip entire Nodes section, anchor graph data, children, parent_by_phase_dict
-// For construct_EPF mode, avoid loading full large NetDag (e.g. Chemical1M 47GB)
+// 极简加载：只读取 anchor 的 ID + nodes_in_exact_cluster
+// 跳过整个 Nodes 段、anchor 的 graph 数据、children、parent_by_phase_dict
+// 用于 construct_EPF 模式，避免加载完整大 NetDag（如 Chemical1M 47GB）
 void NetDag::load_anchors_only(NetDag& netdag, const std::string& filename) {
     std::ifstream ifs(filename, std::ios::in);
     if (!ifs) {
@@ -546,7 +543,7 @@ void NetDag::load_anchors_only(NetDag& netdag, const std::string& filename) {
         return;
     }
 
-    // Set larger buffer
+    // 设置更大的缓冲区
     const size_t buffer_size = 1024 * 1024; // 1MB buffer
     std::vector<char> buffer(buffer_size);
     ifs.rdbuf()->pubsetbuf(buffer.data(), buffer_size);
@@ -581,10 +578,10 @@ void NetDag::load_anchors_only(NetDag& netdag, const std::string& filename) {
     printf("[load_anchors_only] Skipping entire Nodes section...\n");
     fflush(stdout);
 
-    // Fast-skip entire Nodes section: only scan EndNode markers
+    // 快速跳过整个 Nodes 段：只扫描 EndNode 标记
     int skipped_nodes = 0;
     while (getline_trim(ifs, line)) {
-        if (line == "# Anchors") break;  // Found Anchors section start
+        if (line == "# Anchors") break;  // 找到 Anchors 段开始
         if (line == "EndNode") {
             skipped_nodes++;
             if (skipped_nodes % 100000 == 0) {
@@ -597,10 +594,10 @@ void NetDag::load_anchors_only(NetDag& netdag, const std::string& filename) {
     printf("[load_anchors_only] Skipped %d nodes. Now loading anchors...\n", skipped_nodes);
     fflush(stdout);
 
-    // Pre-allocate anchors
+    // 预分配 anchors
     netdag.anchors.reserve(num_anchors);
 
-    // Read anchor info: only keep AnchorID, NodeID, NodesInExactCluster
+    // 读取 anchor 信息：只保留 AnchorID, NodeID, NodesInExactCluster
     for (int i = 0; i < num_anchors; i++) {
         if (i % 1000 == 0) {
             printf("[load_anchors_only] Anchor progress: %d/%d (%.1f%%)\n",
@@ -626,18 +623,18 @@ void NetDag::load_anchors_only(NetDag& netdag, const std::string& filename) {
             } else if (line.find("NearestAnchorDist:") == 0) {
                 anchor->nearest_anchor_dist = std::stod(line.substr(line.find(":") + 2));
             } else if (line.find("HasGraph:") == 0) {
-                // Skip graph data (loaded from db)
+                // 跳过 graph 数据（从 db 加载）
                 std::string has_graph_str = line.substr(line.find(":") + 2);
                 if (has_graph_str == "true") {
-                    // Graph::save_to_stream format: GraphDataStart ... GraphDataEnd
-                    // Directly scan to GraphDataEnd marker
+                    // Graph::save_to_stream 格式：GraphDataStart ... GraphDataEnd
+                    // 直接扫描到 GraphDataEnd 标记
                     std::string gline;
                     while (getline_trim(ifs, gline)) {
                         if (gline == "GraphDataEnd") break;
                     }
                 }
             } else if (line.find("ChildrenCount:") == 0) {
-                // Skip children data
+                // 跳过 children 数据
                 int children_count = std::stoi(line.substr(line.find(":") + 2));
                 for (int j = 0; j < children_count; ++j) {
                     getline_trim(ifs, line); // Phase: X ChildListSize: Y
@@ -651,7 +648,7 @@ void NetDag::load_anchors_only(NetDag& netdag, const std::string& filename) {
                     }
                 }
             } else if (line.find("NodesInClusterCount:") == 0) {
-                // Read nodes_in_cluster
+                // 读取 nodes_in_cluster
                 int cluster_count = std::stoi(line.substr(line.find(":") + 2));
                 for (int j = 0; j < cluster_count; ++j) {
                     getline_trim(ifs, line);
@@ -662,7 +659,7 @@ void NetDag::load_anchors_only(NetDag& netdag, const std::string& filename) {
                     anchor->nodes_in_cluster.emplace(first, second);
                 }
             } else if (line.find("NodesInExactClusterCount:") == 0) {
-                // Read nodes_in_exact_cluster (core data)
+                // 读取 nodes_in_exact_cluster（核心数据）
                 int exact_cluster_count = std::stoi(line.substr(line.find(":") + 2));
                 for (int j = 0; j < exact_cluster_count; ++j) {
                     Anchor::ExactClusterNode cluster_node;
@@ -699,7 +696,7 @@ void NetDag::load_anchors_only(NetDag& netdag, const std::string& filename) {
             }
         }
 
-        // Diagnostics: print details near error location
+        // 诊断：在出错位置附近打印详情
         if (i >= 41325 && i <= 41340) {
             printf("[DIAG] anchor[%d]: anchor_id=%d, node_id=%d, lines=%d, exact_cluster=%zu\n",
                    i, anchor->anchor_id, anchor->node_id, lines_in_anchor,

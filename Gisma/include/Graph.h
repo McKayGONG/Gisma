@@ -13,28 +13,28 @@
 
 struct EditOperation {
     enum OperationType {
-        NODE_SUBSTITUTION,    // modify node label
-        NODE_DELETION,        // delete node
-        NODE_INSERTION,       // insert node
-        EDGE_SUBSTITUTION,    // modify edge label (existing; clarified usage)
-        EDGE_DELETION,        // delete edge
-        EDGE_INSERTION,       // insert edge
+        NODE_SUBSTITUTION,    // 修改节点标签
+        NODE_DELETION,        // 删除节点
+        NODE_INSERTION,       // 插入节点
+        EDGE_SUBSTITUTION,    // 修改边标签（已存在，明确其用途）
+        EDGE_DELETION,        // 删除边
+        EDGE_INSERTION,       // 插入边
         NONE = -1
     };
     
     OperationType type;
-    int u;          // for node ops: node ID; for edge ops: first node ID (smaller)
-    int v;          // for edge ops: second node ID (larger); for node ops: set to -1 or 0
-    int old_label;  // original label (for substitution, deletion operations)
-    int new_label;  // new label (for substitution, insertion operations)
+    int u;          // 对于节点操作：节点ID；对于边操作：第一个节点ID（较小的）
+    int v;          // 对于边操作：第二个节点ID（较大的）；对于节点操作：设为-1或0
+    int old_label;  // 原始标签（对于替换、删除操作）
+    int new_label;  // 新的标签（对于替换、插入操作）
 
     EditOperation() : type(NONE), u(0), v(-1), old_label(0), new_label(0) {}
 
     EditOperation(OperationType op_type, int u_val, int v_val, int old_lbl, int new_lbl)
         : type(op_type), u(u_val), v(v_val), old_label(old_lbl), new_label(new_lbl) {}
     
-    // Convenience constructors
-    // Node operations
+    // 便捷构造函数
+    // 节点操作
     static EditOperation NodeSubstitution(int node_id, int old_label, int new_label) {
         return EditOperation(NODE_SUBSTITUTION, node_id, -1, old_label, new_label);
     }
@@ -47,7 +47,7 @@ struct EditOperation {
         return EditOperation(NODE_INSERTION, node_id, -1, 0, label);
     }
     
-    // Edge operations
+    // 边操作
     static EditOperation EdgeSubstitution(int u, int v, int old_label, int new_label) {
         return EditOperation(EDGE_SUBSTITUTION, std::min(u,v), std::max(u,v), old_label, new_label);
     }
@@ -60,27 +60,27 @@ struct EditOperation {
         return EditOperation(EDGE_INSERTION, std::min(u,v), std::max(u,v), 0, label);
     }
     
-    // Check if this is a node operation
+    // 判断是否是节点操作
     bool is_node_operation() const {
         return type == NODE_SUBSTITUTION || type == NODE_DELETION || type == NODE_INSERTION;
     }
     
-    // Check if this is an edge operation
+    // 判断是否是边操作
     bool is_edge_operation() const {
         return type == EDGE_SUBSTITUTION || type == EDGE_DELETION || type == EDGE_INSERTION;
     }
     
-    // Check if this changes node count
+    // 判断是否改变节点数
     bool changes_node_count() const {
         return type == NODE_DELETION || type == NODE_INSERTION;
     }
     
-    // Check if this changes edge count
+    // 判断是否改变边数
     bool changes_edge_count() const {
         return type == EDGE_DELETION || type == EDGE_INSERTION;
     }
     
-    // Improved toString method
+    // 改进的toString方法
     std::string to_string() const {
         std::stringstream ss;
         switch (type) {
@@ -109,7 +109,7 @@ struct EditOperation {
         return ss.str();
     }
     
-    // Detailed debug output
+    // 详细的调试输出
     std::string to_debug_string() const {
         std::stringstream ss;
         ss << "[type=";
@@ -131,7 +131,7 @@ struct EditOperation {
     }
 };
 
-// Hash function unchanged, already correctly handles EDGE_SUBSTITUTION
+// Hash函数保持不变，已经正确处理了EDGE_SUBSTITUTION
 struct EditOperationHash {
     size_t operator()(const EditOperation& op) const {
         size_t h1 = std::hash<int>()(op.type);
@@ -139,28 +139,28 @@ struct EditOperationHash {
         size_t h5 = std::hash<int>()(op.new_label);
 
         if (op.is_edge_operation()) {
-            // For edge operations, node order does not matter
+            // 对于边操作，节点顺序无关
             size_t node_hash = std::hash<int>()(op.u) ^ std::hash<int>()(op.v);
             return h1 ^ node_hash ^ h4 ^ h5;
         } else {
-            // For node operations
+            // 对于节点操作
             size_t h2 = std::hash<int>()(op.u);
             return h1 ^ h2 ^ h4 ^ h5;
         }
     }
 };
 
-// Equal function unchanged, already correctly handles EDGE_SUBSTITUTION
+// Equal函数保持不变，已经正确处理了EDGE_SUBSTITUTION
 struct EditOperationEqual {
     bool operator()(const EditOperation& lhs, const EditOperation& rhs) const {
         if (lhs.type != rhs.type) return false;
         if (lhs.old_label != rhs.old_label || lhs.new_label != rhs.new_label) return false;
         
         if (lhs.is_edge_operation()) {
-            // For edge operations, check if nodes are the same regardless of order
+            // 对于边操作，检查节点是否相同，顺序不限
             return (lhs.u == rhs.u && lhs.v == rhs.v) || (lhs.u == rhs.v && lhs.v == rhs.u);
         } else {
-            // For node operations
+            // 对于节点操作
             return lhs.u == rhs.u;
         }
     }
@@ -176,26 +176,19 @@ public:
     ui* vlabels;
     ui* elabels;
     static size_t FEATURE_DIM;
-    std::vector<ui> vlabels_vec; // vertex label vector, sized to the root graph's vertex count
-    std::vector<std::vector<std::pair<ui, ui>>> adjacency_list; // adjacency list, each element is a vector storing (neighbor, edge_label)
+    std::vector<ui> vlabels_vec; // 节点标签向量，大小为根图的节点数量
+    std::vector<std::vector<std::pair<ui, ui>>> adjacency_list; // 邻接列表，每个元素是一个向量，存储 (neighbor, edge_label)
 public:
-// static void* operator new(size_t size){
-//     static Graph *begin=nullptr,*end=nullptr;
-//     if (begin==end) begin=(Graph*)malloc(10000*size),end=begin+10000;
-//     return begin++;
-// }
     Graph();
     Graph(const std::string& _id, const std::vector<std::pair<int, ui> >& _vertices, const std::vector<std::pair<std::pair<int, int>, ui> >& _edges);
-    // Copy constructor
+    // 拷贝构造函数
     Graph(const Graph& other);
 
-    // Assignment operator
+    // 赋值运算符
     Graph& operator=(const Graph& other);
 
     ~Graph();
 
-    void write_graph(FILE* fout, const std::vector<std::string>& _vlabels, const std::vector<std::string>& _elabels, bool bss);
-    bool is_connected();
     int size_based_bound(Graph* g);
     int vertex_label_bound(Graph* g, size_t vlabel_count_size);
     int degree_difference_bound(Graph* g, size_t max_n);
@@ -204,7 +197,6 @@ public:
 
     int ged_lower_bound_filter(Graph* g, ui verify_upper_bound, int* vlabel_cnt, int* elabel_cnt, int* degree_q, int* degree_g, int* tmp);
     int ged_lower_bound_filter(Graph* g, ui verify_upper_bound, size_t vlabel_count_size, size_t elabel_count_size, size_t max_n);
-    int ged_lower_bound_filter_ori(Graph* g, ui verify_upper_bound, size_t vlabel_count_size, size_t elabel_count_size, size_t max_n);
 
     void print_graph() const;
 
@@ -216,36 +208,34 @@ public:
 
     int compute_mapping_cost(const Graph& other, const std::vector<std::pair<ui, ui>>& mapping, std::vector<EditOperation>& edit_operations) const;
 
-    // Initialize vector data (from raw arrays)
+    // 初始化向量数据（从原始数组）
     void initialize_vectors_from_arrays();
 
-    // Convert vector-based graph representation to array representation
-    void convert_vectors_to_arrays();
+    // 将向量表示的图转换为数组表示
 
   
     // Embedding vectors will be loaded from GREED pre-computed bin files
     
 
     
-    void draw_single_graph(const Graph &g, const std::string &out_dir, const std::string &prefix);
 
 };
 
 class PseudoGraph {
 public:
-    std::string id; // graph ID
-    std::unordered_map<ui, ui> vlabels; // mapping from node ID to node label
-    std::unordered_map<ui, std::vector<std::pair<ui, ui>>> adjacency_list; // mapping from node ID to (neighbor node ID, edge label)
+    std::string id; // 图的 ID
+    std::unordered_map<ui, ui> vlabels; // 节点 ID 到节点标签的映射
+    std::unordered_map<ui, std::vector<std::pair<ui, ui>>> adjacency_list; // 节点 ID 到（邻居节点 ID，边标签）的映射
 
-    // Constructors
+    // 构造函数
     PseudoGraph();
-    PseudoGraph(const Graph& graph); // construct PseudoGraph from Graph
+    PseudoGraph(const Graph& graph); // 从 Graph 构造 PseudoGraph
     PseudoGraph(const PseudoGraph& other) = default;
 
-    // Methods
+    // 方法
     void apply_edit_operation(const EditOperation& op);
 
-    // Convert PseudoGraph to standard Graph
+    // 将 PseudoGraph 转换为标准的 Graph
     Graph to_graph() const;
 
     bool can_apply_operation(const EditOperation& op) const;

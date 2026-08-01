@@ -39,6 +39,7 @@ public:
     double compute_ged_online(const std::shared_ptr<Node> &node1, const std::shared_ptr<Node> &node2);
     void make_friends(std::shared_ptr<Anchor> anchor1, std::shared_ptr<Anchor> anchor2, double distance);
     void add_edge(std::shared_ptr<Anchor> parent, std::shared_ptr<Node> child, int child_phase, double child_dist);
+    void add_edge(std::shared_ptr<Node> parent, std::shared_ptr<Node> child, int child_phase, double child_dist);
     
     // Node reassignment and clustering
     void compute_ged_to_csv();  // Only compute GED and save to csv, no NetDag modification

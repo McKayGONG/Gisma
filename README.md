@@ -6,7 +6,8 @@ Source code and datasets for the paper "Gisma: Giant-Step-Small-Step Indexing fo
 
 | Directory | Description |
 |-----------|-------------|
-| `Gisma/` | Gisma, App-BMao, AStar-BMao |
+| `Gisma/` | Gisma, and the same competitors reachable through its experiment mode |
+| `Graph_Edit_Distance/` | App-BMao and AStar-BMao, the full-scan competitors (see its `MODIFICATIONS.md`) |
 | `Nass/` | Nass baseline |
 | `LAN/` | LAN baseline |
 | `GHash/` | GHashing baseline |

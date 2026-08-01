@@ -1,4 +1,4 @@
-# Gisma: Giant-Step-Small-Step Indexing for Approximate Similarity Search in Graph Databases
+# Gisma: A Giant-Step-Small-Step Indexing Framework for Approximate Similarity Search in Graph Databases
 
 A high-performance two-layer indexing framework for approximate graph similarity search based on Graph Edit Distance (GED).
 
@@ -6,7 +6,7 @@ A high-performance two-layer indexing framework for approximate graph similarity
 
 ```bash
 # View all available options
-./build/GismaProject --help
+./build/Release/GismaProject.exe --help
 ```
 
 ## Project Structure
@@ -29,51 +29,62 @@ Gisma/
 
 ## Compilation
 
+### Windows (MSVC)
+
+```bash
+cd Gisma
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release -j8
+```
+
+> **Note:** If you encounter linker errors about architecture mismatch (x86 vs x64), add `-A x64` to the cmake command:
+> ```bash
+> cmake -B build -A x64 -DCMAKE_BUILD_TYPE=Release
+> ```
+
+### Linux (GCC)
+
 ```bash
 cd Gisma
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j8
 ```
 
-The executable will be generated at `build/GismaProject`.
+The executable will be generated at `build/Release/GismaProject.exe` (Windows) or `build/GismaProject` (Linux).
 
 ## Usage
 
 ### 1. Index Construction
 
-Build the NetDag and EPF index:
+#### 1.1 Overall Construction (All-in-one)
+
+Build NetDag and EPF index in one command:
 
 ```bash
-# PubChem
-./build/GismaProject --mode construct \
+./build/Release/GismaProject.exe --mode construct \
     --dataset PubChem \
-    --alpha 12.0 \
-    --tau_index 8.0 \
-    --use_parallel
-
-# AIDS
-./build/GismaProject --mode construct \
-    --dataset AIDS \
     --alpha 12.0 \
     --tau_index 8.0 \
     --use_parallel
 ```
 
-### 2. Search
+#### 1.2 Step-by-step Construction
 
 ```bash
-# PubChem
-./build/GismaProject --mode search \
-    --dataset PubChem \
-    --tau_search 4 \
-    --q_start 0 \
-    --q_end 99 \
-    --alpha 12.0 \
-    --tau_index 8.0
+./build/GismaProject -m construct_ND  -s PubChem --alpha 12 --tau_index 8
+./build/GismaProject -m compute_paths -s PubChem --alpha 12 --tau_index 8
+./build/GismaProject -m reassign      -s PubChem --alpha 12 --tau_index 8
+./build/GismaProject -m construct_EPF -s PubChem --alpha 12 --tau_index 8 --use_parallel
+```
 
-# AIDS
-./build/GismaProject --mode search \
-    --dataset AIDS \
+### 2. Search
+
+#### Single Query Search
+
+```bash
+./build/Release/GismaProject.exe --mode search \
+    --dataset PubChem \
+    --search_method Gisma \
     --tau_search 4 \
     --q_start 0 \
     --q_end 99 \
@@ -83,84 +94,31 @@ Build the NetDag and EPF index:
 
 ### 3. Experiment Mode
 
-#### Overall Runtime Comparison (App-BMao, AStar-BMao, Gisma)
-
-Compare the three core methods at default tau:
+Run batch experiments with multiple methods and tau values:
 
 ```bash
-./build/GismaProject -m experiment -s PubChem \
-  --alpha 12.0 --tau_index 8.0 --tau_values "4" \
-  --exp overall --q_start 0 --q_end 99
-
-./build/GismaProject -m experiment -s PubChem \
-  --alpha 12.0 --tau_index 8.0 --tau_values "8" \
-  --exp overall --use_parallel --num_workers 100
-
-./build/GismaProject -m experiment -s AIDS \
-  --alpha 12.0 --tau_index 8.0 --tau_values "4" \
-  --exp overall --q_start 0 --q_end 99
-
-./build/GismaProject -m experiment -s AIDS \
-  --alpha 12.0 --tau_index 8.0 --tau_values "8" \
-  --exp overall --use_parallel --num_workers 100
+./build/GismaProject -m experiment \
+    --dataset PubChem \
+    --alpha 12.0 \
+    --tau_index 8.0 \
+    --tau_values "8" \
+    --methods "Base+GS,Base+SS,Gisma" \
+    --q_start 0 \
+    --q_end 99 \
+    --use_parallel
 ```
 
-#### Ablation Study of Gisma (Giant Step + Small Step)
+`--app_max_iter` controls the iteration budget of the approximate A\* search, which trades runtime
+against recall. It is set automatically per dataset, so the commands here do not pass it; run
+`--help` to see the values. Pass it explicitly to sweep the knob, for example when producing a
+QPS-recall curve.
 
-Evaluate the contribution of the Giant Step (GS) and Small Step (SS) stages. Methods: `App-BMao` (no GS, no SS), `Base+GS` (GS only), `Base+SS` (SS only), `Gisma` (full).
+## Default Dataset Parameters
 
-```bash
-./build/GismaProject -m experiment -s PubChem \
-  --alpha 12.0 --tau_index 8.0 --tau_values "4" \
-  --exp ablation_gisma --q_start 0 --q_end 99
+| Dataset | `--alpha` | `--tau_index` | `--tau_search` |
+|---------|-----------|---------------|----------------|
+| AIDS | 12 | 8 | 8 |
+| PubChem | 12 | 8 | 8 |
+| Chemical1M | 12 | 8 | 8 |
+| SYN | 6 | 4 | 4 |
 
-./build/GismaProject -m experiment -s PubChem \
-  --alpha 12.0 --tau_index 8.0 --tau_values "8" \
-  --exp ablation_gisma --use_parallel --num_workers 100
-
-./build/GismaProject -m experiment -s AIDS \
-  --alpha 12.0 --tau_index 8.0 --tau_values "4" \
-  --exp ablation_gisma --q_start 0 --q_end 99
-
-./build/GismaProject -m experiment -s AIDS \
-  --alpha 12.0 --tau_index 8.0 --tau_values "8" \
-  --exp ablation_gisma --use_parallel --num_workers 100
-```
-
-#### Ablation Study of EPT Optimizations
-
-Evaluate the contribution of each EPT optimization. Methods: `Gisma-no-reuse`, `Gisma-no-SP`, `Gisma-no-LP`, `Gisma` (full).
-
-```bash
-./build/GismaProject -m experiment -s PubChem \
-  --alpha 12.0 --tau_index 8.0 --tau_values "4" \
-  --exp ablation_epf --q_start 0 --q_end 99
-
-./build/GismaProject -m experiment -s PubChem \
-  --alpha 12.0 --tau_index 8.0 --tau_values "8" \
-  --exp ablation_epf --use_parallel --num_workers 100
-
-./build/GismaProject -m experiment -s AIDS \
-  --alpha 12.0 --tau_index 8.0 --tau_values "4" \
-  --exp ablation_epf --q_start 0 --q_end 99
-
-./build/GismaProject -m experiment -s AIDS \
-  --alpha 12.0 --tau_index 8.0 --tau_values "8" \
-  --exp ablation_epf --use_parallel --num_workers 100
-```
-
-#### Reuse Effectiveness Verification
-
-Add `--verify_reuse_baseline` to compare each EPT reuse computation against normal App-BMao on the same graph pair.
-
-```bash
-./build/GismaProject -m experiment -s PubChem \
-  --alpha 12.0 --tau_index 8.0 --tau_values "8" \
-  --exp overall --q_start 0 --q_end 99 \
-  --verify_reuse_baseline --use_parallel --num_workers 100
-
-./build/GismaProject -m experiment -s AIDS \
-  --alpha 12.0 --tau_index 8.0 --tau_values "8" \
-  --exp overall --q_start 0 --q_end 99 \
-  --verify_reuse_baseline --use_parallel --num_workers 100
-```

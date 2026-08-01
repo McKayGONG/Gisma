@@ -46,13 +46,13 @@ void EditPathForestConstructor::construct_EPT() {
     auto total_start_time = std::chrono::high_resolution_clock::now();
 
 
-    // 1) Check if parent_->net_dag pointer is valid
+    // 1) 检查 parent_->net_dag 指针是否有效
     if (!parent_->net_dag) {
         std::cerr << "[ERROR] net_dag is nullptr in construct_EPT()!\n";
         return;
     }
 
-    // 2) Get anchors
+    // 2) 获取 anchors
     const auto& anchors = parent_->net_dag->anchors;
     if (anchors.empty()) {
         std::cerr << "[WARN] No anchors found in NetDag => return.\n";
@@ -60,7 +60,7 @@ void EditPathForestConstructor::construct_EPT() {
     }
 
 
-    // 4) Build graph_id_map
+    // 4) 构建 graph_id_map
     std::unordered_map<ui, Graph*> graph_id_map;
     for (size_t i = 0; i < parent_->graphs.size(); i++) {
         auto &g_ptr = parent_->graphs[i];
@@ -68,7 +68,7 @@ void EditPathForestConstructor::construct_EPT() {
             std::cerr << "[WARN] parent_->graphs[" << i << "] is nullptr!\n";
             continue;
         }
-        // Convert to unsigned long
+        // 转成无符号 long
         unsigned long graph_key = 0;
         try {
             graph_key = std::stoul(g_ptr->id);
@@ -79,11 +79,11 @@ void EditPathForestConstructor::construct_EPT() {
         graph_id_map[graph_key] = g_ptr.get();
     }
 
-    // 5) Create output directory
+    // 5) 创建输出目录
     std::string epf_directory = "./EPFs/" + parent_->index_name;
     fs::create_directories(epf_directory);
 
-    // 6) Prepare to process anchors
+    // 6) 准备处理 anchors
     size_t total_anchors = anchors.size();
     size_t processed_anchors = 0;
     std::cout << "Processing " << total_anchors << " anchors for EPF construction..." << std::endl;
@@ -97,7 +97,7 @@ void EditPathForestConstructor::construct_EPT() {
 
         ui anchor_id = static_cast<ui>(anchor->node_id);
 
-        // 7) Check anchor->graph
+        // 7) 检查 anchor->graph
         if (!anchor->graph) {
             std::cerr << "[ERROR] anchor->graph is nullptr => cannot build EPT.\n";
             continue;
@@ -105,7 +105,7 @@ void EditPathForestConstructor::construct_EPT() {
 
         Graph* anchor_graph = anchor->graph.get();
 
-        // 8) Copy nodes_in_exact_cluster
+        // 8) 复制 nodes_in_exact_cluster
         auto anchor_mapping_start = std::chrono::high_resolution_clock::now();
         std::vector<Anchor::ExactClusterNode> anchor_mappings;
         auto nodes_in_exact_cluster_pq = anchor->nodes_in_exact_cluster;
@@ -127,7 +127,7 @@ void EditPathForestConstructor::construct_EPT() {
         }
 
 
-        // 8.1) Count other_id frequencies
+        // 8.1) 统计 other_id 频次
         {
             std::unordered_map<ui,int> freq_map;
             for (auto &cn : anchor_mappings) {
@@ -135,7 +135,7 @@ void EditPathForestConstructor::construct_EPT() {
             }
         }
 
-        // If anchor_mappings is empty, build an empty EPT and save
+        // 如果 anchor_mappings 为空，构建空 EPT 并保存
         if (anchor_mappings.empty()) {
             EditPathTree ept(anchor_id);
             TreeNode root_node;
@@ -159,7 +159,7 @@ void EditPathForestConstructor::construct_EPT() {
 
             processed_anchors++;
 
-            // Display progress
+            // 显示进度
             double progress = (double)processed_anchors / total_anchors * 100.0;
             if (processed_anchors % 50 == 0 || processed_anchors == total_anchors) {
                 std::cout << "Progress: " << processed_anchors << "/" << total_anchors
@@ -168,11 +168,11 @@ void EditPathForestConstructor::construct_EPT() {
             continue;
         }
 
-        // 9) Perform edit operations on anchor_mappings
+        // 9) 对 anchor_mappings 做编辑操作
         std::vector<std::vector<EditOperation>> edit_operations_list;
         std::vector<ui> target_graph_ids;
         std::vector<std::vector<std::pair<ui, ui>>> all_mappings;
-        std::vector<ui> identical_graph_ids;  // graphs with GED=0 (identical to anchor)
+        std::vector<ui> identical_graph_ids;  // GED=0的图（与anchor完全相同）
 
         for (size_t c_idx = 0; c_idx < anchor_mappings.size(); ++c_idx) {
             auto &cluster_node = anchor_mappings[c_idx];
@@ -203,12 +203,12 @@ void EditPathForestConstructor::construct_EPT() {
             total_compute_mapping_cost_time += std::chrono::duration<double>(cmc_end - cmc_start).count();
 
             if (!edit_operations.empty()) {
-                // Has edit operations, add to EPT normally
+                // 有编辑操作，正常加入EPT
                 edit_operations_list.push_back(std::move(edit_operations));
                 target_graph_ids.push_back(other_id);
                 all_mappings.push_back(cluster_node.mapping);
             } else {
-                // GED=0: identical graph, record ID and add to root node later
+                // GED=0: 完全相同的图，直接记录ID，稍后加到root节点
                 identical_graph_ids.push_back(other_id);
             }
         }
@@ -220,7 +220,7 @@ void EditPathForestConstructor::construct_EPT() {
         auto bept_end = std::chrono::high_resolution_clock::now();
         total_build_edit_path_tree_time += std::chrono::duration<double>(bept_end - bept_start).count();
 
-        // 10.1) Add GED=0 graphs to root node's completed_db_graph_ids
+        // 10.1) 将GED=0的图加入root节点的completed_db_graph_ids
         if (!identical_graph_ids.empty() && !ept.tree_nodes.empty()) {
             for (ui id : identical_graph_ids) {
                 ept.tree_nodes[0].completed_db_graph_ids.push_back((int)id);
@@ -244,7 +244,7 @@ void EditPathForestConstructor::construct_EPT() {
 
         processed_anchors++;
 
-        // Display progress
+        // 显示进度
         double progress = (double)processed_anchors / total_anchors * 100.0;
         if (processed_anchors % 50 == 0 || processed_anchors == total_anchors) {
             std::cout << "Progress: " << processed_anchors << "/" << total_anchors
@@ -257,6 +257,24 @@ void EditPathForestConstructor::construct_EPT() {
     std::cout << "EPF construction completed!" << std::endl;
     std::cout << "Total anchors processed: " << processed_anchors << "/" << anchors.size() << std::endl;
     std::cout << "Total elapsed time: " << std::fixed << std::setprecision(2) << total_elapsed << " seconds" << std::endl;
+    // E1 construction timing (serial): wall == work (single thread).
+    {
+        // E1: work = 纯 compute（anchor_mapping + build_ept）。save 是磁盘 I/O，并行写盘相加会虚高，不计入 work，单列在 breakdown。
+        double epf_work = total_anchor_mapping_time + total_build_edit_path_tree_time;
+        std::cout << "[E1_EPF] threads=1 wall_seconds=" << total_elapsed
+                  << " work_seconds=" << epf_work
+                  << " anchors=" << processed_anchors << std::endl;
+        std::cout << "[E1_EPF] breakdown anchor_mapping=" << total_anchor_mapping_time
+                  << " (graph_lookup=" << total_graph_lookup_time
+                  << " compute_mapping_cost=" << total_compute_mapping_cost_time << ")"
+                  << " build_ept=" << total_build_edit_path_tree_time
+                  << " save=" << total_save_ept_time << std::endl;
+        Utility::append_e1_timing("index_name=" + parent_->index_name + "\tdataset=" + parent_->dataset
+            + "\tstage=construct_EPF\tthreads=1\twall_seconds=" + std::to_string(total_elapsed)
+            + "\twork_seconds=" + std::to_string(epf_work)
+            + "\tanchors=" + std::to_string(processed_anchors)
+            + "\tsave_seconds=" + std::to_string(total_save_ept_time));
+    }
 }
 
 void EditPathForestConstructor::construct_EPT_parallel() {
@@ -301,7 +319,7 @@ void EditPathForestConstructor::construct_EPT_parallel() {
     // 6) Set up parallel processing
     unsigned int num_threads = std::thread::hardware_concurrency();
     if (num_threads == 0) num_threads = 4;
-    num_threads = std::min(num_threads, 160u); // Limit maximum threads
+    num_threads = std::min(num_threads, 200u); // Limit maximum threads (unified to 200, matching GED stage)
 
     std::atomic<size_t> processed_anchors(0);
     std::mutex io_mutex, stats_mutex;
@@ -338,7 +356,7 @@ void EditPathForestConstructor::construct_EPT_parallel() {
                 std::vector<std::vector<EditOperation>> edit_operations_list;
                 std::vector<ui> target_graph_ids;
                 std::vector<std::map<int, int>> all_mappings;
-                std::vector<ui> identical_graph_ids;  // graphs with GED=0 (identical to anchor)
+                std::vector<ui> identical_graph_ids;  // GED=0的图（与anchor完全相同）
 
                 auto nodes_in_exact_cluster = anchor->nodes_in_exact_cluster;
                 while (!nodes_in_exact_cluster.empty()) {
@@ -365,7 +383,7 @@ void EditPathForestConstructor::construct_EPT_parallel() {
                     thread_compute_mapping_cost_time += std::chrono::duration<double>(cmc_end - cmc_start).count();
 
                     if (!edit_operations.empty()) {
-                        // Has edit operations, add to EPT normally
+                        // 有编辑操作，正常加入EPT
                         edit_operations_list.push_back(std::move(edit_operations));
                         target_graph_ids.push_back(other_id);
                         // Convert vector<pair> to map<int,int>
@@ -375,7 +393,7 @@ void EditPathForestConstructor::construct_EPT_parallel() {
                         }
                         all_mappings.push_back(mapping_map);
                     } else {
-                        // GED=0: identical graph, record ID and add to root node later
+                        // GED=0: 完全相同的图，直接记录ID，稍后加到root节点
                         identical_graph_ids.push_back(other_id);
                     }
                 }
@@ -389,7 +407,7 @@ void EditPathForestConstructor::construct_EPT_parallel() {
                 auto bept_end = std::chrono::high_resolution_clock::now();
                 thread_build_edit_path_tree_time += std::chrono::duration<double>(bept_end - bept_start).count();
 
-                // 10.1) Add GED=0 graphs to root node's completed_db_graph_ids
+                // 10.1) 将GED=0的图加入root节点的completed_db_graph_ids
                 if (!identical_graph_ids.empty() && !ept.tree_nodes.empty()) {
                     for (ui id : identical_graph_ids) {
                         ept.tree_nodes[0].completed_db_graph_ids.push_back((int)id);
@@ -405,7 +423,7 @@ void EditPathForestConstructor::construct_EPT_parallel() {
 
                 processed_anchors++;
 
-                // Display progress
+                // 显示进度
                 double progress = (double)processed_anchors / anchors.size() * 100.0;
                 if (processed_anchors % 50 == 0 || processed_anchors == anchors.size()) {
                     std::cout << "Progress: " << processed_anchors << "/" << anchors.size()
@@ -435,6 +453,26 @@ void EditPathForestConstructor::construct_EPT_parallel() {
     std::cout << "EPF parallel construction completed!" << std::endl;
     std::cout << "Total anchors processed: " << processed_anchors << "/" << anchors.size() << std::endl;
     std::cout << "Total elapsed time: " << std::fixed << std::setprecision(2) << total_elapsed << " seconds" << std::endl;
+    // E1 construction timing (parallel): wall = real elapsed; work = sum of per-thread per-task
+    // compute time (= single-thread-equivalent CPU work, undiluted by parallelism).
+    {
+        // E1: work = 纯 compute（anchor_mapping + build_ept）。save 是磁盘 I/O，并行写盘相加会虚高，不计入 work，单列在 breakdown。
+        double epf_work = total_anchor_mapping_time + total_build_edit_path_tree_time;
+        std::cout << "[E1_EPF] threads=" << num_threads << " wall_seconds=" << total_elapsed
+                  << " work_seconds=" << epf_work
+                  << " anchors=" << processed_anchors.load() << std::endl;
+        std::cout << "[E1_EPF] breakdown anchor_mapping=" << total_anchor_mapping_time
+                  << " (graph_lookup=" << total_graph_lookup_time
+                  << " compute_mapping_cost=" << total_compute_mapping_cost_time << ")"
+                  << " build_ept=" << total_build_edit_path_tree_time
+                  << " save=" << total_save_ept_time << std::endl;
+        Utility::append_e1_timing("index_name=" + parent_->index_name + "\tdataset=" + parent_->dataset
+            + "\tstage=construct_EPF\tthreads=" + std::to_string(num_threads)
+            + "\twall_seconds=" + std::to_string(total_elapsed)
+            + "\twork_seconds=" + std::to_string(epf_work)
+            + "\tanchors=" + std::to_string(processed_anchors.load())
+            + "\tsave_seconds=" + std::to_string(total_save_ept_time));
+    }
 }
 
 void EditPathForestConstructor::compute_edit_path_and_save_to_csv() {
@@ -533,7 +571,7 @@ void EditPathForestConstructor::compute_edit_path_and_save_to_csv() {
 
     // Threading setup
     size_t num_threads = std::thread::hardware_concurrency();
-    if (num_threads > 160) num_threads = 160;
+    if (num_threads > 200) num_threads = 200;
     if(num_threads == 0) num_threads = 4;
 
     std::atomic<size_t> nextIdx(0);
@@ -578,6 +616,7 @@ void EditPathForestConstructor::compute_edit_path_and_save_to_csv() {
 
             // Compute GED with mapping using AppForComputation
             Application app(8u, "BMao");
+            app.set_all_edge_labels_same(parent_->all_edge_labels_same);
             app.init(graph1, graph2);
             int ged_res = app.AppForComputation();
 
@@ -754,6 +793,7 @@ void EditPathForestConstructor::find_within_tau_and_save_csv(const std::string &
 
             // Compute GED using AppForComputation
             Application app((ui)T, "BMao");
+            app.set_all_edge_labels_same(parent_->all_edge_labels_same);
             app.init(root_graph, other_graph);
             int ged_res = app.AppForComputation();
 
@@ -1041,6 +1081,7 @@ void EditPathForestConstructor::update_one_exact_anchor() {
 
         // Compute exact GED using AppForComputation
         Application app(8u, "BMao");
+        app.set_all_edge_labels_same(parent_->all_edge_labels_same);
         app.init(anchor_graph, other_graph);
         int exact_ged = app.AppForComputation();
 
@@ -1144,6 +1185,7 @@ void EditPathForestConstructor::update_one_exact_anchor_parallel() {
 
             // Compute exact GED using AppForComputation
             Application app(8u, "BMao");
+            app.set_all_edge_labels_same(parent_->all_edge_labels_same);
             app.init(anchor_graph, other_graph);
             int exact_ged = app.AppForComputation();
 

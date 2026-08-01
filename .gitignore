@@ -1,0 +1,12 @@
+# Build outputs
+build/
+*.exe
+*.obj
+*.tlog
+
+# Run logs
+stdout.txt
+stderr.txt
+
+# Dataset archives (the datasets themselves are tracked under Gisma/datasets/)
+*.zip

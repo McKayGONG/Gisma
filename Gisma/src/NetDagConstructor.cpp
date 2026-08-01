@@ -37,25 +37,25 @@ struct pair_hash {
 NetDagConstructor::NetDagConstructor(GismaIndexBuilder* parent) : parent_(parent) {}
 
 void NetDagConstructor::initialize() {
-    // Print graphs.size() and has_ged_matrix values
+    // 打印 graphs.size() 和 has_ged_matrix 的值
     std::cout << "Graphs size: " << parent_->graphs.size() << std::endl;
     std::cout << "Has GED Matrix: " << (parent_->has_ged_matrix ? "True" : "False") << std::endl;
 
-    // Get root node's embedding vector
+    // 获取root节点的embedding向量
     std::vector<float> root_embedding;
     if (parent_->root_ind < parent_->embeddings.size()) {
         root_embedding = parent_->embeddings[parent_->root_ind];
     }
 
-    // Create root node
+    // 创建根节点
     auto root_node = std::make_shared<Anchor>(
         parent_->root_ind,                   // node_id
         parent_->graphs[parent_->root_ind],     // graph
         parent_->nameList[parent_->root_ind],   // file_name
         parent_->root_ind,                   // nearest_anchor
         0.0,                              // nearest_anchor_dist
-        root_embedding,                   // 6th param:using correct embedding vector
-        static_cast<int>(parent_->anchors.size()) // 7th param: anchor_id
+        root_embedding,                   // 第6个参：使用正确的embedding向量
+        static_cast<int>(parent_->anchors.size()) // 第7个参：anchor_id
     );
     
 
@@ -70,14 +70,14 @@ void NetDagConstructor::initialize() {
     std::cout << "tau: " << parent_->tau << std::endl;
 
     if (root_node->graph) {
-        // If graph not yet initialized, initialize vector data first
+        // 若 graph 还没初始化，则先初始化向量数据
         root_node->graph->initialize_vectors_from_arrays();
         // Graph vectors initialized for embedding-based distance calculation
     } else {
         std::cerr << "Warning: root_node->graph is nullptr, cannot initialize vectors.\n";
     }
 
-    // Create NetDag and add root node to anchors and nodes
+    // 创建 NetDag 并将根节点添加到 anchors 和 nodes 中
     parent_->net_dag = std::make_shared<NetDag>(parent_->index_name, root_node, parent_->alpha, parent_->tau);
     parent_->anchors.push_back(root_node);
     parent_->net_dag->add_anchor(root_node);
@@ -92,10 +92,10 @@ void NetDagConstructor::initialize() {
     parent_->child_range = 3 * parent_->r_k + 2 * parent_->tau;
     parent_->r_list.push_back(parent_->r_k);
 
-    // Iterate all graphs, create each node and add to nodes and root node's nodes_in_cluster
+    // 遍历所有图，创建每个节点并添加到 nodes 和根节点的 nodes_in_cluster 中
     for (size_t i = 0; i < parent_->graphs.size(); ++i) {
         if (i != parent_->root_ind) {
-            // Get corresponding embedding vector
+            // 获取对应的embedding向量
             std::vector<float> node_embedding;
             if (i < parent_->embeddings.size()) {
                 node_embedding = parent_->embeddings[i];
@@ -122,15 +122,6 @@ void NetDagConstructor::initialize() {
                 continue;
             }
             double nearest_anchor_dist = this->compute_ged_online(root_node, new_node);
-            // if (has_ged_matrix) {
-            //     nearest_anchor_dist = parent_->get_ged_from_matrix(root_node->node_id, new_node->node_id);
-            //     new_node->nearest_anchor_dist = nearest_anchor_dist;
-            // } else {
-            //     nearest_anchor_dist = ML_graph::get_ML_ged(
-            //         root_node->ml_graph, // ONNX representation of database graph
-            //         new_node->ml_graph             // ONNX representation of query graph
-            //     );
-            // }
 
             new_node->nearest_anchor_dist = nearest_anchor_dist;
             
@@ -141,7 +132,7 @@ void NetDagConstructor::initialize() {
 
             
 
-            // Output info for each new_node (commented out for performance)
+            // 输出每个 new_node 的信息 (commented out for performance)
             // std::cout << "New node created: ID = " << new_node->node_id
             //           << ", Nearest anchor dist = " << nearest_anchor_dist << std::endl;
 
@@ -149,32 +140,22 @@ void NetDagConstructor::initialize() {
         }
     }
 
-    // Print root_node nodes_in_cluster contents (commented out for performance)
-    // std::cout << "Root node's nodes_in_cluster contents:" << std::endl;
-    // std::priority_queue<std::pair<double, int>> temp_cluster = root_node->nodes_in_cluster;
-    // while (!temp_cluster.empty()) {
-    //     auto node = temp_cluster.top();
-    //     std::cout << "Node ID: " << node.second << ", Distance: " << node.first << std::endl;
-    //     temp_cluster.pop();
-    // }
-
-    // Ensure nodes_in_cluster is non-empty
     if (!root_node->nodes_in_cluster.empty()) {
         double furthest_node_in_cluster_dist = root_node->nodes_in_cluster.top().first;
         // std::cout << "Furthest node distance in cluster: " << furthest_node_in_cluster_dist << std::endl;
         // BUG FIX: Don't pop the furthest node - this loses coverage!
         // The node is lost because it's not saved anywhere else.
-        // root_node->nodes_in_cluster.pop();  // pop the node with max distance
+        // root_node->nodes_in_cluster.pop();  // 弹出最大距离的节点
     }
 
     parent_->phaseList = getStateList(parent_->r_k, parent_->alpha);
 
-    // Update phaseList and other info
+    // 更新 phaseList 和其他信息
     this->update_phase();
     this->find_max_dist();
     this->update_child_and_parent_by_phase_dict();
 
-    // Verify coverage after initialization
+    // 验证初始化后的覆盖情况
     verify_coverage("after_initialize");
 }
 
@@ -197,22 +178,22 @@ void NetDagConstructor::update_phase() {
         return;
     }
 
-    // Use std::upper_bound to find first element <= max_dist
+    // 使用 std::upper_bound 查找第一个 <= max_dist 的元素
     auto it = std::upper_bound(
         parent_->phaseList.begin(),
         parent_->phaseList.end(),
         parent_->max_dist,
         [](double value, double element) {
-            // Custom comparator for descending order
+            // 自定义比较器，适应降序排序
             return value > element;
         }
     );
 
     if (it == parent_->phaseList.begin()) {
-        // All elements less than max_dist, select first element
+        // 所有元素都小于 max_dist，选择第一个元素
         parent_->phase = parent_->phaseList.front();
     } else {
-        // Set phase to element before found position
+        // 设置 phase 为找到的位置前一个元素
         parent_->phase = *(it - 1);
     }
 
@@ -231,7 +212,7 @@ void NetDagConstructor::update_phase() {
     }
     // ==================================================================================
 
-    // Optional: print updated phase for debugging
+    // 可选：打印更新后的 phase 以调试
     // std::cout << "Updated phase to: " << parent_->phase << std::endl;
 }
 
@@ -262,8 +243,8 @@ double NetDagConstructor::compute_ged_online(const std::shared_ptr<Node> &node1,
 // and then extract the real implementations from the original file in subsequent steps.
 
 void NetDagConstructor::overall_NetDag_const() {
-    // Create directory if it does not exist
-    // Extract dataset name from index_name (format: dataset_size_alpha_tau_error)
+    // 创建目录（如果不存在）
+    // 从index_name提取数据集名称（格式：dataset_size_alpha_tau_error）
     std::string dataset_name = parent_->index_name.substr(0, parent_->index_name.find('_'));
     std::string directory = "./NetDags/" + dataset_name + "/configs";
     if (!fs::exists(directory)) {
@@ -271,7 +252,7 @@ void NetDagConstructor::overall_NetDag_const() {
     }
     std::string file_path = directory + "/" + parent_->index_name + ".dat";
 
-    // Initialize timer
+    // 初始化计时器
     std::map<std::string, double> timing = {
         {"initialize", 0},
         {"find_max_dist", 0},
@@ -284,7 +265,7 @@ void NetDagConstructor::overall_NetDag_const() {
         {"update_one_exact_anchor", 0}
     };
 
-    // Record start time of overall_NetDag_const function
+    // 记录 overall_NetDag_const 函数开始执行的时间
     auto start_overall = std::chrono::high_resolution_clock::now();
 
     // initialize
@@ -299,7 +280,7 @@ void NetDagConstructor::overall_NetDag_const() {
     while (parent_->max_dist > parent_->alpha) {
         int phase_before = parent_->phase;
 
-        // Print debug info
+        // 打印调试信息
         std::cout << "Entering loop with max_dist = " << parent_->max_dist 
                   << ", alpha = " << parent_->alpha << std::endl;
         std::cout << "Number of anchors: " << parent_->anchors.size() << std::endl;
@@ -330,7 +311,7 @@ void NetDagConstructor::overall_NetDag_const() {
             std::cout << "update_friends completed in "
                       << std::chrono::duration<double>(end - start).count() << "s" << std::endl;
 
-            // Update parent_by_phase_dict
+            // 更新 parent_by_phase_dict
             parent_->parent_by_phase_dict[parent_->phase] = std::vector<int>();
             for (const auto& anchor : parent_->anchors) {
                 parent_->parent_by_phase_dict[parent_->phase].push_back(anchor->node_id);
@@ -375,7 +356,7 @@ void NetDagConstructor::overall_NetDag_const() {
         timing["update_one_anchor"] += std::chrono::duration<double>(end - start).count();
         std::cout << "update_one_anchor completed." << std::endl;
 
-        // Verify coverage after each update_one_anchor, track additions and losses
+        // 每次update_one_anchor后验证覆盖情况，追踪新增丢失
         static int last_uncovered = 0;
         int current_uncovered = verify_coverage("after_anchor_" + std::to_string(parent_->anchors.size()));
         if (current_uncovered > last_uncovered) {
@@ -385,35 +366,44 @@ void NetDagConstructor::overall_NetDag_const() {
         last_uncovered = current_uncovered;
     }
 
-    // Final verification after loop ends
+    // 循环结束后最终验证
     verify_coverage("after_main_loop");
 
-    // Reassign nodes to exact clusters
+    // 重新分配节点到精确簇
     // reassign_nodes_in_cluster_with_csv();
 
+    // 使用 update_one_exact_anchor 处理剩余的 nodes_in_cluster
     start = std::chrono::high_resolution_clock::now();
     end = std::chrono::high_resolution_clock::now();
     timing["update_one_exact_anchor"] += std::chrono::duration<double>(end - start).count();
     std::cout << "All nodes have been assigned to exact clusters." << std::endl;
 
     
-    // Update net_dag object member variables
+    // 更新 net_dag 对象的成员变量
     parent_->net_dag->parent_by_phase_dict = parent_->parent_by_phase_dict;
     parent_->net_dag->anchors = parent_->anchors;
     parent_->net_dag->nodes = parent_->nodes;
 
     // construct_cluster_EPT();
 
-    // Print total runtime of each function
+    // 打印每个函数的总运行时间
     for (const auto& [func, total_time] : timing) {
         std::cout << "Total time for " << func << ": " << total_time << " seconds" << std::endl;
     }
 
-    // Record end time of overall_NetDag_const function and compute total time
+    // 记录 overall_NetDag_const 函数结束执行的时间，并计算总时间
     auto end_overall = std::chrono::high_resolution_clock::now();
     double total_time_overall = std::chrono::duration<double>(end_overall - start_overall).count();
     std::cout << "Total time for overall_NetDag_const: " << total_time_overall << " seconds" << std::endl;
     std::cout << "Construct NDC = " << parent_->NDC << std::endl;
+    // E1: NetDAG structure build is essentially serial here, so wall == work.
+    std::cout << "[E1_ND] wall_seconds=" << total_time_overall
+              << " work_seconds=" << total_time_overall
+              << " ndc=" << parent_->NDC << std::endl;
+    Utility::append_e1_timing("index_name=" + parent_->index_name + "\tdataset=" + parent_->dataset
+        + "\tstage=construct_ND\tthreads=1\twall_seconds=" + std::to_string(total_time_overall)
+        + "\twork_seconds=" + std::to_string(total_time_overall)
+        + "\tndc=" + std::to_string(parent_->NDC));
 
     // BEFORE FILTERING: Save Anchor 0's friends to debug file
     std::string friends_debug_dir = "./NetDags/" + parent_->dataset + "/debug/";
@@ -436,10 +426,10 @@ void NetDagConstructor::overall_NetDag_const() {
         friends_ofs.close();
     }
 
-    // Before saving, filter friends to keep only those with distance <= 4*alpha
+    // 在保存之前筛选朋友关系，只保留距离 <= 4*alpha 的朋友
     // filter_friends_before_saving();  // DISABLED: Not needed since friends are not used in search
 
-    // Save net_dag object to file
+    // 保存 net_dag 对象到文件
     std::cout << "Saving NetDag object to file..." << std::endl;
     parent_->net_dag->save_to_file(file_path);
     std::cout << "NetDag object saved to file." << std::endl;
@@ -449,7 +439,7 @@ void NetDagConstructor::overall_NetDag_const() {
 
 void NetDagConstructor::net_tree_const() {
     // ================================
-    // 1) Create output directory and file path
+    // 1) 创建输出目录、文件路径
     // ================================
     std::string directory = "./NetTrees";
     if (!std::filesystem::exists(directory)) {
@@ -458,18 +448,18 @@ void NetDagConstructor::net_tree_const() {
     std::string file_path = directory + "/" + parent_->index_name;
 
     // ================================
-    // 2) Required data structures
-    //    boundary2anchors ：Record which anchors (IDs) exist when crossing an integer boundary
-    //    boundary2clusterSize ：Record each anchor's cluster size when crossing an integer boundary
+    // 2) 需要的数据结构
+    //    boundary2anchors ：记录在"跨过某个整数"时有哪些 anchor（ID）
+    //    boundary2clusterSize ：记录在"跨过某个整数"时，每个 anchor 的 cluster 大小
     // ================================
     std::map<int, std::vector<int>> boundary2anchors;
     std::map<int, std::vector<std::pair<int,int>>> boundary2clusterSize;
 
-    // Record previous floor(max_dist) value, set after initialize()
+    // 记录上一次 floor(max_dist) 值，在 initialize() 后设置
     int last_recorded_intDist = -1;
 
     // ================================
-    // 3) Initialize timer
+    // 3) 初始化计时器
     // ================================
     std::map<std::string, double> timing = {
         {"initialize", 0},
@@ -488,7 +478,7 @@ void NetDagConstructor::net_tree_const() {
     // 4) initialize
     // ================================
     auto start = std::chrono::high_resolution_clock::now();
-    this->initialize();  // <-- your initialization logic
+    this->initialize();  // <-- 你的初始化逻辑
     auto end = std::chrono::high_resolution_clock::now();
     timing["initialize"] += std::chrono::duration<double>(end - start).count();
 
@@ -496,29 +486,29 @@ void NetDagConstructor::net_tree_const() {
     std::cout << "max_dist = " << parent_->max_dist << std::endl;
     std::cout << "alpha = " << parent_->alpha << std::endl;
 
-    // After initialization completes, record current floor(max_dist)
+    // 在初始化完成后，记录下当前的 floor(max_dist)
     last_recorded_intDist = static_cast<int>(std::floor(parent_->max_dist));
     if (last_recorded_intDist >= 0) {
-        // First record current anchors to boundary2anchors
+        // 先把此时的 anchors 记录到 boundary2anchors
         std::vector<int> current_anchors;
         current_anchors.reserve(parent_->anchors.size());
 
-        // Also collect (anchorID, cluster_size) for all anchors
+        // 也收集所有 anchor 的 (anchorID, cluster_size)
         std::vector<std::pair<int,int>> anchor_cluster_sizes;
         anchor_cluster_sizes.reserve(parent_->anchors.size());
 
         for (auto &anc : parent_->anchors) {
             current_anchors.push_back(anc->node_id);
 
-            // Assuming nodes_in_cluster is a priority_queue,
-            // size() is the number of elements in the heap
+            // 这里假设 nodes_in_cluster 是一个 priority_queue，
+            // size() 即为堆里元素数量
             int cluster_size = static_cast<int>(anc->nodes_in_cluster.size());
             anchor_cluster_sizes.push_back({anc->node_id, cluster_size});
         }
         boundary2anchors[last_recorded_intDist] = current_anchors;
         boundary2clusterSize[last_recorded_intDist] = anchor_cluster_sizes;
 
-        // Trigger callback (if set) - for select-alpha mode
+        // 触发回调（如果设置了的话）- for select-alpha mode
         const auto& callback = parent_->get_cluster_stats_callback();
         if (callback) {
             callback(parent_->max_dist, parent_->anchors, parent_->phase);
@@ -526,35 +516,35 @@ void NetDagConstructor::net_tree_const() {
     }
 
     // ================================
-    // 5) Enter main loop
+    // 5) 进入主循环
     // ================================
     while (parent_->max_dist > parent_->alpha) {
         int phase_before = parent_->phase;
 
         // ============= find_max_dist =============
         start = std::chrono::high_resolution_clock::now();
-        this->find_max_dist(); // <-- your logic: update max_dist
+        this->find_max_dist(); // <-- 你的逻辑：更新 max_dist
         end = std::chrono::high_resolution_clock::now();
         timing["find_max_dist"] += std::chrono::duration<double>(end - start).count();
         std::cout << "find_max_dist completed. max_dist = " << parent_->max_dist << std::endl;
 
         // ============= update_phase =============
         start = std::chrono::high_resolution_clock::now();
-        this->update_phase();  // <-- Update phase
+        this->update_phase();  // <-- 更新 phase
         end = std::chrono::high_resolution_clock::now();
         timing["update_phase"] += std::chrono::duration<double>(end - start).count();
         std::cout << "update_phase completed. Current phase = " << parent_->phase << std::endl;
 
-        // Only update friends, parent-child links etc. if phase decreased
+        // 如果阶段下降了，才去更新 friends、父子链接等
         if (parent_->phase < phase_before) {
             // ---------- update_friends ----------
             start = std::chrono::high_resolution_clock::now();
-            this->update_friends();  // <-- your update_friends logic
+            this->update_friends();  // <-- 你的 update_friends 逻辑
             end = std::chrono::high_resolution_clock::now();
             timing["update_friends"] += std::chrono::duration<double>(end - start).count();
             std::cout << "update_friends completed." << std::endl;
 
-            // ---------- Update parent_by_phase_dict ----------
+            // ---------- 更新 parent_by_phase_dict ----------
             parent_->parent_by_phase_dict[parent_->phase] = std::vector<int>();
             for (const auto& anchor : parent_->anchors) {
                 parent_->parent_by_phase_dict[parent_->phase].push_back(anchor->node_id);
@@ -563,14 +553,14 @@ void NetDagConstructor::net_tree_const() {
 
             // ---------- update_child_and_parent_by_phase_dict ----------
             start = std::chrono::high_resolution_clock::now();
-            this->update_child_and_parent_by_phase_dict(); // <-- can be enabled if needed
+            this->update_child_and_parent_by_phase_dict(); // <-- 若需要可以解开
             end = std::chrono::high_resolution_clock::now();
             timing["update_child_and_parent_by_phase_dict"] += std::chrono::duration<double>(end - start).count();
             std::cout << "update_child_and_parent_by_phase_dict completed." << std::endl;
 
             // ---------- link_parent_and_child ----------
             start = std::chrono::high_resolution_clock::now();
-            this->link_parent_and_child(); // <-- can be enabled if needed
+            this->link_parent_and_child(); // <-- 若需要可以解开
             end = std::chrono::high_resolution_clock::now();
             timing["link_parent_and_child"] += std::chrono::duration<double>(end - start).count();
             std::cout << "link_parent_and_child completed." << std::endl;
@@ -586,21 +576,21 @@ void NetDagConstructor::net_tree_const() {
 
         // ============= update_one_anchor =============
         start = std::chrono::high_resolution_clock::now();
-        this->update_one_anchor(); // <-- your logic: update/add anchor
+        this->update_one_anchor(); // <-- 你的逻辑：更新/新增 anchor
         end = std::chrono::high_resolution_clock::now();
         timing["update_one_anchor"] += std::chrono::duration<double>(end - start).count();
         std::cout << "update_one_anchor completed." << std::endl;
 
-        // After this iteration, check if max_dist crossed a new integer boundary
+        // 在本次 iteration 结束后，看 max_dist 是否跨过了新的整数
         int new_floor = static_cast<int>(std::floor(parent_->max_dist));
         while (new_floor < last_recorded_intDist) {
-            // （e.g. from 21.2 -> 19.8 means crossing 21 and 20）
+            // （比如 from 21.2 -> 19.8，说明跨过 21 和 20）
 
-            // 1) Collect IDs of all current anchors
+            // 1) 收集当前所有 anchor 的 ID
             std::vector<int> current_anchors;
             current_anchors.reserve(parent_->anchors.size());
 
-            // 2) Collect (anchorID, cluster_size) for all anchors
+            // 2) 收集所有 anchor 的 (anchorID, cluster_size)
             std::vector<std::pair<int,int>> anchor_cluster_sizes;
             anchor_cluster_sizes.reserve(parent_->anchors.size());
 
@@ -610,26 +600,26 @@ void NetDagConstructor::net_tree_const() {
                 anchor_cluster_sizes.push_back({anc->node_id, cluster_size});
             }
 
-            // 3) Save to data structures
+            // 3) 保存到数据结构
             boundary2anchors[last_recorded_intDist - 1] = current_anchors;
             boundary2clusterSize[last_recorded_intDist - 1] = anchor_cluster_sizes;
 
-            // 4) Trigger callback (if set) - for select-alpha mode
-            //    Note: passing last_recorded_intDist - 1, representing the integer boundary just crossed
+            // 4) 触发回调（如果设置了的话）- for select-alpha mode
+            //    注意：这里传递的是 last_recorded_intDist - 1，表示刚刚跨过的整数边界
             const auto& callback = parent_->get_cluster_stats_callback();
             if (callback) {
-                // Pass integer boundary value instead of max_dist to avoid duplicate recording
+                // 传递整数边界值而不是 max_dist，避免重复记录
                 callback(static_cast<double>(last_recorded_intDist - 1), parent_->anchors, parent_->phase);
             }
 
-            // 5) Decrement last_recorded_intDist
+            // 5) 递减 last_recorded_intDist
             last_recorded_intDist--;
         }
     }
 
-    // Finally save NetTree to file
+    // 最后保存NetTree到文件
     std::cout << "NetDag construction completed. Saving to " << file_path << std::endl;
-    // Save NetTree to file (handled by caller)
+    // TODO: 可以在这里添加保存NetTree到文件的逻辑
 }
 
 void NetDagConstructor::find_max_dist() {
@@ -637,12 +627,12 @@ void NetDagConstructor::find_max_dist() {
     std::shared_ptr<Node> tmp_max_node = nullptr;
     int tmp_max_anchor_id = -1;
     
-    // Iterate all anchors
+    // 遍历所有 anchors
     for (const auto& anchor : parent_->anchors) { 
         if (!anchor->nodes_in_cluster.empty()) {          
-            // Use max-heap top (furthest distance)
-            auto furthest_node_tuple = anchor->nodes_in_cluster.top(); // heap top element
-            double furthest_dist_of_this_anchor = furthest_node_tuple.first; // negate to restore original distance
+            // 使用最大堆的堆顶（最远距离）
+            auto furthest_node_tuple = anchor->nodes_in_cluster.top(); // 堆顶元素
+            double furthest_dist_of_this_anchor = furthest_node_tuple.first; // 取负值恢复原始距离
             if (furthest_dist_of_this_anchor > tmp_max_dist) {
                 tmp_max_dist = furthest_dist_of_this_anchor;
                 tmp_max_node = parent_->nodes[furthest_node_tuple.second];
@@ -661,10 +651,10 @@ void NetDagConstructor::update_friends() {
     for (auto& anchor : parent_->anchors) {
         double threshold = 8 * parent_->r_k + 4 * parent_->error_tolerance_index;
 
-        // Ensure friends is a max-heap (default behavior, top is max value)
+        // 确保 friends 是一个最大堆（默认行为，堆顶是最大值）
         std::make_heap(anchor->friends.begin(), anchor->friends.end());
 
-        // While heap top distance exceeds threshold, remove heap top element
+        // 当堆顶元素的距离大于阈值时，移除堆顶元素
         while (!anchor->friends.empty() && anchor->friends.front().first > threshold) {
             std::pop_heap(anchor->friends.begin(), anchor->friends.end());
             anchor->friends.pop_back();
@@ -674,7 +664,7 @@ void NetDagConstructor::update_friends() {
 
 void NetDagConstructor::update_child_and_parent_by_phase_dict() {
     for (const auto& anchor_ptr : parent_->anchors) {
-        // Create a copy to iterate priority_queue
+        // 创建一个副本来遍历 priority_queue
         std::priority_queue<std::pair<double, int>> nodes_copy = anchor_ptr->nodes_in_cluster;
 
         while (!nodes_copy.empty()) {
@@ -684,21 +674,21 @@ void NetDagConstructor::update_child_and_parent_by_phase_dict() {
             double distance = node_tuple.first;
             int node_id = node_tuple.second;
 
-            // Update child_and_parent_by_phase_dict
+            // 更新 child_and_parent_by_phase_dict
             parent_->child_and_parent_by_phase_dict[parent_->phase][node_id] = anchor_ptr->node_id;
         }
     }
 }
 
 void NetDagConstructor::link_parent_and_child() {
-    // Compute child_range
+    // 计算 child_range
     parent_->child_range = 3 * parent_->r_k + 2 * parent_->tau + 4 * parent_->error_tolerance_index;
 
-    // Compute last_phase
+    // 计算 last_phase
     int last_phase = parent_->phase * 2;
     std::cout << "last_phase= " << last_phase << std::endl;
 
-    // Get last_phase_anchors
+    // 获取 last_phase_anchors
     auto it = parent_->parent_by_phase_dict.find(last_phase);
     if (it == parent_->parent_by_phase_dict.end()) {
         std::cerr << "No anchors found for last_phase: " << last_phase << std::endl;
@@ -706,13 +696,13 @@ void NetDagConstructor::link_parent_and_child() {
     }
     std::vector<int> last_phase_anchors = it->second;
 
-    // Create tmp_dist_dict with (a, b) pair keys and distance values
+    // 创建 tmp_dist_dict，键为 (a, b) 对，值为距离
     std::map<std::pair<int, int>, double> tmp_dist_dict;
 
     for (int last_phase_anchor_id : last_phase_anchors) {
         auto last_phase_anchor_node = parent_->nodes[last_phase_anchor_id];
 
-        // Try casting Node to Anchor
+        // 尝试将 Node 转换为 Anchor
         auto last_phase_anchor = std::dynamic_pointer_cast<Anchor>(last_phase_anchor_node);
         if (!last_phase_anchor) {
             std::cerr << "Node " << last_phase_anchor_id << " is not an Anchor." << std::endl;
@@ -740,26 +730,26 @@ void NetDagConstructor::link_parent_and_child() {
             }
         }
 
-        // Add self-loop
+        // 添加自连接
         this->add_edge(last_phase_anchor, last_phase_anchor, parent_->phase, 0.0);
     }
 }
 
 void NetDagConstructor::update_one_anchor() {
-    // Ensure max_node is valid
+    // 确保 max_node 是有效的
     if (!parent_->max_node) {
         std::cerr << "Error: max_node is nullptr!" << std::endl;
         return;
     }
 
-    // Try casting max_node to Anchor type
+    // 尝试将 max_node 转换为 Anchor 类型
     std::shared_ptr<Anchor> existing_anchor = std::dynamic_pointer_cast<Anchor>(parent_->max_node);
 
     if (existing_anchor) {
-        // max_node is already an Anchor, use it directly
+        // max_node 已经是 Anchor，直接使用它
         std::cout << "max_node is already an Anchor with ID: " << existing_anchor->node_id << std::endl;
     } else {
-        // Create new Anchor object
+        // 创建新的 Anchor 对象
         auto new_anchor = std::make_shared<Anchor>(
             parent_->max_node->node_id,
             parent_->max_node->graph,
@@ -770,24 +760,24 @@ void NetDagConstructor::update_one_anchor() {
             static_cast<int>(parent_->anchors.size())
         );
 
-        // Update node list, replace max_node with new Anchor
+        // 更新节点列表，将 max_node 更新为新的 Anchor
         parent_->nodes[parent_->max_node->node_id] = new_anchor;
 
-        // Add new Anchor to anchors list
+        // 将新的 Anchor 添加到 anchors 列表中
         parent_->anchors.push_back(new_anchor);
 
-        // Print current anchor count
+        // 打印当前锚点数量
         std::cout << "Current number of anchors: " << parent_->anchors.size() << std::endl;
 
-        // Reassign existing_anchor to the newly created Anchor
+        // 重新赋值 existing_anchor 为新创建的 Anchor
         existing_anchor = new_anchor;
     }
 
-    // Remove newly promoted anchor node from original anchor's cluster
-    // because an anchor should not appear in another anchor's cluster
+    // 从原 anchor 的 cluster 中移除新成为 anchor 的节点
+    // 因为 anchor 不应该出现在其他 anchor 的 cluster 中
     auto old_anchor_node = std::dynamic_pointer_cast<Anchor>(parent_->nodes[parent_->max_anchor_node_id]);
     if (old_anchor_node && old_anchor_node->node_id != existing_anchor->node_id) {
-        // Rebuild nodes_in_cluster, skipping new anchor
+        // 重建 nodes_in_cluster，跳过新 anchor
         std::priority_queue<std::pair<double, int>> new_cluster;
         while (!old_anchor_node->nodes_in_cluster.empty()) {
             auto node_pair = old_anchor_node->nodes_in_cluster.top();
@@ -799,12 +789,12 @@ void NetDagConstructor::update_one_anchor() {
         old_anchor_node->nodes_in_cluster = std::move(new_cluster);
     }
 
-    // Update r_k and child_range
+    // 更新 r_k 和 child_range
     parent_->r_k = parent_->max_dist;
     parent_->child_range = 3 * parent_->r_k + 2 * parent_->tau + 4 * parent_->error_tolerance_index;
     parent_->r_list.push_back(parent_->r_k);
 
-    // Update phase
+    // 更新 phase
     this->update_phase();
 
     // Debug: Track specific nodes
@@ -824,7 +814,7 @@ void NetDagConstructor::update_one_anchor() {
             if (parent_anchor_node) {
                 if (is_tracked) {
                     std::cout << "[TRACK] Anchor " << existing_anchor->node_id
-                              << " using LOCAL search (case A), parent=" << parent_2_phase_ago_id
+                              << " using LOCAL search (情况A), parent=" << parent_2_phase_ago_id
                               << ", phase=" << parent_->phase
                               << ", r_k=" << parent_->r_k
                               << ", threshold=" << (4 * parent_->r_k + parent_->error_tolerance_index) << std::endl;
@@ -840,7 +830,7 @@ void NetDagConstructor::update_one_anchor() {
     } else {
         if (is_tracked) {
             std::cout << "[TRACK] Anchor " << existing_anchor->node_id
-                      << " using GLOBAL search (case B)"
+                      << " using GLOBAL search (情况B)"
                       << ", phase=" << parent_->phase
                       << ", r_k=" << parent_->r_k
                       << ", threshold=" << (4 * parent_->r_k + parent_->error_tolerance_index) << std::endl;
@@ -852,14 +842,14 @@ void NetDagConstructor::update_one_anchor() {
         }
     }
 
-    // Print candidate count
+    // 打印候选人的数量
     std::cout << "Number of friend candidates before removal: " << friend_candidates.size() << std::endl;
 
-    // Remove self node from candidates
+    // 从候选人中移除自身节点
     friend_candidates.erase(std::remove(friend_candidates.begin(), friend_candidates.end(), existing_anchor->node_id), friend_candidates.end());
     std::cout << "Number of friend candidates after removal: " << friend_candidates.size() << std::endl;
 
-    // Compute GED distance to candidate friends
+    // 计算与候选朋友之间的 GED 距离
     int friends_made = 0;
     for (int friend_candidate : friend_candidates) {
         double tmp_dist = compute_ged_online(existing_anchor, parent_->nodes[friend_candidate]);
@@ -917,7 +907,7 @@ void NetDagConstructor::update_one_anchor() {
         }
     }
 
-    // Update node distance in friend's nodes_in_cluster
+    // 更新节点在朋友的 nodes_in_cluster 中的距离
     for (const auto& friend_tuple : existing_anchor->friends) {
         double friend_dist = friend_tuple.first;
         if (friend_dist > 2 * parent_->r_k + 3 * parent_->error_tolerance_index) {
@@ -933,7 +923,7 @@ void NetDagConstructor::update_one_anchor() {
         while (!friend_node->nodes_in_cluster.empty()) {
             auto node_tuple = friend_node->nodes_in_cluster.top();
             int node_id = node_tuple.second;
-            double dist_to_friend = node_tuple.first; // using positive value, since it is a max-heap
+            double dist_to_friend = node_tuple.first; // 使用正数，因为是最大堆
 
             if (friend_dist > 2 * dist_to_friend + 3 * parent_->error_tolerance_index) {
                 break;
@@ -941,12 +931,12 @@ void NetDagConstructor::update_one_anchor() {
 
             double dist_to_new_anchor = compute_ged_online(existing_anchor, parent_->nodes[node_id]);
 
-            // Remove this node from nodes_in_cluster
+            // 从 nodes_in_cluster 中移除该节点
             friend_node->nodes_in_cluster.pop();
 
             if (dist_to_new_anchor <= dist_to_friend) {
                 auto node = parent_->nodes[node_id];
-                node->nearest_anchor = existing_anchor->node_id;  // Update nearest anchor ID
+                node->nearest_anchor = existing_anchor->node_id;  // 更新最近锚点 ID
                 node->nearest_anchor_dist = dist_to_new_anchor;
                 existing_anchor->nodes_in_cluster.push(std::make_pair(dist_to_new_anchor, node_id));
             } else {
@@ -954,13 +944,13 @@ void NetDagConstructor::update_one_anchor() {
             }
         }
 
-        // Re-insert unprocessed nodes into heap
+        // 将未处理的节点重新插入堆中
         for (const auto& node_tuple : tmp_waste_node_list) {
             friend_node->nodes_in_cluster.push(node_tuple);
         }
     }
 
-    // Print friend count of newly added anchor
+    // 打印新添加的 anchor 的朋友数量
     std::cout << "New anchor ID " << existing_anchor->node_id << " has "
               << existing_anchor->friends.size() << " friends." << std::endl;
 }
@@ -969,41 +959,41 @@ void NetDagConstructor::get_nodes_in_cover_range() {
     std::map<std::pair<int, int>, double> tmp_dist_dict;
 
     for (const auto& anchor : parent_->anchors) {
-        std::unordered_set<int> seen_nodes;  // for tracking already inserted nodes
+        std::unordered_set<int> seen_nodes;  // 用于跟踪已经插入的节点
 
         for (const auto& friend_tuple : anchor->friends) {
             double friend_dist = friend_tuple.first;
             int friend_id = friend_tuple.second;
             auto friend_node = parent_->nodes[friend_id];
 
-            // If friend_node is actually an Anchor, do dynamic_pointer_cast
+            // 如果 friend_node 实际是 Anchor，进行 dynamic_pointer_cast
             auto friend_anchor = std::dynamic_pointer_cast<Anchor>(friend_node);
             if (!friend_anchor) {
-                // If not Anchor type, skip
+                // 如果不是 Anchor 类型，跳过
                 continue;
             }
 
             if (friend_dist <= 2 * parent_->alpha + 2 * parent_->tau + 6 * parent_->error_tolerance_index) {
-                // Copy elements from priority_queue to std::vector
+                // 将 priority_queue 中的元素复制到 std::vector 中
                 std::priority_queue<std::pair<double, int>> nodes_in_cluster_copy = friend_anchor->nodes_in_cluster;
                 std::vector<std::pair<double, int>> combined;
 
-                // Move all elements from priority_queue to vector
+                // 将所有元素从 priority_queue 移动到 vector
                 while (!nodes_in_cluster_copy.empty()) {
                     combined.push_back(nodes_in_cluster_copy.top());
                     nodes_in_cluster_copy.pop();
                 }
 
-                // Add anchor itself as a special element
+                // 将 anchor 自身作为一个特殊元素加入
                 combined.emplace_back(0.0, friend_anchor->node_id);
 
-                // Iterate combined
+                // 遍历 combined
                 for (const auto& possible_cover_node_tuple : combined) {
                     int possible_cover_node_id = possible_cover_node_tuple.second;
 
-                    // Check if this node already inserted
+                    // 检查是否已经插入该节点
                     if (seen_nodes.find(possible_cover_node_id) != seen_nodes.end()) {
-                        continue;  // If this node already inserted, skip
+                        continue;  // 如果该节点已经插入，跳过
                     }
 
                     double tmp_dist;
@@ -1020,19 +1010,19 @@ void NetDagConstructor::get_nodes_in_cover_range() {
 
                     if (tmp_dist <= parent_->alpha + 2 * parent_->tau + 3 * parent_->error_tolerance_index) {
                         anchor->nodes_in_cover_range.emplace_back(possible_cover_node_id, tmp_dist);
-                        seen_nodes.insert(possible_cover_node_id);  // Insert node ID into seen_nodes
+                        seen_nodes.insert(possible_cover_node_id);  // 插入节点ID到 seen_nodes 中
                     }
                 }
             }
         }
 
-        // Add nodes_in_cluster and itself to nodes_in_cover_range
+        // 添加 nodes_in_cluster 和自身到 nodes_in_cover_range
         std::priority_queue<std::pair<double, int>> nodes_in_cluster_copy = anchor->nodes_in_cluster;
         std::vector<std::pair<double, int>> temp_vector;
 
         while (!nodes_in_cluster_copy.empty()) {
-            auto [first, second] = nodes_in_cluster_copy.top();  // destructure pair/tuple
-            temp_vector.push_back(std::make_pair(second, first));  // swap order of first and second
+            auto [first, second] = nodes_in_cluster_copy.top();  // 拆解 pair/tuple
+            temp_vector.push_back(std::make_pair(second, first));  // 交换 first 和 second 的顺序
             nodes_in_cluster_copy.pop();
         }
 
@@ -1040,11 +1030,11 @@ void NetDagConstructor::get_nodes_in_cover_range() {
             int node_id = node_tuple.first;
             if (seen_nodes.find(node_id) == seen_nodes.end()) {
                 anchor->nodes_in_cover_range.emplace_back(node_tuple.first, node_tuple.second);
-                seen_nodes.insert(node_id);  // Ensure each node is inserted only once
+                seen_nodes.insert(node_id);  // 确保每个节点只插入一次
             }
         }
 
-        // Finally add anchor itself
+        // 最后再添加 anchor 自身
         if (seen_nodes.find(anchor->node_id) == seen_nodes.end()) {
             anchor->nodes_in_cover_range.emplace_back(anchor->node_id, 0.0);
             seen_nodes.insert(anchor->node_id);
@@ -1053,10 +1043,10 @@ void NetDagConstructor::get_nodes_in_cover_range() {
 }
 
 void NetDagConstructor::make_friends(std::shared_ptr<Anchor> anchor1, std::shared_ptr<Anchor> anchor2, double dist) {
-    // Add anchor1's friends
+    // 添加 anchor1 的 friend
     anchor1->friends.push_back({dist, anchor2->node_id});
     
-    // Add anchor2's friends
+    // 添加 anchor2 的 friend
     anchor2->friends.push_back({dist, anchor1->node_id});
 }
 
@@ -1069,6 +1059,11 @@ void NetDagConstructor::add_edge(std::shared_ptr<Anchor> parent, std::shared_ptr
     }
 }
 
+void NetDagConstructor::add_edge(std::shared_ptr<Node> parent, std::shared_ptr<Node> child, int child_phase, double child_dist) {
+    // TODO: Extract implementation from original file
+    // This method adds an edge between two nodes - implementation not found in original
+    std::cout << "add_edge(Node, Node) called - implementation needed" << std::endl;
+}
 
 // Only compute GED and save to csv, no NetDag modification
 void NetDagConstructor::compute_ged_to_csv() {
@@ -1244,8 +1239,13 @@ void NetDagConstructor::compute_ged_to_csv() {
 
     auto start_time = std::chrono::steady_clock::now();
 
+    // E1: accumulate per-task GED compute time across threads (= single-thread-equivalent work).
+    std::mutex work_mutex;
+    double total_ged_work_seconds = 0.0;
+
     auto worker = [&]() {
         size_t index = task_index.fetch_add(1);
+        double local_work = 0.0;  // E1: this thread's accumulated GED compute time
 
         while (index < total_tasks) {
             auto [anchor_id, node_id, dist] = pairs_to_compute[index];
@@ -1281,6 +1281,7 @@ void NetDagConstructor::compute_ged_to_csv() {
             }
 
             try {
+                auto _ged_c0 = std::chrono::steady_clock::now();  // E1: time GED compute (LB + AppForComputation) only, excl. IO
                 // Lower bound filter
                 ui LB = graph1->ged_lower_bound_filter(
                     graph2,
@@ -1291,22 +1292,26 @@ void NetDagConstructor::compute_ged_to_csv() {
                 );
 
                 int ged_res = -1;
+                bool hit_limit = false;  // 记号: A* 耗尽 epf_exact_iter 而退出 => 归 timeout 档
                 std::vector<std::pair<ui, ui>> mapping;
 
                 if (LB <= parent_->max_exact_ged_for_EPT) {
-                    // Use exact_max_iter (1000000) for offline GED computation
-                    const int exact_max_iter = 1000000;
+                    // 迭代预算改为可配(parent_->epf_exact_iter, 默认 1e6 = 原行为)
+                    const int exact_max_iter = parent_->epf_exact_iter;
                     Application app(static_cast<ui>(parent_->max_exact_ged_for_EPT), "BMao",
                                     exact_max_iter, exact_max_iter);
+                    app.set_all_edge_labels_same(parent_->all_edge_labels_same);
                     app.init(graph1, graph2);
                     int lb_astar = -1;
                     ged_res = app.AppForComputation(&mapping, &lb_astar);
+                    hit_limit = app.hit_iter_limit();
                     if (mapping.empty()) {
                         app.get_mapping(mapping);
                     }
                 } else {
                     ged_res = LB;
                 }
+                local_work += std::chrono::duration<double>(std::chrono::steady_clock::now() - _ged_c0).count();  // E1
 
                 if (ged_res != -1 && ged_res <= parent_->max_exact_ged_for_EPT) {
                     // Build mapping string
@@ -1336,7 +1341,9 @@ void NetDagConstructor::compute_ged_to_csv() {
                     }
                 } else {
                     // Failed (timeout or over threshold)
-                    if (ged_res == -1) {
+                    // hit_limit: 预算耗尽 => 未定, 归 timeout 档(原先靠 ged_res==-1, 但那条
+                    // 路径被死宏封住, 导致两种退出都落进 over_threshold)。
+                    if (ged_res == -1 || hit_limit) {
                         // Timeout
                         std::lock_guard<std::mutex> lock(result_mutex);
                         timeout_file << min_id << "," << max_id << "\n";
@@ -1367,6 +1374,7 @@ void NetDagConstructor::compute_ged_to_csv() {
 
             index = task_index.fetch_add(1);
         }
+        { std::lock_guard<std::mutex> lk(work_mutex); total_ged_work_seconds += local_work; }  // E1
     };
 
     // Launch threads
@@ -1382,6 +1390,15 @@ void NetDagConstructor::compute_ged_to_csv() {
     timeout_file.close();
     over_threshold_file.close();
 
+    double ged_wall_seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - start_time).count();
+    std::cout << "[E1_GED] threads=" << num_threads << " wall_seconds=" << ged_wall_seconds
+              << " work_seconds=" << total_ged_work_seconds
+              << " pairs=" << total_tasks << std::endl;
+    Utility::append_e1_timing("index_name=" + parent_->index_name + "\tdataset=" + parent_->dataset
+        + "\tstage=compute_paths\tthreads=" + std::to_string(num_threads)
+        + "\twall_seconds=" + std::to_string(ged_wall_seconds)
+        + "\twork_seconds=" + std::to_string(total_ged_work_seconds)
+        + "\tpairs=" + std::to_string(total_tasks));
     std::cout << "\n[compute_ged_to_csv] Completed!" << std::endl;
     std::cout << "[compute_ged_to_csv] Success results saved to: " << result_filename << std::endl;
     std::cout << "[compute_ged_to_csv] Timeout results saved to: " << timeout_filename << std::endl;
@@ -1389,18 +1406,18 @@ void NetDagConstructor::compute_ged_to_csv() {
 }
 
 void NetDagConstructor::reassign_nodes_in_cluster() {
-    // Define CSV filename for storing computed GED results
+    // 定义用于存储已计算的 GED 结果的 CSV 文件名
     std::string dataset_dir = "./NetDags/" + parent_->dataset + "/";
     std::string ged_results_dir = dataset_dir + "ged_results/";
 
-    // Ensure directory exists
+    // 确保目录存在
     std::filesystem::create_directories(ged_results_dir);
 
     std::string result_filename = ged_results_dir + parent_->index_name + "_exact_ged_results.csv";
     std::string failed_result_filename = ged_results_dir + parent_->index_name + "_failed_ged_results.csv";
     namespace fs = std::filesystem;
     if (!fs::exists(result_filename)) {
-        // Open with default constructor, write empty content
+        // 用默认构造方式打开，写空内容
         std::ofstream create_empty_file(result_filename);
         if (!create_empty_file.is_open()) {
             std::cerr << "[ERROR] Unable to create an empty file: " << result_filename << std::endl;
@@ -1416,10 +1433,10 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
             std::cout << "[INFO] Created empty failed results CSV file: " << failed_result_filename << std::endl;
         }
     }
-    // Define CSV filename for loading existing GED results
+    // 定义用于加载已有的 GED 结果的 CSV 文件名
     std::string existing_csv_filename = result_filename;
 
-    // Load existing GED results
+    // 加载已有的 GED 结果
     std::unordered_map<std::pair<int, int>, std::tuple<int, std::string>, pair_hash> computed_results;
     std::unordered_set<std::pair<int, int>, pair_hash> failed_results;
 
@@ -1445,10 +1462,10 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
                 int max_id = std::max(id1, id2);
                 std::pair<int, int> pair = std::make_pair(min_id, max_id);
 
-                // Save ged and mapping_str
+                // 保存 ged 和 mapping_str
                 computed_results[pair] = std::make_tuple(ged, mapping_str);
             } catch (const std::exception& e) {
-                // Skip this line
+                // 跳过此行
                 continue;
             }
         }
@@ -1458,7 +1475,7 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
         std::cerr << "Warning: Unable to open existing CSV file: " << existing_csv_filename << std::endl;
     }
 
-    // Load failed computation results
+    // 加载失败的计算结果
     std::ifstream failed_csv_file(failed_result_filename);
     if (failed_csv_file.is_open()) {
         std::string line;
@@ -1486,31 +1503,31 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
         std::cout << "Loaded " << failed_count << " failed results from " << failed_result_filename << std::endl;
     }
 
-    // **Step 1: collect node pairs needing computation**
+    // **第一步：收集需要计算的节点对**
     std::vector<std::tuple<int, int, double>> pairs_to_compute; // (anchor_id, node_id, dist)
 
-    // Temporary structure for computation results
+    // 临时存储计算结果的结构
     std::unordered_map<int, std::priority_queue<std::pair<double, int>>> temp_nodes_in_exact_cluster;
 
-    // Define mutex
+    // 定义互斥锁
     std::mutex temp_mutex;
     std::mutex computed_results_mutex;
     std::mutex result_mutex;
     std::mutex cout_mutex;
 
-    // DEBUG: count total cluster nodes
+    // DEBUG: 统计总cluster node数量
     size_t total_cluster_nodes = 0;
     size_t total_skipped_self = 0;
     size_t total_has_result = 0;
     size_t total_has_failed = 0;
     size_t total_needs_compute = 0;
 
-    // Iterate anchors, collect node pairs needing computation
+    // 遍历 anchors，收集需要计算的节点对
     for (size_t idx = 0; idx < parent_->anchors.size(); ++idx) {
         auto anchor = parent_->anchors[idx];
         int anchor_id = anchor->node_id;
 
-        // Copy nodes_in_cluster
+        // 复制 nodes_in_cluster
         auto nodes_in_cluster_pq = anchor->nodes_in_cluster;
         std::priority_queue<std::pair<double, int>> updated_nodes_in_cluster;
 
@@ -1518,14 +1535,14 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
             auto [dist, node_id] = nodes_in_cluster_pq.top();
             nodes_in_cluster_pq.pop();
 
-            total_cluster_nodes++;  // DEBUG: count all cluster nodes
+            total_cluster_nodes++;  // DEBUG: 统计所有cluster nodes
 
             if (anchor_id != node_id) {
                 int min_id = std::min(anchor_id, node_id);
                 int max_id = std::max(anchor_id, node_id);
                 std::pair<int, int> pair = std::make_pair(min_id, max_id);
 
-                // Check if result or failure record already exists
+                // 检查是否已有计算结果或失败记录
                 bool has_result = false;
                 bool has_failed = false;
                 int ged = -1;
@@ -1545,41 +1562,41 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
 
                 if (has_result) {
                     total_has_result++;  // DEBUG
-                    // Result exists, check if ged satisfies condition
+                    // 已有结果，判断 ged 是否满足条件
                     if (ged != -1 && ged <= parent_->max_exact_ged_for_EPT) {
-                        // Add result to temporary temp_nodes_in_exact_cluster
+                        // 将结果加入临时的 temp_nodes_in_exact_cluster
                         {
                             std::lock_guard<std::mutex> lock(temp_mutex);
                             temp_nodes_in_exact_cluster[anchor_id].push({static_cast<double>(ged), node_id});
                         }
-                        // Do not add node to updated_nodes_in_cluster, remove from nodes_in_cluster
+                        // 不将节点加入 updated_nodes_in_cluster，从 nodes_in_cluster 中移除
                     } else {
-                        // GED exceeds threshold, keep in updated_nodes_in_cluster
+                        // GED 超过阈值，保留在 updated_nodes_in_cluster 中
                         updated_nodes_in_cluster.push({dist, node_id});
                     }
                 } else if (has_failed) {
                     total_has_failed++;  // DEBUG
-                    // Known failed computation (timeout or exceeds threshold), do not recompute, keep in cluster
+                    // 已知失败的计算（超时或超过阈值），不重复计算，保留在cluster中
                     updated_nodes_in_cluster.push({dist, node_id});
                 } else {
                     total_needs_compute++;  // DEBUG
-                    // Node pairs needing computation
+                    // 需要计算的节点对
                     pairs_to_compute.emplace_back(anchor_id, node_id, dist);
-                    // Temporarily keep node in updated_nodes_in_cluster, decide after computation
+                    // 暂时保留节点在 updated_nodes_in_cluster 中，等待计算后再决定
                     updated_nodes_in_cluster.push({dist, node_id});
                 }
             } else {
                 total_skipped_self++;  // DEBUG
-                // Keep itself (anchor) in updated_nodes_in_cluster
+                // 将自身（锚点）保留在 updated_nodes_in_cluster 中
                 updated_nodes_in_cluster.push({dist, node_id});
             }
         }
 
-        // Update anchor's nodes_in_cluster
+        // 更新 anchor 的 nodes_in_cluster
         anchor->nodes_in_cluster = updated_nodes_in_cluster;
     }
 
-    // **DEBUG: print statistics**
+    // **DEBUG: 打印统计信息**
     std::cout << "\n=== Cluster Node Statistics ===" << std::endl;
     std::cout << "Total cluster nodes: " << total_cluster_nodes << std::endl;
     std::cout << "  - Skipped (anchor_id == node_id): " << total_skipped_self << std::endl;
@@ -1589,9 +1606,9 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
     std::cout << "Total pairs in CSV should be: " << (total_has_result + total_has_failed + total_needs_compute) << std::endl;
     std::cout << "================================\n" << std::endl;
 
-    // **Step 2: compute needed node pairs in parallel**
+    // **第二步：并行计算需要计算的节点对**
     std::cout << "Parallel computing..." << std::endl;
-    // Create result file output stream (multi-threaded writing, append mode)
+    // 创建结果文件输出流（多线程写入，追加模式）
     std::ofstream result_file(result_filename, std::ios::app);
     if (!result_file.is_open()) {
         std::cerr << "Error: Unable to open file for writing: " << result_filename << std::endl;
@@ -1604,22 +1621,22 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
         return;
     }
 
-    // Set result file stream as thread-safe
+    // 将结果文件流设为线程安全的
     result_file.sync_with_stdio(false);
     failed_file.sync_with_stdio(false);
 
-    // Create threads and process node pairs
+    // 创建线程并处理节点对
     std::vector<std::thread> threads;
-    std::atomic<size_t> task_index(0);       // task index
-    std::atomic<size_t> processed_tasks(0);  // processed task count
+    std::atomic<size_t> task_index(0);       // 任务索引
+    std::atomic<size_t> processed_tasks(0);  // 已处理的任务数
     size_t total_tasks = pairs_to_compute.size();
     size_t num_threads = std::thread::hardware_concurrency();
     if (num_threads == 0) num_threads = 4;
-    num_threads = (num_threads <= 200) ? num_threads : 200; // maximum 200 threads
-    // start time
+    num_threads = (num_threads <= 200) ? num_threads : 200; // 最多 200 个线程
+    // 开始时间
     auto start_time = std::chrono::steady_clock::now();
 
-    // Define worker function
+    // 定义工作函数
     auto worker = [&]() {
         size_t index = task_index.fetch_add(1);
 
@@ -1630,10 +1647,10 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
             int max_id = std::max(anchor_id, node_id);
             std::pair<int, int> pair = std::make_pair(min_id, max_id);
 
-            // Get graph
+            // 获取图
             if (anchor_id < 0 || anchor_id >= parent_->nodes.size() || node_id < 0 || node_id >= parent_->nodes.size()) {
                 std::cerr << "Error: Node IDs out of bounds: " << anchor_id << ", " << node_id << std::endl;
-                // Increment processed task count
+                // 增加已处理的任务数
                 size_t current_processed = processed_tasks.fetch_add(1) + 1;
                 index = task_index.fetch_add(1);
                 continue;
@@ -1644,7 +1661,7 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
             auto anchor_ptr = std::dynamic_pointer_cast<Anchor>(node_anchor);
             if (!anchor_ptr) {
                 std::cerr << "Error: Node is not an Anchor for node ID: " << anchor_id << std::endl;
-                // Increment processed task count
+                // 增加已处理的任务数
                 size_t current_processed = processed_tasks.fetch_add(1) + 1;
                 index = task_index.fetch_add(1);
                 continue;
@@ -1655,13 +1672,13 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
 
             if (!graph1 || !graph2) {
                 std::cerr << "Error: Graph is null for node IDs: " << anchor_id << ", " << node_id << std::endl;
-                // Increment processed task count
+                // 增加已处理的任务数
                 size_t current_processed = processed_tasks.fetch_add(1) + 1;
                 index = task_index.fetch_add(1);
                 continue;
             }
 
-            // First check if result already exists
+            // 先检查是否已有计算结果
             bool has_result = false;
             int ged_res = -1;
             std::string mapping_str;
@@ -1678,16 +1695,16 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
 
             if (has_result) {
                 if (ged_res != -1 && ged_res <= parent_->max_exact_ged_for_EPT) {
-                    // Add result to temporary temp_nodes_in_exact_cluster
+                    // 将结果加入临时的 temp_nodes_in_exact_cluster
                     {
                         std::lock_guard<std::mutex> lock(temp_mutex);
                         temp_nodes_in_exact_cluster[anchor_id].push({static_cast<double>(ged_res), node_id});
                     }
-                    // Remove this node from anchor's nodes_in_cluster
+                    // 从 anchor 的 nodes_in_cluster 中移除该节点
                     {
                         std::lock_guard<std::mutex> lock(temp_mutex);
                         auto& nodes_in_cluster = anchor_ptr->nodes_in_cluster;
-                        // Create new priority queue, filtering out already processed nodes
+                        // 创建一个新的优先队列，过滤掉已处理的节点
                         std::priority_queue<std::pair<double, int>> updated_nodes_in_cluster_inner;
                         while (!nodes_in_cluster.empty()) {
                             auto [d, nid] = nodes_in_cluster.top();
@@ -1696,20 +1713,20 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
                                 updated_nodes_in_cluster_inner.push({d, nid});
                             }
                         }
-                        // Update nodes_in_cluster
+                        // 更新 nodes_in_cluster
                         nodes_in_cluster = updated_nodes_in_cluster_inner;
                     }
                 } else {
-                    // GED exceeds threshold, try reassigning via friends (controllable via switch)
+                    // GED 超过阈值，尝试通过 friends 进行归入 (可通过开关控制)
                     bool assigned_via_friend = false;
 
-                    // Check if friends adoption feature is enabled
+                    // 检查是否启用friends收留功能
                     if (!parent_->enable_friends_reassign) {
-                        // Feature disabled, skip friends adoption logic
-                        // This node will later be classified as uncoverable
+                        // 功能被禁用，跳过friends收留逻辑
+                        // 该节点将在后续被归为无法覆盖的节点
                     } else {
                     for (const auto& [friend_dist, friend_id] : anchor_ptr->friends) {
-                        // Check if result already exists
+                        // 检查是否已有计算结果
                         int min_friend_id = std::min(friend_id, node_id);
                         int max_friend_id = std::max(friend_id, node_id);
                         std::pair<int, int> friend_pair = std::make_pair(min_friend_id, max_friend_id);
@@ -1730,16 +1747,16 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
 
                         if (has_friend_result) {
                             if (friend_ged_res != -1 && friend_ged_res <= parent_->max_exact_ged_for_EPT) {
-                                // Add node to friend's temp_nodes_in_exact_cluster
+                                // 将节点加入朋友的 temp_nodes_in_exact_cluster
                                 {
                                     std::lock_guard<std::mutex> lock(temp_mutex);
                                     temp_nodes_in_exact_cluster[friend_id].push({static_cast<double>(friend_ged_res), node_id});
                                 }
                                 assigned_via_friend = true;
-                                break; // Successfully adopted, break out of friends loop
+                                break; // 已成功归入，跳出 friends 循环
                             }
                         } else {
-                            // Need to compute GED with friend
+                            // 需要计算与朋友的 GED
                             auto friend_node = parent_->nodes[friend_id];
                             auto friend_anchor = std::dynamic_pointer_cast<Anchor>(friend_node);
                             if (!friend_anchor) continue;
@@ -1753,21 +1770,22 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
                                 ui friend_LB = friend_graph->ged_lower_bound_filter(
                                     graph2,
                                     static_cast<ui>(parent_->max_exact_ged_for_EPT),
-                                    parent_->vM.size(),    // number of vertex label types
-                                    parent_->eM.size(),    // number of edge label types
-                                    parent_->max_n         // maximum vertex count
+                                    parent_->vM.size(),    // 顶点标签种类数量
+                                    parent_->eM.size(),    // 边标签种类数量
+                                    parent_->max_n         // 最大节点数
                                 );
                                 if (friend_LB > parent_->max_exact_ged_for_EPT) {
-                                    // LB exceeds threshold, no computation needed
+                                    // LB 大于阈值，不需要计算
                                     continue;
                                 }
                                 // double friend_ML_ged = ML_graph::get_ML_ged(friend_anchor->ml_graph, node_other->ml_graph);
                                 // if (friend_ML_ged > parent_->max_exact_ged_for_EPT + 3 * parent_->error_tolerance_index) {
-                                //     // ML GED exceeds threshold, no computation needed
+                                //     // ML GED 大于阈值，不需要计算
                                 //     continue;
                                 // }
-                                // Call AppForComputation
+                                // 调用 AppForComputation
                                 Application app(static_cast<ui>(parent_->max_exact_ged_for_EPT), "BMao");
+                                app.set_all_edge_labels_same(parent_->all_edge_labels_same);
                                 app.init(friend_graph, graph2);
                                 int lb_astar_friend = -1;
                                 std::vector<std::pair<ui, ui>> mapping_friend;
@@ -1777,7 +1795,7 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
                                 }
 
                                 if (friend_ged_res != -1 && friend_ged_res <= parent_->max_exact_ged_for_EPT) {
-                                    // Convert node mapping to string
+                                    // 将节点映射转换为字符串
                                     std::stringstream mapping_ss_friend;
                                     if (!mapping_friend.empty()) {
                                         mapping_ss_friend << "\"[";
@@ -1793,19 +1811,19 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
                                     }
                                     friend_mapping_str = mapping_ss_friend.str();
 
-                                    // Save new computation result
+                                    // 保存新的计算结果
                                     {
                                         std::lock_guard<std::mutex> lock(computed_results_mutex);
                                         computed_results[friend_pair] = std::make_tuple(friend_ged_res, friend_mapping_str);
                                     }
 
-                                    // Add node to friend's temp_nodes_in_exact_cluster
+                                    // 将节点加入朋友的 temp_nodes_in_exact_cluster
                                     {
                                         std::lock_guard<std::mutex> lock(temp_mutex);
                                         temp_nodes_in_exact_cluster[friend_id].push({static_cast<double>(friend_ged_res), node_id});
                                     }
 
-                                    // Write result to result file
+                                    // 将结果写入结果文件
                                     {
                                         std::lock_guard<std::mutex> lock(result_mutex);
                                         result_file << min_friend_id << "," << max_friend_id << "," << friend_ged_res << "," << friend_mapping_str << "\n";
@@ -1813,28 +1831,28 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
                                     }
 
                                     assigned_via_friend = true;
-                                    break; // Successfully adopted, break out of friends loop
+                                    break; // 已成功归入，跳出 friends 循环
                                 } else {
-                                    // GED exceeds threshold, no need to write to result file
+                                    // GED 超过阈值，不需要写入结果文件
                                 }
 
                             } catch (const std::exception& e) {
-                                // Catch exception, output error info
+                                // 捕获异常，输出错误信息
                                 std::cerr << "Exception occurred while processing node IDs: " << friend_id << ", " << node_id << ". Exception: " << e.what() << std::endl;
-                                // No need to write error info to result file
+                                // 不需要写入错误信息到结果文件
                             }
                         }
                     }
 
                     if (!assigned_via_friend) {
-                        // Cannot adopt via friends, node remains in anchor's nodes_in_cluster
-                        // Already kept in main thread, no extra handling needed
+                        // 无法通过 friends 归入，节点保留在 anchor 的 nodes_in_cluster 中
+                        // 由于在主线程中已经保留，无需额外处理
                     } else {
-                        // Remove this node from anchor's nodes_in_cluster
+                        // 从 anchor 的 nodes_in_cluster 中移除该节点
                         {
                             std::lock_guard<std::mutex> lock(temp_mutex);
                             auto& nodes_in_cluster = anchor_ptr->nodes_in_cluster;
-                            // Create new priority queue, filtering out already processed nodes
+                            // 创建一个新的优先队列，过滤掉已处理的节点
                             std::priority_queue<std::pair<double, int>> updated_nodes_in_cluster_inner;
                             while (!nodes_in_cluster.empty()) {
                                 auto [d, nid] = nodes_in_cluster.top();
@@ -1843,28 +1861,29 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
                                     updated_nodes_in_cluster_inner.push({d, nid});
                                 }
                             }
-                            // Update nodes_in_cluster
+                            // 更新 nodes_in_cluster
                             nodes_in_cluster = updated_nodes_in_cluster_inner;
                         }
                     }
-                    } // End enable_friends_reassign condition check
+                    } // 结束 enable_friends_reassign 条件检查
                 }
             } else {
-                // Need to compute
+                // 需要计算
                 try {
-                    // Call AppForComputation
+                    // 调用 AppForComputation
                     ui LB = graph1->ged_lower_bound_filter(
                         graph2,
                         static_cast<ui>(parent_->max_exact_ged_for_EPT),
-                        parent_->vM.size(),    // number of vertex label types
-                        parent_->eM.size(),    // number of edge label types
-                        parent_->max_n         // maximum vertex count
+                        parent_->vM.size(),    // 顶点标签种类数量
+                        parent_->eM.size(),    // 边标签种类数量
+                        parent_->max_n         // 最大节点数
                     );
                     std::vector<std::pair<ui, ui>> mapping;
                     if (LB <= parent_->max_exact_ged_for_EPT){
                         // double ML_ged = ML_graph::get_ML_ged(anchor_ptr->ml_graph, node_other->ml_graph);
                         // if (ML_ged <= parent_->max_exact_ged_for_EPT + 3 * parent_->error_tolerance_index){
                             Application app(static_cast<ui>(parent_->max_exact_ged_for_EPT), "BMao");
+                            app.set_all_edge_labels_same(parent_->all_edge_labels_same);
                             app.init(graph1, graph2);
                             int lb_astar = -1;
 
@@ -1880,9 +1899,9 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
                     }
 
 
-                    // Check if result is timeout (-1), if so skip
+                    // 检查是否为超时结果(-1)，如果是则跳过
                     if (ged_res != -1 && ged_res <= parent_->max_exact_ged_for_EPT) {
-                        // Convert node mapping to string
+                        // 将节点映射转换为字符串
                         std::stringstream mapping_ss;
                         if (!mapping.empty()) {
                             mapping_ss << "\"[";
@@ -1898,22 +1917,22 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
                         }
                         mapping_str = mapping_ss.str();
 
-                        // Save new computation result
+                        // 保存新的计算结果
                         {
                             std::lock_guard<std::mutex> lock(computed_results_mutex);
                             computed_results[pair] = std::make_tuple(ged_res, mapping_str);
                         }
 
-                        // Add result to temporary temp_nodes_in_exact_cluster
+                        // 将结果加入临时的 temp_nodes_in_exact_cluster
                         {
                             std::lock_guard<std::mutex> lock(temp_mutex);
                             temp_nodes_in_exact_cluster[anchor_id].push({static_cast<double>(ged_res), node_id});
                         }
-                        // Remove this node from anchor's nodes_in_cluster
+                        // 从 anchor 的 nodes_in_cluster 中移除该节点
                         {
                             std::lock_guard<std::mutex> lock(temp_mutex);
                             auto& nodes_in_cluster = anchor_ptr->nodes_in_cluster;
-                            // Create new priority queue, filtering out already processed nodes
+                            // 创建一个新的优先队列，过滤掉已处理的节点
                             std::priority_queue<std::pair<double, int>> updated_nodes_in_cluster_inner;
                             while (!nodes_in_cluster.empty()) {
                                 auto [d, nid] = nodes_in_cluster.top();
@@ -1922,28 +1941,28 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
                                     updated_nodes_in_cluster_inner.push({d, nid});
                                 }
                             }
-                            // Update nodes_in_cluster
+                            // 更新 nodes_in_cluster
                             nodes_in_cluster = updated_nodes_in_cluster_inner;
                         }
 
-                        // Write result to result file
+                        // 将结果写入结果文件
                         {
                             std::lock_guard<std::mutex> lock(result_mutex);
                             result_file << min_id << "," << max_id << "," << ged_res << "," << mapping_str << "\n";
                             result_file.flush();
                         }
                     } else {
-                        // GED exceeds threshold or timeout, write to failed results
+                        // GED超过阈值或超时，写入failed results
                         std::string result_type = (ged_res == -1) ? "TIMEOUT" : "OVER_THRESHOLD";
 
-                        // Write to failed CSV file
+                        // 写入failed CSV文件
                         {
                             std::lock_guard<std::mutex> lock(result_mutex);
                             failed_file << min_id << "," << max_id << "," << result_type << "\n";
                             failed_file.flush();
                         }
 
-                        // If not timeout, also save to memory cache (for friend adoption)
+                        // 如果不是超时，也保存到内存缓存（用于friend归入）
                         if (ged_res != -1) {
                             std::stringstream mapping_ss;
                             if (!mapping.empty()) {
@@ -1960,22 +1979,22 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
                             }
                             mapping_str = mapping_ss.str();
 
-                            // Save computation result to cache (for friend adoption)
+                            // 保存计算结果到缓存（用于friend归入）
                             {
                                 std::lock_guard<std::mutex> lock(computed_results_mutex);
                                 computed_results[pair] = std::make_tuple(ged_res, mapping_str);
                             }
                         }
 
-                        // Try reassigning via friends (controllable via switch)
+                        // 尝试通过 friends 进行归入 (可通过开关控制)
                         bool assigned_via_friend = false;
 
-                        // Check if friends adoption feature is enabled
+                        // 检查是否启用friends收留功能
                         if (!parent_->enable_friends_reassign) {
-                            // Feature disabled, skip friends adoption logic
+                            // 功能被禁用，跳过friends收留逻辑
                         } else {
                         for (const auto& [friend_dist, friend_id] : anchor_ptr->friends) {
-                            // Check if result already exists
+                            // 检查是否已有计算结果
                             int min_friend_id = std::min(friend_id, node_id);
                             int max_friend_id = std::max(friend_id, node_id);
                             std::pair<int, int> friend_pair = std::make_pair(min_friend_id, max_friend_id);
@@ -1996,16 +2015,16 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
 
                             if (has_friend_result) {
                                 if (friend_ged_res != -1 && friend_ged_res <= parent_->max_exact_ged_for_EPT) {
-                                    // Add node to friend's temp_nodes_in_exact_cluster
+                                    // 将节点加入朋友的 temp_nodes_in_exact_cluster
                                     {
                                         std::lock_guard<std::mutex> lock(temp_mutex);
                                         temp_nodes_in_exact_cluster[friend_id].push({static_cast<double>(friend_ged_res), node_id});
                                     }
                                     assigned_via_friend = true;
-                                    break; // Successfully adopted, break out of friends loop
+                                    break; // 已成功归入，跳出 friends 循环
                                 }
                             } else {
-                                // Need to compute GED with friend
+                                // 需要计算与朋友的 GED
                                 auto friend_node = parent_->nodes[friend_id];
                                 auto friend_anchor = std::dynamic_pointer_cast<Anchor>(friend_node);
                                 if (!friend_anchor) continue;
@@ -2018,21 +2037,22 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
                                     ui friend_LB = friend_graph->ged_lower_bound_filter(
                                         graph2,
                                         static_cast<ui>(parent_->max_exact_ged_for_EPT),
-                                        parent_->vM.size(),    // number of vertex label types
-                                        parent_->eM.size(),    // number of edge label types
-                                        parent_->max_n         // maximum vertex count
+                                        parent_->vM.size(),    // 顶点标签种类数量
+                                        parent_->eM.size(),    // 边标签种类数量
+                                        parent_->max_n         // 最大节点数
                                     );
                                     if (friend_LB > parent_->max_exact_ged_for_EPT) {
-                                        // LB exceeds threshold, no computation needed
+                                        // LB 大于阈值，不需要计算
                                         continue;
                                     }
                                     // double friend_ML_ged = ML_graph::get_ML_ged(friend_anchor->ml_graph, node_other->ml_graph);
                                     // if (friend_ML_ged > parent_->max_exact_ged_for_EPT + 3 * parent_->error_tolerance_index) {
-                                    //     // ML GED exceeds threshold, no computation needed
+                                    //     // ML GED 大于阈值，不需要计算
                                     //     continue;
                                     // }
-                                    // Call AppForComputation
+                                    // 调用 AppForComputation
                                     Application app(static_cast<ui>(parent_->max_exact_ged_for_EPT), "BMao");
+                                app.set_all_edge_labels_same(parent_->all_edge_labels_same);
                                     app.init(friend_graph, graph2);
                                     int lb_astar_friend = -1;
                                     std::vector<std::pair<ui, ui>> mapping_friend;
@@ -2042,7 +2062,7 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
                                     }
 
                                     if (friend_ged_res != -1 && friend_ged_res <= parent_->max_exact_ged_for_EPT) {
-                                        // Convert node mapping to string
+                                        // 将节点映射转换为字符串
                                         std::stringstream mapping_ss_friend;
                                         if (!mapping_friend.empty()) {
                                             mapping_ss_friend << "\"[";
@@ -2058,19 +2078,19 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
                                         }
                                         friend_mapping_str = mapping_ss_friend.str();
 
-                                        // Save new computation result
+                                        // 保存新的计算结果
                                         {
                                             std::lock_guard<std::mutex> lock(computed_results_mutex);
                                             computed_results[friend_pair] = std::make_tuple(friend_ged_res, friend_mapping_str);
                                         }
 
-                                        // Add node to friend's temp_nodes_in_exact_cluster
+                                        // 将节点加入朋友的 temp_nodes_in_exact_cluster
                                         {
                                             std::lock_guard<std::mutex> lock(temp_mutex);
                                             temp_nodes_in_exact_cluster[friend_id].push({static_cast<double>(friend_ged_res), node_id});
                                         }
 
-                                        // Write result to result file
+                                        // 将结果写入结果文件
                                         {
                                             std::lock_guard<std::mutex> lock(result_mutex);
                                             result_file << min_friend_id << "," << max_friend_id << "," << friend_ged_res << "," << friend_mapping_str << "\n";
@@ -2078,28 +2098,28 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
                                         }
 
                                         assigned_via_friend = true;
-                                        break; // Successfully adopted, break out of friends loop
+                                        break; // 已成功归入，跳出 friends 循环
                                     } else {
-                                        // GED exceeds threshold, no need to write to result file
+                                        // GED 超过阈值，不需要写入结果文件
                                     }
 
                                 } catch (const std::exception& e) {
-                                    // Catch exception, output error info
+                                    // 捕获异常，输出错误信息
                                     std::cerr << "Exception occurred while processing node IDs: " << friend_id << ", " << node_id << ". Exception: " << e.what() << std::endl;
-                                    // No need to write error info to result file
+                                    // 不需要写入错误信息到结果文件
                                 }
                             }
                         }
 
                         if (!assigned_via_friend) {
-                            // Cannot adopt via friends, node remains in anchor's nodes_in_cluster
-                            // Already kept in main thread, no extra handling needed
+                            // 无法通过 friends 归入，节点保留在 anchor 的 nodes_in_cluster 中
+                            // 由于在主线程中已经保留，无需额外处理
                         } else {
-                            // Remove this node from anchor's nodes_in_cluster
+                            // 从 anchor 的 nodes_in_cluster 中移除该节点
                             {
                                 std::lock_guard<std::mutex> lock(temp_mutex);
                                 auto& nodes_in_cluster = anchor_ptr->nodes_in_cluster;
-                                // Create new priority queue, filtering out already processed nodes
+                                // 创建一个新的优先队列，过滤掉已处理的节点
                                 std::priority_queue<std::pair<double, int>> updated_nodes_in_cluster_inner;
                                 while (!nodes_in_cluster.empty()) {
                                     auto [d, nid] = nodes_in_cluster.top();
@@ -2108,34 +2128,34 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
                                         updated_nodes_in_cluster_inner.push({d, nid});
                                     }
                                 }
-                                // Update nodes_in_cluster
+                                // 更新 nodes_in_cluster
                                 nodes_in_cluster = updated_nodes_in_cluster_inner;
                             }
                         }
-                        } // End enable_friends_reassign condition check
+                        } // 结束 enable_friends_reassign 条件检查
                     }
 
                 } catch (const std::exception& e) {
-                    // Catch exception, output error info
+                    // 捕获异常，输出错误信息
                     std::cerr << "Exception occurred while processing node IDs: " << anchor_id << ", " << node_id << ". Exception: " << e.what() << std::endl;
-                    // No need to write error info to result file
+                    // 不需要写入错误信息到结果文件
                 }
             }
 
-            // Increment processed task count
+            // 增加已处理的任务数
             size_t current_processed = processed_tasks.fetch_add(1) + 1;
 
-            // Update progress display
+            // 更新进度显示
             if (current_processed % 100 == 0 || current_processed == total_tasks) {
                 double progress = (double)current_processed / total_tasks;
 
-                // Compute elapsed and remaining time
+                // 计算已用时间和剩余时间
                 auto now = std::chrono::steady_clock::now();
                 std::chrono::duration<double> elapsed = now - start_time;
                 double estimated_total_time = elapsed.count() / progress;
                 double remaining_time = estimated_total_time - elapsed.count();
 
-                // Output progress info
+                // 输出进度信息
                 {
                     std::lock_guard<std::mutex> lock(cout_mutex);
                     std::cout << "\rProgress: " << std::fixed << std::setprecision(2)
@@ -2147,27 +2167,27 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
                 }
             }
 
-            // Get next task index
+            // 获取下一个任务索引
             index = task_index.fetch_add(1);
         }
     };
 
-    // Start threads
+    // 启动线程
     for (size_t i = 0; i < num_threads; ++i) {
         threads.emplace_back(worker);
     }
 
-    // Wait for all threads to complete
+    // 等待所有线程完成
     for (auto& t : threads) {
         if (t.joinable()) {
             t.join();
         }
     }
 
-    // Close results file
+    // 关闭结果文件
     result_file.close();
 
-    // **Step 3: Update temporary results to anchors' nodes_in_exact_cluster**
+    // **第三步：将临时结果更新到 anchors 的 nodes_in_exact_cluster**
     for (const auto& [anchor_id, pq] : temp_nodes_in_exact_cluster) {
         if (anchor_id >= 0 && anchor_id < parent_->nodes.size()) {
             auto node_anchor = parent_->nodes[anchor_id];
@@ -2177,11 +2197,11 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
                 continue;
             }
 
-            // 1) First transfer (dist, node_id) from pq to a new queue new_queue
+            // 1) 先把 pq 中的 (dist, node_id) 转存到一个新的队列 new_queue
             std::priority_queue<Anchor::ExactClusterNode> new_queue;
 
-            // Since priority queue only allows popping one by one, need to copy/rebuild
-            auto tmp = pq; // make a copy to avoid destroying original pq
+            // 由于优先队列只能逐个 pop，我们要复制/重建
+            auto tmp = pq; // 拷贝一份，避免破坏原 pq
             while (!tmp.empty()) {
                 auto [dist, node_id] = tmp.top();
                 tmp.pop();
@@ -2189,19 +2209,19 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
                 Anchor::ExactClusterNode ecn;
                 ecn.dist = dist;
                 ecn.node_id = node_id;
-                // if no mapping, leave empty; if mapping exists, store separately
+                // 若你没有mapping，就留空；若有 mapping，需要另行存储
 
                 new_queue.push(ecn);
             }
 
-            // 2) finally assign to anchor_ptr->nodes_in_exact_cluster
+            // 2) 最后再赋值给 anchor_ptr->nodes_in_exact_cluster
             anchor_ptr->nodes_in_exact_cluster = std::move(new_queue);
         } else {
             std::cerr << "[ERROR] Anchor ID out of range: " << anchor_id << std::endl;
         }
     }
 
-    // Final display progress 100%
+    // 最终显示进度100%
     {
         std::lock_guard<std::mutex> lock(cout_mutex);
         std::cout << "\rProgress: 100.00% (" << total_tasks << "/" << total_tasks << ")"
@@ -2216,7 +2236,7 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
     std::cout << "Finished reassign_nodes_in_cluster." << std::endl;
     std::cout << "Valid results saved to: " << result_filename << std::endl;
     std::cout << "Failed results saved to: " << failed_result_filename << std::endl;
-    // Save net_dag object to file
+    // 保存 net_dag 对象到文件
     parent_->net_dag->anchors = parent_->anchors;
     parent_->net_dag->nodes = parent_->nodes;
     std::string reassigned_dir = dataset_dir + "reassigned/";
@@ -2228,15 +2248,15 @@ void NetDagConstructor::reassign_nodes_in_cluster() {
 }
 
 void NetDagConstructor::reassign_nodes_in_cluster_with_csv() {
-    // Verify coverage before reassign
+    // 验证reassign前的覆盖情况
     verify_coverage("before_reassign_csv");
 
-    // CSV file path
+    // CSV 文件路径
     std::string dataset_dir = "./NetDags/" + parent_->dataset + "/";
     std::string ged_results_dir = dataset_dir + "ged_results/";
     std::string csv_filename = ged_results_dir + parent_->index_name + "_exact_ged_results.csv";
 
-    // Check if CSV file exists
+    // 检查 CSV 文件是否存在
     std::ifstream csv_check(csv_filename);
     if (!csv_check.is_open()) {
         std::cout << "[INFO] CSV file " << csv_filename << " not found. Skipping reassignment." << std::endl;
@@ -2245,7 +2265,7 @@ void NetDagConstructor::reassign_nodes_in_cluster_with_csv() {
     csv_check.close();
 
     // ============================================================
-    // Step 1: load CSV into map: (min_id, max_id) -> (ged, mapping_str)
+    // Step 1: 加载 CSV 到 map: (min_id, max_id) -> (ged, mapping_str)
     // ============================================================
     struct GedResult {
         int ged;
@@ -2288,7 +2308,7 @@ void NetDagConstructor::reassign_nodes_in_cluster_with_csv() {
     std::cout << "[reassign] Loaded " << loaded_count << " GED results." << std::endl;
 
     // ============================================================
-    // Step 2: iterate each anchor's nodes_in_cluster, allocate based on csv
+    // Step 2: 遍历每个 anchor 的 nodes_in_cluster，根据 csv 决定分配
     // ============================================================
     int total_to_exact = 0;
     int total_to_cluster = 0;
@@ -2297,7 +2317,7 @@ void NetDagConstructor::reassign_nodes_in_cluster_with_csv() {
         std::vector<std::pair<ui, ui>> mapping;
         std::string str = mapping_str;
 
-        // strip leading/trailing whitespace and quotes
+        // 去除首尾空白和引号
         str.erase(0, str.find_first_not_of(" \t\r\n\""));
         str.erase(str.find_last_not_of(" \t\r\n\"") + 1);
 
@@ -2335,12 +2355,12 @@ void NetDagConstructor::reassign_nodes_in_cluster_with_csv() {
     for (auto& anchor : parent_->anchors) {
         int anchor_id = anchor->node_id;
 
-        // clear exact_cluster
+        // 清空 exact_cluster
         while (!anchor->nodes_in_exact_cluster.empty()) {
             anchor->nodes_in_exact_cluster.pop();
         }
 
-        // process nodes_in_cluster
+        // 处理 nodes_in_cluster
         std::priority_queue<std::pair<double, int>> old_cluster = anchor->nodes_in_cluster;
         std::priority_queue<std::pair<double, int>> new_cluster;
 
@@ -2355,12 +2375,12 @@ void NetDagConstructor::reassign_nodes_in_cluster_with_csv() {
                 continue;
             }
 
-            // look up if this pair exists in csv
+            // 查找 csv 中是否有这个 pair
             uint64_t key = make_key(anchor_id, node_id);
             auto it = ged_map.find(key);
 
             if (it != ged_map.end() && it->second.ged <= parent_->max_exact_ged_for_EPT) {
-                // found in csv and GED <= threshold -> exact_cluster
+                // 在 csv 中找到，且 GED <= 阈值 -> exact_cluster
                 Anchor::ExactClusterNode ecn;
                 ecn.dist = static_cast<double>(it->second.ged);
                 ecn.node_id = node_id;
@@ -2368,7 +2388,7 @@ void NetDagConstructor::reassign_nodes_in_cluster_with_csv() {
                 anchor->nodes_in_exact_cluster.push(ecn);
                 total_to_exact++;
             } else {
-                // not in csv, or GED > threshold -> keep in cluster
+                // 不在 csv 中，或 GED > 阈值 -> 留在 cluster
                 new_cluster.push({dist, node_id});
                 total_to_cluster++;
             }
@@ -2381,19 +2401,19 @@ void NetDagConstructor::reassign_nodes_in_cluster_with_csv() {
     std::cout << "[reassign] Completed: " << total_to_exact << " nodes to exact_cluster, "
               << total_to_cluster << " nodes remain in cluster." << std::endl;
 
-    // Verify coverage after reassign
+    // 验证reassign后的覆盖情况
     verify_coverage("after_reassign_csv");
 }
 
 void NetDagConstructor::filter_friends_before_saving() {
-    // Distance threshold: 4 * alpha
+    // 距离阈值：4 * alpha
     double friend_distance_threshold = 4.0 * parent_->alpha;
 
-    // Iterate all anchors, filter friend relationships
+    // 遍历所有锚点，筛选朋友关系
     for (auto& anchor : parent_->anchors) {
         if (!anchor) continue;
 
-        // Create new friends list, keep only those with distance <= 4*alpha
+        // 创建新的朋友列表，只保留距离 <= 4*alpha 的朋友
         std::vector<std::pair<double, int>> filtered_friends;
         filtered_friends.reserve(anchor->friends.size());
 
@@ -2403,30 +2423,30 @@ void NetDagConstructor::filter_friends_before_saving() {
             }
         }
 
-        // Update friends list
+        // 更新朋友列表
         anchor->friends = std::move(filtered_friends);
     }
 
-    // Synchronize update of anchors in net_dag
+    // 同步更新 net_dag 中的 anchors
     parent_->net_dag->anchors = parent_->anchors;
 }
 
 int NetDagConstructor::verify_coverage(const std::string& checkpoint_name) {
-    // Check if all nodes are covered (either anchor or in some anchor's cluster)
+    // 检查所有节点是否都被覆盖（要么是anchor，要么在某个anchor的cluster中）
     std::unordered_set<int> covered;
 
-    // 1. all anchors themselves are covered
+    // 1. 所有anchor本身都是覆盖的
     for (const auto& anchor : parent_->anchors) {
         covered.insert(anchor->node_id);
 
-        // 2. nodes in anchor's nodes_in_cluster are also covered
+        // 2. anchor的nodes_in_cluster中的节点也是覆盖的
         std::priority_queue<std::pair<double, int>> nodes_copy = anchor->nodes_in_cluster;
         while (!nodes_copy.empty()) {
             covered.insert(nodes_copy.top().second);
             nodes_copy.pop();
         }
 
-        // 3. nodes in anchor's nodes_in_exact_cluster are also covered
+        // 3. anchor的nodes_in_exact_cluster中的节点也是覆盖的
         auto exact_copy = anchor->nodes_in_exact_cluster;
         while (!exact_copy.empty()) {
             covered.insert(exact_copy.top().node_id);
@@ -2434,7 +2454,7 @@ int NetDagConstructor::verify_coverage(const std::string& checkpoint_name) {
         }
     }
 
-    // Count uncovered nodes
+    // 统计未覆盖的节点
     int total_nodes = static_cast<int>(parent_->nodes.size());
     int uncovered_count = 0;
     std::vector<int> uncovered_samples;
@@ -2448,7 +2468,7 @@ int NetDagConstructor::verify_coverage(const std::string& checkpoint_name) {
         }
     }
 
-    // Count various node types and duplicates
+    // 统计各类节点和重复
     size_t anchor_count = 0, cluster_count = 0, exact_count = 0;
     std::unordered_map<int, int> cluster_node_counts, exact_node_counts;
     for (const auto& anchor : parent_->anchors) {
@@ -2466,7 +2486,7 @@ int NetDagConstructor::verify_coverage(const std::string& checkpoint_name) {
             exact_copy.pop();
         }
     }
-    // Count duplicates
+    // 统计重复
     int cluster_dups = 0, exact_dups = 0;
     for (const auto& [id, cnt] : cluster_node_counts) {
         if (cnt > 1) cluster_dups++;

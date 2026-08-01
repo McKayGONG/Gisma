@@ -15,29 +15,29 @@ public:
     std::map<int, std::vector<std::pair<int, double>>> children; // (node_id, child_dist)
     std::priority_queue<std::pair<double, int>> nodes_in_cluster;
 
-    // Struct for storing node distance, node ID, and mapping information
+    // 定义一个结构体，用于存储节点距离、节点 ID 和映射信息
     struct ExactClusterNode {
         double dist;
         int node_id;
         std::vector<std::pair<ui, ui>> mapping;
 
-        // Comparison function for priority_queue, sorting by distance ascending
+        // 为 priority_queue 实现比较函数，使其按距离从小到大排序
         bool operator<(const ExactClusterNode& other) const {
-            // priority_queue defaults to max-heap; to achieve min-heap, use greater comparison
+            // priority_queue 默认是大顶堆，为实现小顶堆，使用 greater 比较
             return dist > other.dist;
         }
     };
 
-    // Use the new struct to store nodes_in_exact_cluster
+    // 使用新的结构体来存储 nodes_in_exact_cluster
     std::priority_queue<ExactClusterNode> nodes_in_exact_cluster;
     std::vector<std::pair<double, int>> nodes_in_cluster_vec;
     std::vector<std::pair<double, int>> nodes_in_exact_cluster_vec;
     std::vector<std::pair<int, double>> nodes_in_cover_range;
     double r_a;
 
-    // Default constructor
+    // 默认构造函数
     Anchor()
-        : Node(),  // call Node's default constructor
+        : Node(),  // 调用 Node 的默认构造函数
           anchor_id(-1),
           r_a(0.0) {
         is_anchor = true;
@@ -58,29 +58,29 @@ public:
         r_a = new_range;
     }
     void fill_vectors_from_queues() {
-        // 1) Clear original vectors
+        // 1) 清空原 vector
         nodes_in_cluster_vec.clear();
         nodes_in_exact_cluster_vec.clear();
 
-        // 2) Copy nodes_in_cluster => nodes_in_cluster_vec
+        // 2) 复制 nodes_in_cluster => nodes_in_cluster_vec
         {
-            auto tmp = nodes_in_cluster; // copy priority queue
+            auto tmp = nodes_in_cluster; // 拷贝优先队列
             while(!tmp.empty()) {
                 nodes_in_cluster_vec.push_back(tmp.top());
                 tmp.pop();
             }
         }
 
-        // 3) Copy nodes_in_exact_cluster => nodes_in_exact_cluster_vec
-        //    Note: copy dist, node_id from ExactClusterNode
+        // 3) 复制 nodes_in_exact_cluster => nodes_in_exact_cluster_vec
+        //    注意要把 ExactClusterNode 的 dist、node_id 拷过去
         {
-            auto tmp = nodes_in_exact_cluster; // copy
+            auto tmp = nodes_in_exact_cluster; // 拷贝
             while(!tmp.empty()) {
                 // IMPORTANT: Copy by value BEFORE pop() to avoid undefined behavior
                 // Previously: const auto &ecn = tmp.top(); pop(); - UB!
                 const auto ecn = tmp.top();  // Copy by value
                 tmp.pop();
-                // Only keep (dist, node_id); mapping can be considered if needed
+                // 只保留 (dist, node_id), 若需要 mapping也可再考虑
                 nodes_in_exact_cluster_vec.push_back({ecn.dist, ecn.node_id});
             }
         }

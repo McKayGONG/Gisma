@@ -14,7 +14,7 @@
 #include <queue>
 #include <set>
 #include <map>
-#include <memory> // smart pointers
+#include <memory> // 智能指针
 #include <iomanip> // std::setprecision
 
 typedef unsigned int ui;
@@ -22,7 +22,7 @@ typedef unsigned short ushort;
 typedef unsigned char uchar;
 
 #define pb push_back
-#define mp std::make_pair // changed to std::make_pair
+#define mp std::make_pair // 修改为std::make_pair
 #define mmax(a,b) ((a)>(b)?(a):(b))
 #define mmin(a,b) ((a)<(b)?(a):(b))
 
@@ -35,7 +35,7 @@ typedef unsigned char uchar;
 // =============================================================================
 // SIMPLE DFS OPTIMIZATIONS (Currently Active)
 // =============================================================================
-#define USE_SUBTREE_PRUNING 1  // Subtree pruning: predict if remaining steps suffice to reach tau
+#define USE_SUBTREE_PRUNING 1  // Subtree pruning: 预判剩余步数是否足够达到tau
 #define USE_DYNAMIC_DEPTH_PROBE
 #define USE_ESTIMATE_LB_OPTIMIZATION 1
 #define USE_BASELINE_FOR_DISTANT_CHILDREN 1
@@ -43,17 +43,17 @@ typedef unsigned char uchar;
 // =============================================================================
 // UNIFIED DFS & SEARCH TREE REUSE RELATED (Not used with SIMPLE_DFS)
 // =============================================================================
-#define REUSE_IN_SEQUENCE 0  // 1: reuse in sequence, 0: no reuse in sequence
-#define MAX_GED_GAP 3  // enable search tree reuse
+#define REUSE_IN_SEQUENCE 0  // 1:在sequence中复用，0:在sequence中不复用
+#define MAX_GED_GAP 3  // 启用搜索树重用
 #define MAX_MARGIN 3
-#define _USE_LSa_AS_LAYER_
-#define USE_LSa_REFRESH 1  // 1: use LSa recomputation, 0: do not use
+// _USE_LSa_AS_LAYER_ 已改为 runtime 开关：--disable_lsa_layer（Application::disable_lsa_layer，默认层开启）
+#define USE_LSa_REFRESH 1  // 1:使用LSa重计算，0:不使用LSa重计算
 #define _USE_LSa_ESTIMATE_BMao_
 
 #define USE_SIBLING_INTERSECTION 1
 #define INTERSECTION_WITH_FULL_SNAPSHOT 1
-#define PUSH_BACK_AFTER_RECOMPUTE 1  // 1: push back to heap, 0: expand directly
-#define USE_LAZY_RECOMPUTE 1  // 1: use lazy recompute, 0: do not use
+#define PUSH_BACK_AFTER_RECOMPUTE 1  // 1:压回heap, 0:直接展开
+#define USE_LAZY_RECOMPUTE 1  // 1:使用lazy recompute, 0:不使用
 #define VERIFY_REUSE_WITH_BASELINE
 
 // =============================================================================
@@ -64,11 +64,11 @@ typedef unsigned char uchar;
 #define _UPPER_BOUND_
 
 
-#define USE_FILTERS_FOR_APP_BMAO 1  // 1: use filters in App-BMao search, 0: start directly with app baseline
-#define APP_TEST_EXACT_RESULT 0  // 1: App_test returns exact GED result, 0: App_test only as verification tool (similar to baseline)
-// COMPUTE_ASTAR_ONLY_FOR_DATA_GRAPH is deprecated, now controlled by use_ept_filters parameter:
-// use_ept_filters=true: only compute GED for nodes with completed_db_graph_ids (leaf nodes)
-// use_ept_filters=false: compute GED for all nodes
+#define USE_FILTERS_FOR_APP_BMAO 1  // 1:App-BMao搜索中使用过滤器，0:直接app baseline开始算
+#define APP_TEST_EXACT_RESULT 0  // 1:App_test返回精确GED结果，0:App_test只作为verification工具（类似baseline）
+// COMPUTE_ASTAR_ONLY_FOR_DATA_GRAPH 已废弃，现在由 use_ept_filters 参数控制：
+// use_ept_filters=true: 只对有completed_db_graph_ids的节点（叶节点）计算GED
+// use_ept_filters=false: 对所有节点计算GED
 
 
 
@@ -87,13 +87,13 @@ typedef unsigned char uchar;
 // =============================================================================
 // #define STEP_TRACE
 // #define show_time_detail
-// #define MAX_EPT_DEPTH 20  // or other values
+// #define MAX_EPT_DEPTH 20  // 或其他值
 // #define DEBUG_PRUNING
 // #define OVERALL_UB_NO_IMPROVE_LIMIT 1000
 // #define DEPTH_FIRST_PRIORITY
-// #define DEBUG_VERBOSE  // control verbose debug output
-// #define DEBUG_QUERY_82  // enable detailed debug output for Query 82
-// #define ALL_EDGE_LABELS_SAME  // enable optimization for identical edge labels
+// #define DEBUG_VERBOSE  // 控制详细调试输出
+// #define DEBUG_QUERY_82  // 启用Query 82的详细调试输出
+// #define ALL_EDGE_LABELS_SAME  // 已轉為 runtime flag（Application::all_edge_labels_same）；預設 false
 const double hybrid_ratio = 1.0;
 
 const int INF = 10000000;
@@ -102,7 +102,7 @@ const ui block_size = 1024;
 
 #include <cassert>
 
-// Forward declarations of other classes
+// 前向声明其他类
 class Graph;
 class Node;
 class Anchor;
@@ -110,38 +110,41 @@ class NetDag;
 
 class Utility {
 public:
-    // Static function to open a file
+    // 打开文件的静态函数
     static FILE* open_file(const char* file_name, const char* mode);
 
-    // Static function to convert integer to string
-    static std::string integer_to_string(long long number);
+    // 整数转字符串的静态函数
 
-    // Static function to load graph data from txt file
+    // 从txt文件中加载图数据的静态函数
     static ui load_db(const char* file_name, std::vector<Graph*>& graphs, std::map<std::string, ui>& vM, std::map<std::string, ui>& eM);
 
-    // Helper function to convert label to integer
+    // 标签转整数的辅助函数
     static ui label2int(const char* label, std::map<std::string, ui>& label_map);
 
-    // Extract filename from path tail and take first four characters as short name
+    // 获取路径末尾文件名并提取前四位作为短名称
     static std::string get_short_name_from_path(const std::string& path);
 
-    // Generate index_name containing short_name and parameters, keeping one decimal place
+    // 生成包含short_name和参数的index_name，并保留一位小数
     static std::string get_index_name(const std::string& db_name, double alpha, double tau, double error_tolerance_index, size_t graph_size);
 
-    // Get the index of (i, j) in upper triangular matrix
+    // 获取上三角矩阵中 (i, j) 的索引
     static size_t get_upper_tri_index(int N, int i, int j);
 
     static bool load_exact_ground_truth(const std::string& file_path,
                                         std::map<int, std::map<double, std::vector<int>>>& ground_truth);
 
-    static std::vector<int> get_ids_within_range(const std::map<int, std::map<double, std::vector<int>>>& ground_truth, double range);
 
     // Vector distance calculation
     static double euclidean_distance(const std::vector<float>& v1, const std::vector<float>& v2);
 
     // Embedding vector loading
     static bool load_embeddings(const std::string& embedding_file, std::vector<std::vector<float>>& embeddings);
-    static double predict_ged_with_embeddings(const std::vector<float>& emb1, const std::vector<float>& emb2);
+
+    // E1: construction 计时输出文件路径。空 = 不统计（默认）。由 main() 从 --timing_log 设置。
+    static std::string e1_timing_path;
+    // append one structured timing record (tab-separated key=value) to e1_timing_path.
+    // 若 e1_timing_path 为空则直接返回（不创建任何文件）。
+    static void append_e1_timing(const std::string& record);
 
 };
 

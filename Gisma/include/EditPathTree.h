@@ -16,87 +16,88 @@
 #include <shared_mutex>
 #include "Graph.h"
 
-// Type definition
+// 类型定义
 typedef unsigned int ui;
 
-// Forward declaration
+// 前向声明
 class EditPathTree;
 
 struct TreeStatistics {
-    // ========== 1) Depth Related ==========
+    // ========== 1) 深度相关 ==========
     int max_depth = 0;
     int min_depth = std::numeric_limits<int>::max();
 
-    // Nodes per level
+    // 每层节点数
     std::map<int, int> nodes_per_level;
 
-    // “Level breakdown” => [depth => (original level => count)]
+    // “层级分布” => [深度 => (原始层级 => 个数)]
     std::map<int, std::map<int, int>> level_breakdown;
 
-    // ========== 2) Fanout Statistics ==========
+    // ========== 2) Fanout 统计 ==========
     int max_fanout = 0;
-    int min_fanout = 0; // can be combined with a check to indicate unassigned
+    int min_fanout = 0; // 若要表示未赋值，可配合判断
     int total_fanout = 0;
     int internal_node_count = 0;
     long long total_graph_count = 0;
-    // ---- Per-level fanout distribution (FanoutLevelStats) ----
+    // ---- 每层 fanout 分布 (FanoutLevelStats) ----
     struct FanoutLevelStats {
-        int count = 0;                                  // number of nodes with children (internal nodes at this level)
-        int max_fanout = 0;                             // maximum fanout
+        int count = 0;                                  // 有子节点的数量(本层的内节点数)
+        int max_fanout = 0;                             // fanout最大值
         int min_fanout = std::numeric_limits<int>::max();
-        long long sum_fanout = 0;                       // sum of fanouts
-        long long sum_squares = 0;                      // sum of fanout^2 (for variance)
+        long long sum_fanout = 0;                       // fanout求和
+        long long sum_squares = 0;                      // fanout^2 求和(用于方差)
     };
-    // Statistics: for each EPT-level => distribution of BFS-dist of all leaves at this level
+    // 用来统计：每个 EPT-level => 这层所有“叶子”的 BFS-dist 的分布
     struct LeafDistStats {
-        long long sum_dist = 0;       // sum of dist
-        long long sum_squares = 0;    // sum of dist^2 (for standard deviation)
-        int count = 0;               // leaf count
+        long long sum_dist = 0;       // dist 求和
+        long long sum_squares = 0;    // dist^2 求和 (用于标准差)
+        int count = 0;               // 叶子数量
     };
 
     // EPT-level => LeafDistStats
     std::map<int, LeafDistStats> leaf_dist_per_ept_level;
 
-    // Level -> FanoutLevelStats
+    // 每层 -> FanoutLevelStats
     std::map<int, FanoutLevelStats> fanout_per_level;
 
-    // ========== 3) Added field: total node count ==========
-    // (during traversal, increment for each visited node)
+    // ========== 3) 新增字段：总节点数 ==========
+    // (在遍历时，每访问一个节点都 +1)
     int total_nodes = 0;
 
-    // ========== 4) Added field: leaf node count per level ==========
-    // (during traversal, if children_indices.empty() then leaf_count_per_level[level]++)
+    // ========== 4) 新增字段：每层的叶子节点数 ==========
+    // (在遍历时，若 children_indices.empty() 则 leaf_count_per_level[level]++)
     std::map<int, int> leaf_count_per_level;
 
-    // ========== 5) Added: total leaf node count ==========
-    // (during traversal, if children_indices.empty() then total_leaf_nodes++)
+    // ========== 5) 再新增: 叶子节点总数 (若需要) ==========
+    // (在遍历时，只要是叶子 children_indices.empty() 就 total_leaf_nodes++)
     int total_leaf_nodes = 0;
 
-    // ========== 6) BFS statistics: “distance (steps) -> leaf count” distribution ==========
-    // (during BFS, if dist steps reach a leaf => leaf_distance_count[dist]++)
+    // ========== 6) 若你要 BFS 统计 “距离(步数)->叶子数” 分布 ==========
+    // (在 BFS 时, 如果 dist 步到达一个叶子 => leaf_distance_count[dist]++)
     std::map<int,int> leaf_distance_count;
 };
 
 
 
-// TreeNode class
+// TreeNode 类
 class TreeNode {
 public:
-    // Edit operation
+    // 编辑操作
     EditOperation op;
 
-    // Child node indices
+    // 子节点索引
     std::vector<size_t> children_indices;
 
-    // List of completed db_graph_ids
+    // 多个完成的 db_graph_id 列表
     std::vector<int> completed_db_graph_ids;
 
     size_t parent_index;
 
-    int level;              // original level
-    int simplified_level;   // simplified level
-    int ept_node_id;        // EPT node ID
-    ui anchor_id;           // anchor ID
+    int level;              // 原始层级
+    int simplified_level;   // 简化后的层级
+    int max_subtree_depth = -1;  // max level in subtree (precomputed, -1 = not computed)
+    int ept_node_id;        // EPT节点ID
+    ui anchor_id;           // 锚点ID
     int tree_node_graph_id;
     int db_graph_n;
     int db_graph_m;
@@ -118,45 +119,57 @@ public:
 
     ~TreeNode();
 
-    // Save to file function
+    // 保存到文件的函数
     void save_to_file(const std::string& filename) const;
 
-    // Save to stream function
+    // 保存到流的函数
     void save_to_stream(std::ostream& os) const;
 
-    // Load node from stream function
+    // 从流中加载节点的函数
     void load_from_stream(std::istream& is);
 
-    // Member function to collect database graph IDs
+    // 收集数据库图 ID 的成员函数
     void collect_graph_ids(const std::vector<TreeNode>& nodes, std::vector<int>& ids, int depth_limit, int current_depth) const;
 
-    // Static function to load a single EPT from file
+    // 静态函数用于从文件加载单个 EPT
     static TreeNode* load_from_file(const std::string& filename);
 };
 
 
-// EditPathTree class
+// EditPathTree 类
 class EditPathTree {
 public:
     std::vector<TreeNode> tree_nodes;
     
     // std::unordered_map<int, std::shared_ptr<Graph>> tree_node_graph_map;
     
-    size_t root_index;           // root node index
+    size_t root_index;           // 根节点的索引
     TreeStatistics stats;
-    ui anchor_id; // anchor_id member variable
-
-    // Constructor and destructor
+    ui anchor_id; // 添加 anchor_id 成员变量
+    
+    // 构造函数和析构函数
     EditPathTree(ui anchor_id = 0);
     ~EditPathTree() = default;
 
-    // Compute statistics
+    // 计算统计信息
     void compute_statistics();
+
+    // Precompute max_subtree_depth for all nodes
+    void precompute_max_subtree_depth();
  
-    // Collect target graph IDs
+    // 收集目标图 ID
     void collect_graph_ids(std::vector<int>& ids, int depth_limit) const;
 
-    // Save and load functions
+    // E11 真增量插入(merge): 把 db 图 g 合并进本 EPT。full_ops = root(anchor)->g 的 edit 操作集(可乱序)。
+    // 从 root 沿"整条压缩边的 op 集 ⊆ 剩余 op"的子节点贪心下走(共享前缀, 不拆已有节点)，
+    // 走不动了就建【一个压缩节点】(accumulated_ops = 剩余全部, db_graph 指向真实 g) 挂上, g 落其中。
+    // 若剩余恰好为空(g 与某现有节点重合)→ 直接把 gid 加入该节点。调用后需 precompute_max_subtree_depth()。
+    void insert_graph_merge(const std::vector<EditOperation>& full_ops, Graph* g_graph, int db_graph_id);
+
+    // E11: 移除指定 db 图 id(从所有节点的 completed_db_graph_ids 删除)，返回实际被删的(去重)id。
+    std::vector<int> remove_db_graph_ids(const std::unordered_set<int>& ids_to_remove);
+
+    // 保存和加载函数
     void save_to_file(const std::string& filename) const;
     void load_from_file(const std::string& filename);
     void reorder() {
@@ -185,42 +198,48 @@ public:
     
 };
 
-// EditPathTreeManager class
+// EditPathTreeManager 类
 class EditPathTreeManager {
 public:
-    // Load all EPTs
-    void load_all_epts_from_directory(const std::string& directory_path);
+    // 加载所有 EPT
     void load_all_epts_from_directory_parallel(const std::string& directory_path);
-    // Get EPT by anchor ID
+    // 根据锚点 ID 获取 EPT
     EditPathTree* get_ept(ui anchor_id);
 
-    // Lock-free version: only use in read-only phase after EPT loading is complete
-    // Used in query phase to avoid atomic operation overhead of shared_lock
+    // 无锁版本：仅在确保 EPT 加载完成后的只读阶段使用
+    // 用于查询阶段，避免 shared_lock 的原子操作开销
     EditPathTree* get_ept_no_lock(ui anchor_id) const;
 
-    // Get the number of loaded EPTs
+    // 获取已加载的 EPT 数量
     size_t get_ept_count() const;
 
-    // Get the total node count across all EPTs
+    // 获取所有EPT的总节点数
     size_t get_total_nodes() const;
 
-    // Clear all EPTs
+    // E11: 收集所有 EPT 叶子节点(children_indices 为空、非 root/anchor)对应的 db 图 id。
+    // 用于「去掉 100 个叶子图再插回」的 update 实验(叶子无子树→remove/insert 不重构层级)。
+    std::vector<int> collect_leaf_db_ids() const;
+
+    // E11 真增量插入: 列出所有已加载的 anchor id(便于遍历 EPT)。
+    std::vector<ui> all_anchor_ids() const;
+
+    // 清理所有 EPTs
     void clear_all_epts();
 
-    // Destructor, clears EPTs
+    // 析构函数，清理 EPTs
     ~EditPathTreeManager() = default;
 
 private:
-    // Mapping from anchor ID to EPT, using smart pointers for memory management
+    // 锚点 ID 到 EPT 的映射，使用智能指针管理内存
     std::unordered_map<ui, std::unique_ptr<EditPathTree>> ept_map;
 
-    // Read-write lock for protecting ept_map, allowing concurrent multi-thread reads
-    // Using shared_mutex instead of mutex to resolve lock contention during parallel queries
+    // 读写锁用于保护 ept_map，允许多线程并发读取
+    // 使用 shared_mutex 替代 mutex，解决并行查询时的锁竞争问题
     mutable std::shared_mutex map_mutex;
 };
 
 
-// Function declarations for building and printing edit path trees
+// 构建和打印编辑路径树的函数声明
 void build_edit_path_tree(
     EditPathTree& ept,
     const std::vector<std::vector<EditOperation>>& edit_operations_list,
@@ -237,23 +256,13 @@ void build_edit_path_tree_recursive(
     int current_level,
     int& ept_node_counter);
 
-void rebuild_and_reindex_ept_dfs(EditPathTree& ept);
 void simplifyNode(EditPathTree& ept, size_t node_index);
-void dfs_reindex(EditPathTree& ept, size_t old_idx, std::vector<bool>& visited,
-                  std::vector<size_t>& old2new, std::vector<TreeNode>& new_nodes, size_t& nextIndex);
-void remove_parent_inf_nodes(EditPathTree& ept);
 void simplify_EPT(EditPathTree& ept);
 
-void print_EPT(const EditPathTree& ept, bool simplified = false);
-void print_EPT_with_actual_steps(const EditPathTree& ept);
-void test_EPT_structure(const EditPathTree &ept);
 
 void update_simplified_levels(EditPathTree& ept, size_t node_index, int current_level);
 
-double compute_distance(const Graph& g1, const Graph& g2);
 std::string get_wl_hash(const TreeNode &tn);
-void merge_children_by_WLhash_bfs(EditPathTree & ept);
-// Shrink completed_db_graph_ids (implementation in EditPathTree.cpp)
-void shrink_completed_ids_to_first(EditPathTree& ept);
+// 压缩 completed_db_graph_ids（实现见 EditPathTree.cpp）
 
 #endif // EDIT_PATH_TREE_H

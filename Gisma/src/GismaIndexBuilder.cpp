@@ -66,7 +66,7 @@ GismaIndexBuilder::GismaIndexBuilder(const std::string& index_name,
       enable_friends_reassign(enable_friends_reassign),
       NDC(0) {
     brute_range = 2 * tau + 1;
-    r_k = INF; // use INF from Utility.h
+    r_k = INF; // 使用 Utility.h 中的 INF
     child_range = 3 * r_k + 2 * tau + 4 * error_tolerance_index;
     max_dist = -1.0;
     max_anchor_node_id = -1;
@@ -78,7 +78,7 @@ GismaIndexBuilder::GismaIndexBuilder(const std::string& index_name,
 }
 
 GismaIndexBuilder::~GismaIndexBuilder() {
-    // Release all EPT memory
+    // 释放所有 EPT 的内存
     for (auto& pair : anchor_ept_map) {
         if (pair.second != nullptr) {
             delete pair.second;
@@ -181,6 +181,10 @@ void GismaIndexBuilder::make_friends(std::shared_ptr<Anchor> anchor1, std::share
 }
 
 void GismaIndexBuilder::add_edge(std::shared_ptr<Anchor> parent, std::shared_ptr<Node> child, int child_phase, double child_dist) {
+    netdag_constructor_->add_edge(parent, child, child_phase, child_dist);
+}
+
+void GismaIndexBuilder::add_edge(std::shared_ptr<Node> parent, std::shared_ptr<Node> child, int child_phase, double child_dist) {
     netdag_constructor_->add_edge(parent, child, child_phase, child_dist);
 }
 
