@@ -988,6 +988,7 @@ std::vector<std::tuple<int, double, int>> GismaSearchEngine::GS_search(std::shar
 
     // ========== 2) 循环：phase 不断折半，直到 <= alpha ==========
 
+    // children keys are child-layer radii; start at their parent layer.
     current_phase *= 2.0;
     while (current_phase > net_dag->alpha)
     {
